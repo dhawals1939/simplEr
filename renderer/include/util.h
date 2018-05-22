@@ -58,6 +58,12 @@ inline bool isSorted(const std::vector<T> &vec) {
 //	return true;
 }
 
+
+/*
+ * TODO: Need to made sure that, every time this is called, the local code also
+ * takes care to apply the eta*eta scaling if needed. Note that, according to
+ * mitsuba, this scaling is needed when we return to the same medium through TIR.
+ */
 template <typename T>
 inline Float fresnelDielectric(T cosThetaI, T cosThetaT, T eta)
 {

@@ -48,7 +48,7 @@ void Renderer::scatter(const tvec::Vec3f &p, const tvec::Vec3f &d,
 		Float totalDist = dist;
 		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
 				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
-			scene.addEnergy(img, pos, dir, totalDist, weight, medium);
+			scene.addEnergy(img, pos, dir, totalDist, weight, medium, sampler);
 
 			if (!scatterOnce(pos, dir, dist, cosTheta, scene, medium, sampler)) {
 				break;
@@ -86,7 +86,7 @@ void Renderer::scatterDeriv(const tvec::Vec3f &p, const tvec::Vec3f &d,
 				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
 			scene.addEnergyDeriv(img, dSigmaT, dAlbedo, dGVal, pos, dir,
 							totalDist, weight, sumScoreSigmaT, sumScoreAlbedo,
-							sumScoreGVal, medium);
+							sumScoreGVal, medium, sampler);
 
 			if (!scatterOnce(pos, dir, dist, cosTheta, scene, medium, sampler)) {
 				break;
@@ -163,7 +163,7 @@ void Renderer::scatterDerivWeight(const tvec::Vec3f &p, const tvec::Vec3f &d,
 //			if (depth == 2) {
 			scene.addEnergyDeriv(img, dSigmaT, dAlbedo, dGVal, pos, dir,
 							totalDist, weight, sumScoreSigmaT, sumScoreAlbedo,
-							sumScoreGVal, medium);
+							sumScoreGVal, medium, sampler);
 //			}
 
 			if (!scatterOnceWeight(pos, dir, weight, dist, cosTheta, scene,
@@ -206,7 +206,7 @@ void Renderer::renderImage(image::SmallImage &img0,
 	img.zero();
 
 	Float weight = getWeight(medium, scene, numPhotons);
-	Float Li = scene.getRaySource().getLi();
+	Float Li = scene.getAreaSource().getLi();
 #ifdef USE_PRINTING
 	std::cout << "weight " << weight << " Li " << Li << std::endl;
 #endif
@@ -225,11 +225,9 @@ void Renderer::renderImage(image::SmallImage &img0,
 		if (scene.genRay(pos, dir, sampler[id])) {
 
 			/*
-			 * TODO: Direct energy calculation. Only works right if only one contribution is made from each source location.
+			 * TODO: Direct energy computation is not implemented.
 			 */
-			if (m_useDirect) {
-				scene.addEnergyDirect(img[id], pos, dir, Li * scene.getFresnelTrans(), medium);
-			}
+			Assert(!m_useDirect);
 			scatter(pos, dir, scene, medium, sampler[id], img[id], weight);
 		}
 	}
@@ -268,7 +266,7 @@ void Renderer::renderDerivImage(image::SmallImage &img0, image::SmallImage &dSig
 	dGVal.zero();
 
 	Float weight = getWeight(medium, scene, numPhotons);
-	Float Li = scene.getRaySource().getLi();
+	Float Li = scene.getAreaSource().getLi();
 #ifdef USE_PRINTING
 	std::cout << "weight " << weight << " Li " << Li << std::endl;
 #endif
@@ -287,11 +285,9 @@ void Renderer::renderDerivImage(image::SmallImage &img0, image::SmallImage &dSig
 		if (scene.genRay(pos, dir, sampler[id])) {
 
 			/*
-			 * TODO: Direct energy calculation. Only works right if only one contribution is made from each source location.
+			 * TODO: Direct energy computation is not implemented.
 			 */
-			if (m_useDirect) {
-				scene.addEnergyDirect(img[id], pos, dir, Li * scene.getFresnelTrans(), medium);
-			}
+			Assert(!m_useDirect);
 			scatterDeriv(pos, dir, scene, medium, sampler[id], img[id],
 						dSigmaT[id], dAlbedo[id], dGVal[id], weight);
 		}
@@ -334,7 +330,7 @@ void Renderer::renderDerivImageWeight(image::SmallImage &img0, image::SmallImage
 	dGVal.zero();
 
 	Float weight = getWeight(medium, scene, numPhotons);
-	Float Li = scene.getRaySource().getLi();
+	Float Li = scene.getAreaSource().getLi();
 #ifdef USE_PRINTING
 	std::cout << "weight " << weight << " Li " << Li << std::endl;
 #endif
@@ -353,11 +349,9 @@ void Renderer::renderDerivImageWeight(image::SmallImage &img0, image::SmallImage
 		if (scene.genRay(pos, dir, sampler[id])) {
 
 			/*
-			 * TODO: Direct energy calculation. Only works right if only one contribution is made from each source location.
+			 * TODO: Direct energy computation is not implemented.
 			 */
-			if (m_useDirect) {
-				scene.addEnergyDirect(img[id], pos, dir, Li * scene.getFresnelTrans(), medium);
-			}
+			Assert(!m_useDirect);
 			scatterDerivWeight(pos, dir, scene, medium, samplingMedium, sampler[id], img[id],
 						dSigmaT[id], dAlbedo[id], dGVal[id], weight);
 		}

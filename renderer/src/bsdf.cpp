@@ -17,6 +17,10 @@ Float BSDF::eval(const tvec::Vec3f &in, const tvec::Vec3f &n, const tvec::Vec3f 
 }
 */
 
+/*
+ * TODO: Need to make sure that if this is ever used for refraction, then the
+ * calling routine will apply the eta*eta radiance scaling. See Veach, page 141.
+ */
 void SmoothDielectric::sample(const tvec::Vec3f &in, const tvec::Vec3f &n,
                               smp::Sampler &sampler, tvec::Vec3f &out) const {
 
