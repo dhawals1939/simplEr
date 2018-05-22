@@ -29,26 +29,27 @@ int main() {
 	/*
 	 * Initialize scene parameters.
 	 */
-	const Float iorMedium = FPCONST(1.0);
+	const Float ior = FPCONST(1.0);
 	const tvec::Vec3f mediumL(-FPCONST(1.25), -FPCONST(10.0), -FPCONST(10.0));
 	const tvec::Vec3f mediumR(FPCONST(1.25), FPCONST(10.0), FPCONST(10.0));
 
 	/*
 	 * Initialize source parameters.
 	 */
-	const tvec::Vec3f rayOrigin(mediumL.x, FPCONST(0.0), FPCONST(0.0));
+	const tvec::Vec3f lightOrigin(mediumL.x, FPCONST(0.0), FPCONST(0.0));
 //	const Float rayAngle = -FPCONST(0.5236);
-	const Float rayAngle = FPCONST(0.0);
-	const tvec::Vec3f rayDir(std::cos(rayAngle), std::sin(rayAngle),
+	const Float lightAngle = FPCONST(0.0);
+	const tvec::Vec3f lightDir(std::cos(lightAngle), std::sin(lightAngle),
 							FPCONST(0.0));
-	const Float rayRadius = FPCONST(0.5);
+	const tvec::Vec2f lightPlane(FPCONST(20.0), FPCONST(20.0));
 	const Float Li = FPCONST(75000.0);
 
 	/*
 	 * Initialize camera parameters.
 	 */
-	const tvec::Vec2f viewOrigin(FPCONST(0.0), FPCONST(0.0));
+	const tvec::Vec3f viewOrigin(mediumR.x, FPCONST(0.0), FPCONST(0.0));
 	const tvec::Vec3f viewDir(-FPCONST(1.0), FPCONST(0.0), FPCONST(0.0));
+	const tvec::Vec3f viewX(FPCONST(0.0), -FPCONST(1.0), FPCONST(0.0));
 	const tvec::Vec3f viewY(FPCONST(0.0), FPCONST(0.0), -FPCONST(1.0));
 	const tvec::Vec2f viewPlane(FPCONST(20.0), FPCONST(20.0));
 	const tvec::Vec2f pathlengthRange(-FPCONST(1.0), -FPCONST(1.0));
@@ -70,9 +71,9 @@ int main() {
 	const med::Medium medium(sigmaT, albedo, phase);
 	const med::Medium samplingMedium(samplingSigmaT, samplingAlbedo,
 									samplingPhase);
-	const scn::Scene scene(iorMedium, mediumL, mediumR,
-						rayOrigin, rayDir, rayRadius, Li,
-						viewOrigin, viewDir, viewY, viewPlane, pathlengthRange);
+	const scn::Scene scene(ior, mediumL, mediumR,
+						lightOrigin, lightDir, lightPlane, Li,
+						viewOrigin, viewDir, viewX, viewY, viewPlane, pathlengthRange);
 
 	photon::Renderer renderer(maxDepth, maxPathlength, useDirect);
 

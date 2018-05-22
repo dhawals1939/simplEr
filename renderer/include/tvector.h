@@ -20,6 +20,8 @@ namespace tvec {
 
 /*
  * TODO: Add inlines here.
+ * TODO: Store length so that it doesn't need to be recomputed.
+ * TODO: Include "normalized" flag to avoid unnecessary normalizations.
  */
 
 template <typename T> struct TVector2 {

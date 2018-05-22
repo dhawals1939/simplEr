@@ -11,8 +11,8 @@
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* Check number of input arguments */
-	if (nrhs != 19) {
-		mexErrMsgTxt("Nineteen input arguments are required.");
+	if (nrhs != 20) {
+		mexErrMsgTxt("Twenty input arguments are required.");
 	}
 
 	/* Check number of output arguments */
@@ -26,28 +26,29 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	const double gVald = (double) mxGetScalar(prhs[2]);
 
 	/* Input medium parameters. */
-	const double iorMediumd = (double) mxGetScalar(prhs[3]);
+	const double iord = (double) mxGetScalar(prhs[3]);
 	const double *mediumDimensionsd = (double *) mxGetPr(prhs[4]);
 
 	/* Input source parameters. */
-	const double *rayOrigind = (double *) mxGetPr(prhs[5]);
-	const double *rayDird = (double *) mxGetPr(prhs[6]);
-	const double rayRadiusd = (double) mxGetScalar(prhs[7]);
+	const double *lightOrigind = (double *) mxGetPr(prhs[5]);
+	const double *lightDird = (double *) mxGetPr(prhs[6]);
+	const double *lightPlaned = (double *) mxGetPr(prhs[7]);
 	const double Lid = (double) mxGetScalar(prhs[8]);
 
 	/* Input camera parameters. */
 	const double *viewOrigind = (double *) mxGetPr(prhs[9]);
 	const double *viewDird = (double *) mxGetPr(prhs[10]);
-	const double *viewYd = (double *) mxGetPr(prhs[11]);
-	const double *viewPlaned = (double *) mxGetPr(prhs[12]);
-	const double *pathlengthRanged = (double *) mxGetPr(prhs[13]);
-	const double *viewResod = (double *) mxGetPr(prhs[14]);
+	const double *viewXd = (double *) mxGetPr(prhs[11]);
+	const double *viewYd = (double *) mxGetPr(prhs[12]);
+	const double *viewPlaned = (double *) mxGetPr(prhs[13]);
+	const double *pathlengthRanged = (double *) mxGetPr(prhs[14]);
+	const double *viewResod = (double *) mxGetPr(prhs[15]);
 
 	/* Input rendering parameters. */
-	const double numPhotonsd = (double) mxGetScalar(prhs[15]);
-	const double maxDepthd = (double) mxGetScalar(prhs[16]);
-	const double maxPathlengthd = (double) mxGetScalar(prhs[17]);
-	const double useDirectd = (double) mxGetScalar(prhs[18]);
+	const double numPhotonsd = (double) mxGetScalar(prhs[16]);
+	const double maxDepthd = (double) mxGetScalar(prhs[17]);
+	const double maxPathlengthd = (double) mxGetScalar(prhs[18]);
+	const double useDirectd = (double) mxGetScalar(prhs[19]);
 
 	/*
 	 * Initialize scattering parameters.
@@ -59,7 +60,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/*
 	 * Initialize scene parameters.
 	 */
-	const Float iorMedium = (Float) iorMediumd;
+	const Float ior = (Float) iord;
 	const tvec::Vec3f mediumL(- (Float) mediumDimensionsd[0] * FPCONST(0.5),
 							- (Float) mediumDimensionsd[1] * FPCONST(0.5),
 							- (Float) mediumDimensionsd[2] * FPCONST(0.5));
@@ -70,16 +71,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/*
 	 * Initialize source parameters.
 	 */
-	const tvec::Vec3f rayOrigin((Float) rayOrigind[0], (Float) rayOrigind[1], (Float) rayOrigind[2]);
-	const tvec::Vec3f rayDir((Float) rayDird[0], (Float) rayDird[1], (Float) rayDird[2]);
-	const Float rayRadius = (Float) rayRadiusd;
+	const tvec::Vec3f lightOrigin((Float) lightOrigind[0], (Float) lightOrigind[1], (Float) lightOrigind[2]);
+	const tvec::Vec3f lightDir((Float) lightDird[0], (Float) lightDird[1], (Float) lightDird[2]);
+	const tvec::Vec2f lightPlane((Float) lightPlaned[0], (Float) lightPlaned[1]);
 	const Float Li = (Float) Lid;
 
 	/*
 	 * Initialize camera parameters.
 	 */
-	const tvec::Vec2f viewOrigin((Float) viewOrigind[0], (Float) viewOrigind[1]);
+	const tvec::Vec3f viewOrigin((Float) viewOrigind[0], (Float) viewOrigind[1], (Float) viewOrigind[2]);
 	const tvec::Vec3f viewDir((Float) viewDird[0], (Float) viewDird[1], (Float) viewDird[2]);
+	const tvec::Vec3f viewX((Float) viewXd[0], (Float) viewXd[1], (Float) viewXd[2]);
 	const tvec::Vec3f viewY((Float) viewYd[0], (Float) viewYd[1], (Float) viewYd[2]);
 	const tvec::Vec2f viewPlane((Float) viewPlaned[0], (Float) viewPlaned[1]);
 	const tvec::Vec2f pathlengthRange((Float) pathlengthRanged[0], (Float) pathlengthRanged[1]);
@@ -94,8 +96,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	const bool useDirect = (useDirectd > 0);
 
 	const med::Medium medium(sigmaT, albedo, phase);
-	const scn::Scene scene(iorMedium, mediumL, mediumR, rayOrigin, rayDir, rayRadius,
-						Li, viewOrigin, viewDir, viewY, viewPlane, pathlengthRange);
+	const scn::Scene scene(ior, mediumL, mediumR,
+						lightOrigin, lightDir, lightPlane, Li,
+						viewOrigin, viewDir, viewX, viewY, viewPlane, pathlengthRange);
 	image::SmallImage img0(viewReso.x, viewReso.y, viewReso.z);
 
 	photon::Renderer renderer(maxDepth, maxPathlength, useDirect);

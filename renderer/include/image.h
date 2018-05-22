@@ -8,6 +8,7 @@
 #ifndef IMAGE_H_
 #define IMAGE_H_
 
+#include <cstdint>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>

@@ -124,9 +124,9 @@ bool Scene::movePhoton(tvec::Vec3f &p, tvec::Vec3f &d, Float dist,
 	tvec::Vec3f p1 = p + dist * d;
     tvec::Vec3f d1, norm;
 
-	while (!m_mediumBlock.inside(p1)) {
+	while (!m_block.inside(p1)) {
 		Float disx, disy;
-		if (!m_mediumBlock.intersect(p, d, disx, disy)) {
+		if (!m_block.intersect(p, d, disx, disy)) {
 			return false;
 		}
 		Assert(disx < M_EPSILON && dist - disy > -M_EPSILON);
@@ -137,11 +137,11 @@ bool Scene::movePhoton(tvec::Vec3f &p, tvec::Vec3f &d, Float dist,
 		int i;
 		norm.zero();
 		for (i = 0; i < 3; ++i) {
-			if (std::abs(m_mediumBlock.getBlockL()[i] - p[i]) < M_EPSILON) {
+			if (std::abs(m_block.getBlockL()[i] - p[i]) < M_EPSILON) {
 				norm[i] = -FPCONST(1.0);
 				break;
 			}
-			else if (std::abs(m_mediumBlock.getBlockR()[i] - p[i]) < M_EPSILON) {
+			else if (std::abs(m_block.getBlockR()[i] - p[i]) < M_EPSILON) {
 				norm[i] = FPCONST(1.0);
 				break;
 			}
@@ -154,13 +154,13 @@ bool Scene::movePhoton(tvec::Vec3f &p, tvec::Vec3f &d, Float dist,
 		normalt.zero();
 		int chosenI = 3;
 		for (i = 0; i < 3; ++i) {
-			Float diff = std::abs(m_mediumBlock.getBlockL()[i] - p[i]);
+			Float diff = std::abs(m_block.getBlockL()[i] - p[i]);
 			if (diff < minDiff) {
 				minDiff = diff;
 				chosenI = i;
 				minDir = -FPCONST(1.0);
 			}
-			diff = std::abs(m_mediumBlock.getBlockR()[i] - p[i]);
+			diff = std::abs(m_block.getBlockR()[i] - p[i]);
 			if (diff < minDiff) {
 				minDiff = diff;
 				chosenI = i;
@@ -255,15 +255,16 @@ void Scene::addEnergy(image::SmallImage &img,
 
 		tvec::Vec3f distVec = sensorPoint - p;
 		distToSensor = distVec.length();
-		dirToSensor = distVec.normalize();
+		dirToSensor = distVec;
+		dirToSensor.normalize();
 		/*
 		 * TODO: Not sure why this check is here, but it was in the original code.
 		 */
-		if (m_mediumBlock.inside(sensorPoint)) {
+		if (m_block.inside(sensorPoint)) {
 
-			if (m_mediumIor > FPCONST(1.0)) {
-				refrDirToSensor.y = dirToSensor.y * m_mediumIor;
-				refrDirToSensor.z = dirToSensor.z * m_mediumIor;
+			if (m_ior > FPCONST(1.0)) {
+				refrDirToSensor.y = dirToSensor.y * m_ior;
+				refrDirToSensor.z = dirToSensor.z * m_ior;
 				refrDirToSensor.x = std::sqrt(FPCONST(1.0)
 									- dirToSensor.y * dirToSensor.y
 									- dirToSensor.z * dirToSensor.z);
@@ -273,8 +274,8 @@ void Scene::addEnergy(image::SmallImage &img,
 #ifndef USE_NO_FRESNEL
 				fresnelWeight = (FPCONST(1.0) -
 				util::fresnelDielectric(dirToSensor.x, refrDirToSensor.x,
-					FPCONST(1.0) / m_mediumIor))
-					/ m_mediumIor / m_mediumIor;
+					FPCONST(1.0) / m_ior))
+					/ m_ior / m_ior;
 #endif
 			} else {
 				refrDirToSensor = dirToSensor;
@@ -286,12 +287,12 @@ void Scene::addEnergy(image::SmallImage &img,
 			 */
 			foreshortening = dot(refrDirToSensor, m_camera.getDir());
 			Assert(foreshortening <= FPCONST(0.0));
-			totalDistance = (distTravelled + distToSensor) * m_mediumIor;
+			totalDistance = (distTravelled + distToSensor) * m_ior;
 			totalPhotonValue = val * std::exp(- medium.getSigmaT() * distToSensor)
 					* medium.getPhaseFunction()->f(d, dirToSensor) * fresnelWeight;
 			addEnergyToImage(img, sensorPoint, totalDistance, totalPhotonValue);
 		} else {
-			Assert(m_mediumBlock.inside(sensorPoint));
+			Assert(m_block.inside(sensorPoint));
 		}
 	}
 }
@@ -303,15 +304,11 @@ void Scene::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 						Float sumScoreAlbedo, Float sumScoreGVal,
 						const med::Medium &medium, smp::Sampler &sampler) const {
 
-	tvec::Vec3f q, refD;
-	Float t;
-	Float val1, valDSigmaT, valDAlbedo, valDGVal;
-
 	tvec::Vec3f sensorPoint, dirToSensor, refrDirToSensor;
 	Float distToSensor;
 	Float foreshortening;
 	Float fresnelWeight(1.0);
-	Float totalPhotonValue;
+	Float totalPhotonValue, valDSigmaT, valDAlbedo, valDGVal;
 	Float totalDistance;
 
 #ifdef USE_WEIGHT_NORMALIZATION
@@ -327,57 +324,57 @@ void Scene::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 
 	if(m_camera.samplePosition(sensorPoint, sampler)) {
 
-			tvec::Vec3f distVec = sensorPoint - p;
-			distToSensor = distVec.length();
-			dirToSensor = distVec.normalize();
-			/*
-			 * TODO: Not sure why this check is here, but it was in the original code.
-			 */
-			if (m_mediumBlock.inside(sensorPoint)) {
+		tvec::Vec3f distVec = sensorPoint - p;
+		distToSensor = distVec.length();
+		dirToSensor = distVec;
+		dirToSensor.normalize();
+		/*
+		 * TODO: Not sure why this check is here, but it was in the original code.
+		 */
+		if (m_block.inside(sensorPoint)) {
 
-				if (m_mediumIor > FPCONST(1.0)) {
-					refrDirToSensor.y = dirToSensor.y * m_mediumIor;
-					refrDirToSensor.z = dirToSensor.z * m_mediumIor;
-					refrDirToSensor.x = std::sqrt(FPCONST(1.0)
-										- dirToSensor.y * dirToSensor.y
-										- dirToSensor.z * dirToSensor.z);
-					if (dirToSensor.x < FPCONST(0.0)) {
-						dirToSensor.x *= -FPCONST(1.0);
-					}
-	#ifndef USE_NO_FRESNEL
-					fresnelWeight = (FPCONST(1.0) -
-					util::fresnelDielectric(dirToSensor.x, refrDirToSensor.x,
-						FPCONST(1.0) / m_mediumIor))
-						/ m_mediumIor / m_mediumIor;
-	#endif
-				} else {
-					refrDirToSensor = dirToSensor;
+			if (m_ior > FPCONST(1.0)) {
+				refrDirToSensor.y = dirToSensor.y * m_ior;
+				refrDirToSensor.z = dirToSensor.z * m_ior;
+				refrDirToSensor.x = std::sqrt(FPCONST(1.0)
+									- dirToSensor.y * dirToSensor.y
+									- dirToSensor.z * dirToSensor.z);
+				if (dirToSensor.x < FPCONST(0.0)) {
+					dirToSensor.x *= -FPCONST(1.0);
 				}
-
-				/*
-				 * TODO: Double-check that the foreshortening term is needed, and that
-				 * it is applied after refraction.
-				 * TODO: Here I'll also need to include a Fresnel transmission term.
-				 */
-				foreshortening = dot(refrDirToSensor, m_camera.getDir());
-				Assert(foreshortening <= FPCONST(0.0));
-
-				totalDistance = (distTravelled + distToSensor) * m_mediumIor;
-				totalPhotonValue = val * std::exp(- medium.getSigmaT() * distToSensor)
-						* medium.getPhaseFunction()->f(d, dirToSensor) * fresnelWeight;
-				addEnergyToImage(img, sensorPoint, totalDistance, totalPhotonValue);
-
-				valDSigmaT = totalPhotonValue * (sumScoreSigmaT - distToSensor);
-				addEnergyToImage(dSigmaT, sensorPoint, totalDistance, valDSigmaT);
-				valDAlbedo = totalPhotonValue * sumScoreAlbedo;
-				addEnergyToImage(dAlbedo, sensorPoint, totalDistance, valDAlbedo);
-				valDGVal = totalPhotonValue *
-						(sumScoreGVal + medium.getPhaseFunction()->score(d, dirToSensor));
-				addEnergyToImage(dGVal, sensorPoint, totalDistance, valDGVal);
-
+#ifndef USE_NO_FRESNEL
+				fresnelWeight = (FPCONST(1.0) -
+				util::fresnelDielectric(dirToSensor.x, refrDirToSensor.x,
+					FPCONST(1.0) / m_ior))
+					/ m_ior / m_ior;
+#endif
 			} else {
-				Assert(m_mediumBlock.inside(sensorPoint));
+				refrDirToSensor = dirToSensor;
 			}
+
+			/*
+			 * TODO: Double-check that the foreshortening term is needed, and that
+			 * it is applied after refraction.
+			 * TODO: Here I'll also need to include a Fresnel transmission term.
+			 */
+			foreshortening = dot(refrDirToSensor, m_camera.getDir());
+			Assert(foreshortening <= FPCONST(0.0));
+
+			totalDistance = (distTravelled + distToSensor) * m_ior;
+			totalPhotonValue = val * std::exp(- medium.getSigmaT() * distToSensor)
+					* medium.getPhaseFunction()->f(d, dirToSensor) * fresnelWeight;
+			addEnergyToImage(img, sensorPoint, totalDistance, totalPhotonValue);
+
+			valDSigmaT = totalPhotonValue * (sumScoreSigmaT - distToSensor);
+			addEnergyToImage(dSigmaT, sensorPoint, totalDistance, valDSigmaT);
+			valDAlbedo = totalPhotonValue * sumScoreAlbedo;
+			addEnergyToImage(dAlbedo, sensorPoint, totalDistance, valDAlbedo);
+			valDGVal = totalPhotonValue *
+					(sumScoreGVal + medium.getPhaseFunction()->score(d, dirToSensor));
+			addEnergyToImage(dGVal, sensorPoint, totalDistance, valDGVal);
+
+		} else {
+			Assert(m_block.inside(sensorPoint));
 		}
 	}
 }

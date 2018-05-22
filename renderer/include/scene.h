@@ -191,9 +191,9 @@ protected:
 
 class Scene {
 public:
-	Scene(const Float mediumIor,
-			const tvec::Vec3f &mediumBlockL,
-			const tvec::Vec3f &mediumBlockR,
+	Scene(const Float ior,
+			const tvec::Vec3f &blockL,
+			const tvec::Vec3f &blockR,
 			const tvec::Vec3f &lightOrigin,
 			const tvec::Vec3f &lightDir,
 			const tvec::Vec2f &lightPlane,
@@ -204,28 +204,28 @@ public:
 			const tvec::Vec3f &viewY,
 			const tvec::Vec2f &viewPlane,
 			const tvec::Vec2f &pathlengthRange) :
-				m_mediumIor(mediumIor),
+				m_ior(ior),
 				m_fresnelTrans(FPCONST(1.0)),
 				m_refrDir(FPCONST(1.0), FPCONST(0.0), FPCONST(0.0)),
-				m_mediumBlock(mediumBlockL, mediumBlockR),
+				m_block(blockL, blockR),
 				m_source(lightOrigin, lightDir, lightPlane, Li),
 				m_camera(viewOrigin, viewDir, viewX, viewY, viewPlane, pathlengthRange),
-				m_bsdf(FPCONST(1.0), mediumIor) {
+				m_bsdf(FPCONST(1.0), ior) {
 
-		Assert(((std::abs(m_source.getOrigin().x - m_mediumBlock.getBlockL().x) < M_EPSILON) && (m_source.getDir().x > FPCONST(0.0)))||
-				((std::abs(m_source.getOrigin().x - m_mediumBlock.getBlockR().x) < M_EPSILON) && (m_source.getDir().x < FPCONST(0.0))));
+		Assert(((std::abs(m_source.getOrigin().x - m_block.getBlockL().x) < M_EPSILON) && (m_source.getDir().x > FPCONST(0.0)))||
+				((std::abs(m_source.getOrigin().x - m_block.getBlockR().x) < M_EPSILON) && (m_source.getDir().x < FPCONST(0.0))));
 
-		if (m_mediumIor > FPCONST(1.0)) {
-			m_refrDir.y = m_source.getDir().y / m_mediumIor;
-			m_refrDir.z = m_source.getDir().z / m_mediumIor;
+		if (m_ior > FPCONST(1.0)) {
+			m_refrDir.y = m_source.getDir().y / m_ior;
+			m_refrDir.z = m_source.getDir().z / m_ior;
 			m_refrDir.x = std::sqrt(FPCONST(1.0) - m_refrDir.y * m_refrDir.y - m_refrDir.z * m_refrDir.z);
 			if (m_source.getDir().x < FPCONST(0.0)) {
 				m_refrDir.x *= -FPCONST(1.0);
 			}
 #ifndef USE_NO_FRESNEL
-			m_fresnelTrans = m_mediumIor * m_mediumIor
+			m_fresnelTrans = m_ior * m_ior
 					* (FPCONST(1.0) -
-					util::fresnelDielectric(m_source.getDir().x, m_refrDir.x, m_mediumIor));
+					util::fresnelDielectric(m_source.getDir().x, m_refrDir.x, m_ior));
 #endif
 		} else {
 			m_refrDir = m_source.getDir();
@@ -272,7 +272,7 @@ public:
 //						const med::Medium &medium, smp::Sampler &sampler) const;
 
 	inline Float getMediumIor() const {
-		return m_mediumIor;
+		return m_ior;
 	}
 
 	inline Float getFresnelTrans() const {
@@ -284,7 +284,7 @@ public:
 	}
 
 	inline const Block& getMediumBlock() const {
-		return m_mediumBlock;
+		return m_block;
 	}
 
 	inline const AreaSource& getAreaSource() const {
@@ -302,10 +302,10 @@ public:
 	~Scene() { }
 
 protected:
-	Float m_mediumIor;
+	Float m_ior;
 	Float m_fresnelTrans;
 	tvec::Vec3f m_refrDir;
-	Block m_mediumBlock;
+	Block m_block;
 	AreaSource m_source;
 	Camera m_camera;
 	bsdf::SmoothDielectric m_bsdf;

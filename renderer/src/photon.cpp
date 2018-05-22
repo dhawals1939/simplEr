@@ -206,8 +206,8 @@ void Renderer::renderImage(image::SmallImage &img0,
 	img.zero();
 
 	Float weight = getWeight(medium, scene, numPhotons);
-	Float Li = scene.getAreaSource().getLi();
 #ifdef USE_PRINTING
+	Float Li = scene.getAreaSource().getLi();
 	std::cout << "weight " << weight << " Li " << Li << std::endl;
 #endif
 
@@ -266,8 +266,8 @@ void Renderer::renderDerivImage(image::SmallImage &img0, image::SmallImage &dSig
 	dGVal.zero();
 
 	Float weight = getWeight(medium, scene, numPhotons);
-	Float Li = scene.getAreaSource().getLi();
 #ifdef USE_PRINTING
+	Float Li = scene.getAreaSource().getLi();
 	std::cout << "weight " << weight << " Li " << Li << std::endl;
 #endif
 
@@ -330,8 +330,8 @@ void Renderer::renderDerivImageWeight(image::SmallImage &img0, image::SmallImage
 	dGVal.zero();
 
 	Float weight = getWeight(medium, scene, numPhotons);
-	Float Li = scene.getAreaSource().getLi();
 #ifdef USE_PRINTING
+	Float Li = scene.getAreaSource().getLi();
 	std::cout << "weight " << weight << " Li " << Li << std::endl;
 #endif
 
