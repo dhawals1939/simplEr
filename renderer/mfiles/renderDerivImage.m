@@ -7,14 +7,15 @@ iorMedium = scene.iorMedium;
 mediumDimensions = scene.mediumDimensions;
 
 % light source
-rayOrigin = scene.rayOrigin;
-rayDir = scene.rayDir;
-rayRadius = scene.rayRadius;
+lightOrigin = scene.lightOrigin;
+lightDir = scene.lightDir;
+lightPlane = scene.lightPlane;
 Li = scene.Li;
 
 % camera and image
 viewOrigin = scene.viewOrigin;
 viewDir = scene.viewDir;
+viewX = scene.viewX;
 viewY = scene.viewY;
 viewPlane = scene.viewPlane;
 pathlengthRange = scene.pathlengthRange;
@@ -28,10 +29,10 @@ useDirect = renderer.useDirect;
 
 %%
 [im, dSigmaT, dAlbedo, dGVal] = renderDerivImage_mex(sigmaT, albedo, gVal, ...
-						iorMedium, mediumDimensions, ...
-						rayOrigin, rayDir, rayRadius, Li, ...
-						viewOrigin, viewDir, viewY, viewPlane, pathlengthRange, viewReso, ...
-						numPhotons, maxDepth, maxPathlength, useDirect);
+					iorMedium, mediumDimensions, ...
+					lightOrigin, lightDir, lightPlane, Li, ...
+					viewOrigin, viewDir, viewX, viewY, viewPlane, pathlengthRange, viewReso, ...
+					numPhotons, maxDepth, maxPathlength, useDirect);
 im = permute(im, [2 1 3]);
 dSigmaT = permute(dSigmaT, [2 1 3]);
 dAlbedo = permute(dAlbedo, [2 1 3]);

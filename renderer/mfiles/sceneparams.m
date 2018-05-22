@@ -8,29 +8,30 @@ params.iorMedium = 1.3;
 % dimensions of the medium
 params.mediumDimensions = [2.5; 34; 22];
 
-%% pointer source
+%% directional area source
 % position of center of source
-params.rayOrigin = [-params.mediumDimensions(1) / 2; 0.0; 0.0];
+params.lightOrigin = [-params.mediumDimensions(1) / 2; 0.0; 0.0];
 % direction of source
-params.rayDir = normvec([1; -1; 0]);
-% radius of source
-params.rayRadius = 0.5;
+params.lightDir = [1.0; 0.0; 0.0];
+% extent of source
+params.lightPlane = params.mediumDimensions(2:3);
 % "intensity" of source
 params.Li = 75000.0;
 
-%% orthographic camera
-% center of camera plane
-params.viewOrigin = [0.0; 0.0];
-% direction of camera
+%% lensless sensor
+% center of sensor plane
+params.viewOrigin = [params.mediumDimensions(1) / 2; 0.0; 0.0];
+% normal of sensor plane
 params.viewDir = [-1.0; 0.0; 0.0];
-% orientation of camera plane
+% orientation of sensor plane
+params.viewX = [0.0; -1.0; 0.0];
 params.viewY = [0.0; 0.0; -1.0];
-% size of camera plane
-params.viewPlane = [5; 5];
+% size of sensor plane
+params.viewPlane = [0.1; 0.1];
 % pathlength range of camera plane (leave [-1 -1] to measure all depths)
 params.pathlengthRange = [-1; -1];
 % x-y-z resolution of camera (setting z > 1 generates a transient image)
-params.viewReso = [128; 128; 1];
+params.viewReso = [1; 1; 1];
 								
 % check for incorrect inputs
 if (mod(length(varargin), 2) ~= 0)

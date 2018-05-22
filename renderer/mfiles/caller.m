@@ -26,15 +26,15 @@ mediumDimensions = [2.5; 100; 100];
 
 %% lighting directions
 
-% frontFlagSet = {[0; 0; 0; 0], [0; 0; 1; 1], [1; 1; 1; 1]};
-% rayAnglesSet = {[-5; -11.25; -22.5; -45], [-5; -22.5; 185; 202.5], [185; 191.25; 202.5; 225]};
+% frontLightFlagSet = {[0; 0; 0; 0], [0; 0; 1; 1], [1; 1; 1; 1]};
+% lightAnglesSet = {[-5; -11.25; -22.5; -45], [-5; -22.5; 185; 202.5], [185; 191.25; 202.5; 225]};
 
-% frontFlag = 1 for frontlighting
-% frontFlag = 0;
-% rayAngle = deg2rad(-45);
-frontFlag = 1;
-rayAngle = deg2rad(225);
-rayRadius = 0.1;
+% frontLightFlag = 1 for frontlighting
+% frontLightFlag = 0;
+% lightAngle = deg2rad(-45);
+lightFrontFlag = 1;
+lightAngle = deg2rad(225);
+lightPlane = mediumDimensions(2:3);
 Li = 75000.0;
 
 %% viewing directions
@@ -58,24 +58,26 @@ viewReso = [128; 128; 1];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%% do not edit below here
 %% create scene params
+viewOrigin = [-mediumDimensions(1) / 2; viewOrigin(:)];
 viewDir = -[cos(viewAngle); sin(viewAngle); 0];
+viewX = [0.0; -1.0; 0.0];
 viewY = [0.0; 0.0; -1.0];
 		
-rayDir = [cos(rayAngle); sin(rayAngle); 0];
-if (frontFlag == 0),
-	rayOrigin = [-mediumDimensions(1) / 2; 0.0; 0.0];
+lightDir = [cos(lightAngle); sin(lightAngle); 0];
+if (frontLightFlag == 0),
+	lightOrigin = [-mediumDimensions(1) / 2; 0.0; 0.0];
 else
-	rayOrigin = [mediumDimensions(1) / 2; 0.0; 0.0];
+	lightOrigin = [mediumDimensions(1) / 2; 0.0; 0.0];
 end;
 scene = sceneparams('iorMedium', iorMedium, 'mediumDimensions', mediumDimensions,...
-								'rayOrigin', rayOrigin, 'rayDir', rayDir, 'rayRadius', rayRadius, 'Li', Li,...
-								'viewOrigin', viewOrigin, 'viewDir', viewDir, 'viewY', viewY,...
-								'viewPlane', viewPlane, 'pathlengthRange', pathlengthRange, 'viewReso', viewReso);
+	'lightOrigin', lightOrigin, 'lightDir', lightDir, 'lightPlane', lightPlane, 'Li', Li,...
+	'viewOrigin', viewOrigin, 'viewDir', viewDir, 'viewX', viewX, 'viewY', viewY,...
+	'viewPlane', viewPlane, 'pathlengthRange', pathlengthRange, 'viewReso', viewReso);
 
 %% create renderer params
-useDirect = 0;			% always keep 0, except for geometric.
+useDirect = 0;			% Not implemented, always keep 0.
 renderer = rendererparams('useDirect', useDirect', 'numPhotons', numPhotons,...
-						'maxDepth', maxDepth, 'maxPathlength', maxPathlength);
+			'maxDepth', maxDepth, 'maxPathlength', maxPathlength);
 
 %% do rendering
 % im and im_alt should be numerically identical;

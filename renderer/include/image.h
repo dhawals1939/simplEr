@@ -9,13 +9,13 @@
 #define IMAGE_H_
 
 #include <cstdint>
+#include <malloc.h>
+#include <iostream>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
 #include <string.h>
 #include <vector>
-#include <iostream>
-#include <malloc.h>
 
 #ifdef USE_OPENEXR
 #include <ImfPixelType.h>

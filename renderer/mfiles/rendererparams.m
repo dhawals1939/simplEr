@@ -8,7 +8,7 @@ params.maxDepth = -1;
 params.maxPathlength = -1;
 
 %% estimate direct component (currently disabled)
-params.useDirect = 0;			% always keep 0, except for geometric.
+params.useDirect = 0;		% currently unimplemented, always keep 0
 
 %% number of photons to use
 params.numPhotons = 500000;

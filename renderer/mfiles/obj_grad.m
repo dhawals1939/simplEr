@@ -1,6 +1,6 @@
 function [val, deriv, img, dSigmaT, dAlbedo, dGVal] = obj_grad(materialParams,...
-														samplingMaterialParams,...
-														scene, renderer)
+							samplingMaterialParams,...
+							scene, renderer)
 
 sigmaT = materialParams(1);
 albedo = materialParams(2);
@@ -17,7 +17,7 @@ assert((samplingAlbedo >= 0) && (samplingAlbedo <= 1));
 assert((samplingGVal >= 0) && (samplingGVal <= 1));
 												
 [img, dSigmaT, dAlbedo, dGVal] = renderDerivImageWeight(sigmaT, albedo, gVal,...
-										samplingSigmaT, samplingAlbedo, samplingGVal, scene, renderer);
+			samplingSigmaT, samplingAlbedo, samplingGVal, scene, renderer);
 									
 val = meanv(img);
 deriv = [meanv(dSigmaT); meanv(dAlbedo); meanv(dGVal);];
