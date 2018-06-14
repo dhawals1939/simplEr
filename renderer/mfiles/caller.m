@@ -24,11 +24,7 @@ samplingGVal = gVal;
 iorMedium = 1;
 mediumDimensions = [2.5; 100; 100];
 
-%% lighting directions
-
-% frontLightFlagSet = {[0; 0; 0; 0], [0; 0; 1; 1], [1; 1; 1; 1]};
-% lightAnglesSet = {[-5; -11.25; -22.5; -45], [-5; -22.5; 185; 202.5], [185; 191.25; 202.5; 225]};
-
+%% lighting parameters
 % frontLightFlag = 1 for frontlighting
 % frontLightFlag = 0;
 % lightAngle = deg2rad(-45);
@@ -37,23 +33,20 @@ lightAngle = deg2rad(225);
 lightPlane = mediumDimensions(2:3);
 Li = 75000.0;
 
-%% viewing directions
+%% camera parameters
 % viewAngles = deg2rad([0; -10; -20]);
-viewAngle = deg2rad(0);
 viewOrigin = [0.0; 0.0];
-
-%% renderer options
-numPhotons = 10000000;
-maxDepth = -1;
-maxPathlength = -1;
-
-%% image params
-
+viewAngle = 0;
 viewPlane = [50; 50];
 pathlengthRange = [-1; -1];
 viewReso = [128; 128; 1];
 % pathlengthRange = [0; 100];
 % viewReso = [128; 128; 128];
+
+%% renderer options
+numPhotons = 10000000;
+maxDepth = -1;
+maxPathlength = -1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%% do not edit below here

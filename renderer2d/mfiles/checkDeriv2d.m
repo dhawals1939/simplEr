@@ -24,7 +24,11 @@ samplingGVal = gVal;
 iorMedium = 1;
 mediumDimensions = [2.5; 100; 100];
 
-%% lighting parameters
+%% lighting directions
+
+% frontLightFlagSet = {[0; 0; 0; 0], [0; 0; 1; 1], [1; 1; 1; 1]};
+% lightAnglesSet = {[-5; -11.25; -22.5; -45], [-5; -22.5; 185; 202.5], [185; 191.25; 202.5; 225]};
+
 % frontLightFlag = 1 for frontlighting
 % frontLightFlag = 0;
 % lightAngle = deg2rad(-45);
@@ -33,20 +37,23 @@ lightAngle = deg2rad(225);
 lightPlane = mediumDimensions(2:3);
 Li = 75000.0;
 
-%% camera parameters
+%% viewing directions
 % viewAngles = deg2rad([0; -10; -20]);
+viewAngle = deg2rad(0);
 viewOrigin = [0.0; 0.0];
-viewAngle = 0;
-viewPlane = [50; 50];
-pathlengthRange = [-1; -1];
-viewReso = [128; 128; 1];
-% pathlengthRange = [0; 100];
-% viewReso = [128; 128; 128];
 
 %% renderer options
 numPhotons = 10000000;
 maxDepth = -1;
 maxPathlength = -1;
+
+%% image params
+
+viewPlane = [50; 50];
+pathlengthRange = [-1; -1];
+viewReso = [128; 128; 1];
+% pathlengthRange = [0; 100];
+% viewReso = [128; 128; 128];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%% do not edit below here
@@ -62,14 +69,14 @@ if (frontLightFlag == 0),
 else
 	lightOrigin = [mediumDimensions(1) / 2; 0.0; 0.0];
 end;
-scene = scene2dparams('iorMedium', iorMedium, 'mediumDimensions', mediumDimensions,...
+scene = sceneparams('iorMedium', iorMedium, 'mediumDimensions', mediumDimensions,...
 	'lightOrigin', lightOrigin, 'lightDir', lightDir, 'lightPlane', lightPlane, 'Li', Li,...
 	'viewOrigin', viewOrigin, 'viewDir', viewDir, 'viewX', viewX, 'viewY', viewY,...
 	'viewPlane', viewPlane, 'pathlengthRange', pathlengthRange, 'viewReso', viewReso);
 
 %% create renderer params
 useDirect = 0;			% Not implemented, always keep 0.
-renderer = renderer2dparams('useDirect', useDirect', 'numPhotons', numPhotons,...
+renderer = rendererparams('useDirect', useDirect', 'numPhotons', numPhotons,...
 			'maxDepth', maxDepth, 'maxPathlength', maxPathlength);
 
 %% check derivatives
