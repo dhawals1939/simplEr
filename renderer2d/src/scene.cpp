@@ -57,21 +57,21 @@ bool Block::intersect(const tvec::Vec3f &p, const tvec::Vec3f &d, Float &disx, F
 
 bool Camera::samplePosition(tvec::Vec3f &pos, smp::Sampler &sampler) const {
 	Float xi1 = sampler();
-	Float xi2 = sampler();
 	Float yCoordShift = - m_plane.x / FPCONST(2.0) + xi1 * m_plane.x;
-	Float zCoordShift = - m_plane.y / FPCONST(2.0) + xi2 * m_plane.y;
-
-	pos = m_origin + tvec::Vec3f(FPCONST(0.0), yCoordShift, zCoordShift);
+	/*
+	 * TODO: Changed this for 2D version.
+	 */
+	pos = m_origin + tvec::Vec3f(FPCONST(0.0), yCoordShift, FPCONST(0.0));
 	return true;
 }
 
 bool AreaSource::sampleRay(tvec::Vec3f &pos, tvec::Vec3f &dir, smp::Sampler &sampler) const {
 	Float xi1 = sampler();
-	Float xi2 = sampler();
 	Float yCoordShift = - m_plane.x / FPCONST(2.0) + xi1 * m_plane.x;
-	Float zCoordShift = - m_plane.y / FPCONST(2.0) + xi2 * m_plane.y;
-
-	pos = m_origin + tvec::Vec3f(FPCONST(0.0), yCoordShift, zCoordShift);
+	/*
+	 * TODO: Changed this for 2D version.
+	 */
+	pos = m_origin + tvec::Vec3f(FPCONST(0.0), yCoordShift, FPCONST(0.0));
 	dir = m_dir;
 	return true;
 }
@@ -195,7 +195,10 @@ void Scene::addEnergyToImage(image::SmallImage &img, const tvec::Vec3f &p,
 	 */
 	Float x = tvec::dot(m_camera.getX(), p) - m_camera.getOrigin().y;
 	Float y = tvec::dot(m_camera.getY(), p) - m_camera.getOrigin().z;
-
+	/*
+	 * TODO: Added this check for 2D version.
+	 */
+	Assert(y == 0);
 
 	Assert(((std::abs(x) < FPCONST(0.5) * m_camera.getPlane().x)
 				&& (std::abs(y) < FPCONST(0.5) * m_camera.getPlane().y)));
@@ -224,8 +227,11 @@ void Scene::addEnergyToImage(image::SmallImage &img, const tvec::Vec3f &p,
 
 		addPixel(img, ix, iy, iz, val*(FPCONST(1.0) - fx)*(FPCONST(1.0) - fy));
 		addPixel(img, ix + 1, iy, iz, val*fx*(FPCONST(1.0) - fy));
-		addPixel(img, ix, iy + 1, iz, val*(FPCONST(1.0) - fx)*fy);
-		addPixel(img, ix + 1, iy + 1, iz, val*fx*fy);
+		/*
+		 * TODO: Disabled these two additions for 2D version.
+		 */
+//		addPixel(img, ix, iy + 1, iz, val*(FPCONST(1.0) - fx)*fy);
+//		addPixel(img, ix + 1, iy + 1, iz, val*fx*fy);
 #else
 		addPixel(img, ix, iy, iz, val);
 #endif
@@ -253,7 +259,6 @@ void Scene::addEnergy(image::SmallImage &img,
 
 		tvec::Vec3f distVec = sensorPoint - p;
 		Float distToSensor = distVec.length();
-		Float distToSensorSquared = distVec.lengthSquared();
 
 		tvec::Vec3f dirToSensor = distVec;
 		dirToSensor.normalize();
@@ -285,12 +290,15 @@ void Scene::addEnergy(image::SmallImage &img,
 		Float foreshortening = dot(refrDirToSensor, m_camera.getDir());
 		Assert(foreshortening >= FPCONST(0.0));
 		Float totalDistance = (distTravelled + distToSensor) * m_ior;
+		/*
+		 * TODO: Changed this for 2D version.
+		 */
 		Float totalPhotonValue = val
 				* std::exp(- medium.getSigmaT() * distToSensor)
 				* medium.getPhaseFunction()->f(d, dirToSensor)
 				* fresnelWeight
 				* foreshortening
-				/ distToSensorSquared;
+				/ distToSensor;
 		addEnergyToImage(img, sensorPoint, totalDistance, totalPhotonValue);
 	}
 }
@@ -322,7 +330,6 @@ void Scene::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 
 		tvec::Vec3f distVec = sensorPoint - p;
 		Float distToSensor = distVec.length();
-		Float distToSensorSquared = distVec.lengthSquared();
 
 		tvec::Vec3f dirToSensor = distVec;
 		dirToSensor.normalize();
@@ -358,12 +365,15 @@ void Scene::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 		Assert(foreshortening >= FPCONST(0.0));
 
 		Float totalDistance = (distTravelled + distToSensor) * m_ior;
+		/*
+		 * TODO: Changed this for 2D version.
+		 */
 		Float totalPhotonValue = val
 				* std::exp(- medium.getSigmaT() * distToSensor)
 				* medium.getPhaseFunction()->f(d, dirToSensor)
 				* fresnelWeight
 				* foreshortening
-				/ distToSensorSquared;
+				/ distToSensor;
 		addEnergyToImage(img, sensorPoint, totalDistance, totalPhotonValue);
 		Float valDSigmaT = totalPhotonValue * (sumScoreSigmaT - distToSensor);
 		addEnergyToImage(dSigmaT, sensorPoint, totalDistance, valDSigmaT);

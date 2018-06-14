@@ -19,15 +19,15 @@ Float HenyeyGreenstein::f(const tvec::Vec3f &in, const tvec::Vec3f &out) const {
 }
 
 Float HenyeyGreenstein::f(Float cosTheta) const {
-		return static_cast<Float>(1.0 / (4.0 * M_PI)) * (FPCONST(1.0) - m_g * m_g) /
-		std::pow(1.f + m_g * m_g - FPCONST(2.0) * m_g * cosTheta, FPCONST(1.5));
+		return static_cast<Float>(FPCONST(1.0) / (4.0 * M_PI)) * (FPCONST(1.0) - m_g * m_g) /
+		std::pow(FPCONST(1.0) + m_g * m_g - FPCONST(2.0) * m_g * cosTheta, FPCONST(1.5));
 }
 
 Float HenyeyGreenstein::derivf(const tvec::Vec3f &in, const tvec::Vec3f &out) const {
 	Float cosTheta = tvec::dot(in, out);
-	return static_cast<Float>(1.0 / (4.0 * M_PI)) *
+	return static_cast<Float>(FPCONST(1.0) / (4.0 * M_PI)) *
 		(m_g * m_g * m_g + m_g * m_g * cosTheta - FPCONST(5.0) * m_g + FPCONST(3.0) * cosTheta) /
-		std::pow(1.f + m_g * m_g - FPCONST(2.0) * m_g * cosTheta, FPCONST(2.5));
+		std::pow(FPCONST(1.0) + m_g * m_g - FPCONST(2.0) * m_g * cosTheta, FPCONST(2.5));
 }
 
 Float HenyeyGreenstein::score(const tvec::Vec3f &in, const tvec::Vec3f &out) const {
@@ -37,8 +37,8 @@ Float HenyeyGreenstein::score(const tvec::Vec3f &in, const tvec::Vec3f &out) con
 
 Float HenyeyGreenstein::score(Float cosTheta) const {
 	return (m_g * m_g * m_g + m_g * m_g * cosTheta - FPCONST(5.0) * m_g + FPCONST(3.0) * cosTheta) /
-			(1 - m_g * m_g) /
-			(1.f + m_g * m_g - FPCONST(2.0) * m_g * cosTheta);
+			(FPCONST(1.0) - m_g * m_g) /
+			(FPCONST(1.0) + m_g * m_g - FPCONST(2.0) * m_g * cosTheta);
 }
 
 

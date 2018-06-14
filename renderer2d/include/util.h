@@ -18,13 +18,10 @@ namespace util {
 
 template <typename T>
 inline void coordinateSystem(const tvec::TVector3<T> &a, tvec::TVector3<T> &b, tvec::TVector3<T> &c) {
-	if (std::abs(a.x) > std::abs(a.y)) {
-		Float invLen = FPCONST(1.0) / std::sqrt(a.x * a.x + a.z *a.z);
-		c = tvec::TVector3<T>(a.z * invLen, FPCONST(0.0), -a.x * invLen);
-	} else {
-		Float invLen = FPCONST(1.0) / std::sqrt(a.y * a.y + a.z * a.z);
-		c = tvec::TVector3<T>(FPCONST(0.0), a.z * invLen, -a.y * invLen);
-	}
+	/*
+	 * TODO: Changed this for 2D version.
+	 */
+	c = tvec::TVector3<T>(FPCONST(0.0), FPCONST(0.0), -1);
 	b = tvec::cross(c, a);
 }
 
@@ -106,6 +103,7 @@ inline bool refract(const tvec::TVector3<T> &a, const tvec::TVector3<T> &n, T et
         return true;
    }
 }
+
 
 template <typename T>
 inline bool rayIntersectBox(const tvec::TVector3<T> &p, const tvec::TVector3<T> &d,
