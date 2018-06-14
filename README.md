@@ -1,2 +1,2 @@
 # crdr
-Basic forward and differentiable renderer of intensity and covariance in scattering media.
+Basic renderer for scattering media. Supports steady-state and transient, forward and differentiable, intensity and covariance modes.
