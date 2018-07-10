@@ -28,35 +28,6 @@ inline void coordinateSystem(const tvec::TVector3<T> &a, tvec::TVector3<T> &b, t
 	b = tvec::cross(c, a);
 }
 
-//void coordinateSystem(const Vector &a, Vector &b, Vector &c) {
-//	if (std::abs(a.x) > std::abs(a.y)) {
-//		Float invLen = FPCONST(1.0) / std::sqrt(a.x * a.x + a.z * a.z);
-//		c = Vector(a.z * invLen, FPCONST(0.0), -a.x * invLen);
-//	} else {
-//		Float invLen = FPCONST(1.0) / std::sqrt(a.y * a.y + a.z * a.z);
-//		c = Vector(FPCONST(0.0), a.z * invLen, -a.y * invLen);
-//	}
-//	b = cross(c, a);
-//}
-
-template <typename T>
-inline Float unitAngle(const tvec::TVector3<T> &u, const tvec::TVector3<T> &v) {
-	if (tvec::dot(u, v) < FPCONST(0.0)) {
-		return static_cast<Float>(M_PI - FPCONST(2.0) * std::asin((v+u).length() / FPCONST(2.0)));
-	} else {
-		return static_cast<Float>(FPCONST(2.0) * std::asin((v-u).length() / FPCONST(2.0)));
-	}
-}
-
-template <typename T>
-inline bool isSorted(const std::vector<T> &vec) {
-
-	typename std::vector<T>::const_iterator iter = \
-				std::adjacent_find(vec.begin(), vec.end(), std::greater<T>());
-	return iter == vec.end();
-//	return true;
-}
-
 
 /*
  * TODO: Need to made sure that, every time this is called, the local code also

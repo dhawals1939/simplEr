@@ -253,7 +253,6 @@ void Scene::addEnergy(image::SmallImage &img,
 
 		tvec::Vec3f distVec = sensorPoint - p;
 		Float distToSensor = distVec.length();
-		Float distToSensorSquared = distVec.lengthSquared();
 
 		tvec::Vec3f dirToSensor = distVec;
 		dirToSensor.normalize();
@@ -265,10 +264,10 @@ void Scene::addEnergy(image::SmallImage &img,
 			refrDirToSensor.y = dirToSensor.y * m_ior;
 			refrDirToSensor.z = dirToSensor.z * m_ior;
 			refrDirToSensor.x = std::sqrt(FPCONST(1.0)
-								- dirToSensor.y * dirToSensor.y
-								- dirToSensor.z * dirToSensor.z);
+								- refrDirToSensor.y * refrDirToSensor.y
+								- refrDirToSensor.z * refrDirToSensor.z);
 			if (dirToSensor.x < FPCONST(0.0)) {
-				dirToSensor.x *= -FPCONST(1.0);
+				refrDirToSensor.x *= -FPCONST(1.0);
 			}
 #ifndef USE_NO_FRESNEL
 			fresnelWeight = (FPCONST(1.0) -
@@ -290,7 +289,7 @@ void Scene::addEnergy(image::SmallImage &img,
 				* medium.getPhaseFunction()->f(d, dirToSensor)
 				* fresnelWeight
 				* foreshortening
-				/ distToSensorSquared;
+				/ distToSensor / distToSensor;
 		addEnergyToImage(img, sensorPoint, totalDistance, totalPhotonValue);
 	}
 }
@@ -322,25 +321,21 @@ void Scene::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 
 		tvec::Vec3f distVec = sensorPoint - p;
 		Float distToSensor = distVec.length();
-		Float distToSensorSquared = distVec.lengthSquared();
 
 		tvec::Vec3f dirToSensor = distVec;
 		dirToSensor.normalize();
 
 		tvec::Vec3f refrDirToSensor = dirToSensor;
 		Float fresnelWeight = FPCONST(1.0);
-		/*
-		 * TODO: Not sure why this check is here, but it was in the original code.
-		 */
-		Assert(m_block.inside(sensorPoint));
+
 		if (m_ior > FPCONST(1.0)) {
 			refrDirToSensor.y = dirToSensor.y * m_ior;
 			refrDirToSensor.z = dirToSensor.z * m_ior;
 			refrDirToSensor.x = std::sqrt(FPCONST(1.0)
-								- dirToSensor.y * dirToSensor.y
-								- dirToSensor.z * dirToSensor.z);
+								- refrDirToSensor.y * refrDirToSensor.y
+								- refrDirToSensor.z * refrDirToSensor.z);
 			if (dirToSensor.x < FPCONST(0.0)) {
-				dirToSensor.x *= -FPCONST(1.0);
+				refrDirToSensor.x *= -FPCONST(1.0);
 			}
 #ifndef USE_NO_FRESNEL
 			fresnelWeight = (FPCONST(1.0) -
@@ -363,7 +358,7 @@ void Scene::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 				* medium.getPhaseFunction()->f(d, dirToSensor)
 				* fresnelWeight
 				* foreshortening
-				/ distToSensorSquared;
+				/ distToSensor / distToSensor;
 		addEnergyToImage(img, sensorPoint, totalDistance, totalPhotonValue);
 		Float valDSigmaT = totalPhotonValue * (sumScoreSigmaT - distToSensor);
 		addEnergyToImage(dSigmaT, sensorPoint, totalDistance, valDSigmaT);

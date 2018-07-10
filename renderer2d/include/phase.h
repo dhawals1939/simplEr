@@ -23,13 +23,18 @@ public:
 
 	~HenyeyGreenstein() { }
 
-	Float f(const tvec::Vec3f &in, const tvec::Vec3f &out) const;
-	Float f(Float cosTheta) const;
-	Float derivf(const tvec::Vec3f &in, const tvec::Vec3f &out) const;
-	Float score(const tvec::Vec3f &in, const tvec::Vec3f &out) const;
-	Float score(Float cosTheta) const;
-	Float sample(const tvec::Vec3f &in, smp::Sampler &sampler,
-						tvec::Vec3f &out)  const;
+	template <template <typename> class VectorType>
+	Float f(const VectorType<Float> &in, const VectorType<Float> &out) const;
+
+	template <template <typename> class VectorType>
+	Float derivf(const VectorType<Float> &in, const VectorType<Float> &out) const;
+
+	template <template <typename> class VectorType>
+	Float score(const VectorType<Float> &in, const VectorType<Float> &out) const;
+
+	template <template <typename> class VectorType>
+	Float sample(const VectorType<Float> &in, smp::Sampler &sampler,
+					VectorType<Float> &out)  const;
 
 	inline Float getG() const {
 		return m_g;

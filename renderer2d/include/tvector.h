@@ -128,6 +128,16 @@ template <typename T> struct TVector2 {
 		return x*x + y*y;
 	}
 
+	/// Return the min entry of this vector
+	T min() const {
+		return std::min(x, y);
+	}
+
+	/// Return the max entry of this vector
+	T max() const {
+		return std::max(x, y);
+	}
+
 	/// Return the 2-norm of this vector
 	T length() const {
 		return std::sqrt(lengthSquared());
@@ -179,6 +189,12 @@ template <typename T> inline T dot(const TVector2<T> &v1, const TVector2<T> &v2)
 
 template <typename T> inline T absDot(const TVector2<T> &v1, const TVector2<T> &v2) {
 	return std::abs(dot(v1, v2));
+}
+
+
+template <typename T> inline TVector2<T> cross(const TVector2<T> &v1, const TVector2<T> & /* v2 */) {
+	/* Left-handed vector cross product */
+	return TVector2<T>(v1.y, - v1.x);
 }
 
 template <typename T> inline TVector2<T> normalize(const TVector2<T> &v) {
@@ -316,6 +332,16 @@ template <typename T> struct TVector3 {
 	/// Return the 2-norm of this vector
 	T length() const {
 		return std::sqrt(lengthSquared());
+	}
+
+	/// Return the min entry of this vector
+	T min() const {
+		return std::min(x, std::min(y, z));
+	}
+
+	/// Return the max entry of this vector
+	T max() const {
+		return std::max(x, std::max(y, z));
 	}
 
 	void normalize() {

@@ -18,45 +18,26 @@ namespace util {
 
 template <typename T>
 inline void coordinateSystem(const tvec::TVector3<T> &a, tvec::TVector3<T> &b, tvec::TVector3<T> &c) {
-	/*
-	 * TODO: Changed this for 2D version.
-	 */
-	c = tvec::TVector3<T>(FPCONST(0.0), FPCONST(0.0), -1);
+	if (std::abs(a.x) > std::abs(a.y)) {
+		Float invLen = FPCONST(1.0) / std::sqrt(a.x * a.x + a.z *a.z);
+		c = tvec::TVector3<T>(a.z * invLen, FPCONST(0.0), -a.x * invLen);
+	} else {
+		Float invLen = FPCONST(1.0) / std::sqrt(a.y * a.y + a.z * a.z);
+		c = tvec::TVector3<T>(FPCONST(0.0), a.z * invLen, -a.y * invLen);
+	}
 	b = tvec::cross(c, a);
 }
 
-//void coordinateSystem(const Vector &a, Vector &b, Vector &c) {
-//	if (std::abs(a.x) > std::abs(a.y)) {
-//		Float invLen = FPCONST(1.0) / std::sqrt(a.x * a.x + a.z * a.z);
-//		c = Vector(a.z * invLen, FPCONST(0.0), -a.x * invLen);
-//	} else {
-//		Float invLen = FPCONST(1.0) / std::sqrt(a.y * a.y + a.z * a.z);
-//		c = Vector(FPCONST(0.0), a.z * invLen, -a.y * invLen);
-//	}
-//	b = cross(c, a);
-//}
-
 template <typename T>
-inline Float unitAngle(const tvec::TVector3<T> &u, const tvec::TVector3<T> &v) {
-	if (tvec::dot(u, v) < FPCONST(0.0)) {
-		return static_cast<Float>(M_PI - FPCONST(2.0) * std::asin((v+u).length() / FPCONST(2.0)));
-	} else {
-		return static_cast<Float>(FPCONST(2.0) * std::asin((v-u).length() / FPCONST(2.0)));
-	}
+inline void coordinateSystem(const tvec::TVector2<T> &a, tvec::TVector2<T> &b) {
+	/*
+	 * TODO: Changed this for 2D version.
+	 */
+	b = tvec::TVector2<T>(a.y, -a.x);
 }
-
-template <typename T>
-inline bool isSorted(const std::vector<T> &vec) {
-
-	typename std::vector<T>::const_iterator iter = \
-				std::adjacent_find(vec.begin(), vec.end(), std::greater<T>());
-	return iter == vec.end();
-//	return true;
-}
-
 
 /*
- * TODO: Need to made sure that, every time this is called, the local code also
+ * TODO: Need to make sure that, every time this is called, the local code also
  * takes care to apply the eta*eta scaling if needed. Note that, according to
  * mitsuba, this scaling is needed when we return to the same medium through TIR.
  */
@@ -77,22 +58,26 @@ inline Float fresnelDielectric(T cosThetaI, T cosThetaT, T eta)
 	}
 }
 
-
 template <typename T>
 inline T safeSqrt(T x) {
     return x > static_cast<T>(0.0) ? std::sqrt(x) : static_cast<T>(0.0);
 }
 
-template <typename T>
-inline void reflect(const tvec::TVector3<T> &a, const tvec::TVector3<T> &n, tvec::TVector3<T> &b) {
+template <typename T, template <typename> class VectorType>
+inline void reflect(const VectorType<T> &a,
+					const VectorType<T> &n,
+					VectorType<T> &b) {
     b = -static_cast<T>(2.0)*tvec::dot(a, n)*n + a;
 }
 
+template <typename T, template <typename> class VectorType>
+inline bool refract(const VectorType<T> &a,
+					const VectorType<T> &n,
+					T eta,
+					VectorType<T> &b) {
 
-template <typename T>
-inline bool refract(const tvec::TVector3<T> &a, const tvec::TVector3<T> &n, T eta, tvec::TVector3<T> &b) {
-    tvec::TVector3<T> q = tvec::dot(a, n)*n;
-    tvec::TVector3<T> p = (a - q)/eta;
+	VectorType<T> q = tvec::dot(a, n)*n;
+	VectorType<T> p = (a - q)/eta;
     if ( p.length() > static_cast<T>(1.0) ) {
         reflect(a, n, b);
         return false;
@@ -104,75 +89,35 @@ inline bool refract(const tvec::TVector3<T> &a, const tvec::TVector3<T> &n, T et
    }
 }
 
+template <typename T, template <typename> class VectorType>
+inline bool rayIntersectBox(const VectorType<T> &p, const VectorType<T> &d,
+                             const VectorType<T> &min, const VectorType<T> &max,
+							 T &t1, T &t2) {
+	t1 = M_MIN;
+	t2 = M_MAX;
+	for (int i = 0; i < p.dim; ++i) {
+		if (std::abs(d[i]) > M_EPSILON) {
+			T v1, v2;
+			if ( d[i] > static_cast<T>(0.0) ) {
+				v1 = (min[i] - p[i])/d[i];
+				v2 = (max[i] - p[i])/d[i];
+			} else {
+				v1 = (max[i] - p[i])/d[i];
+				v2 = (min[i] - p[i])/d[i];
+			}
 
-template <typename T>
-inline bool rayIntersectBox(const tvec::TVector3<T> &p, const tvec::TVector3<T> &d,
-                             const tvec::TVector3<T> &min, const tvec::TVector3<T> &max,
-                             T &t1, T &t2) {
-    t1 = M_MIN; t2 = M_MAX;
-    for ( int i = 0; i < 3; ++i )
-        if ( std::abs(d[i]) > M_EPSILON ) {
-            T v1, v2;
-            if ( d[i] > static_cast<T>(0.0) ) {
-                v1 = (min[i] - p[i])/d[i];
-                v2 = (max[i] - p[i])/d[i];
-            } else {
-                v1 = (max[i] - p[i])/d[i];
-                v2 = (min[i] - p[i])/d[i];
-            }
-
-            if ( v1 > t1 ) t1 = v1;
-            if ( v2 < t2 ) t2 = v2;
-        }
-        else if ( min[i] - p[i] > M_EPSILON || p[i] - max[i] > M_EPSILON )
-            return false;
-
+			if (v1 > t1) {
+				t1 = v1;
+			}
+			if (v2 < t2) {
+				t2 = v2;
+			}
+		} else if (min[i] - p[i] > M_EPSILON || p[i] - max[i] > M_EPSILON) {
+			return false;
+		}
+	}
     return t2 > t1;
 }
-
-//Vector sphericalDirection(Float theta, Float phi) {
-//	Float sinTheta, cosTheta, sinPhi, cosPhi;
-//
-//	std::sincos(theta, &sinTheta, &cosTheta);
-//	std::sincos(phi, &sinPhi, &cosPhi);
-//
-//	return Vector(
-//		sinTheta * cosPhi,
-//		sinTheta * sinPhi,
-//		cosTheta
-//	);
-//}
-//
-//
-//Point2 squareToDisk(const Point2 &sample) {
-//	Float r = std::sqrt(sample.x);
-//	Float sinPhi, cosPhi;
-//	std::sincos(FPCONST(2.0) * M_PI * sample.y, &sinPhi, &cosPhi);
-//
-//	return Point2(
-//		cosPhi * r,
-//		sinPhi * r
-//	);
-//}
-//
-//
-//Point2 toSphericalCoordinates(const Vector &v) {
-//	Point2 result(
-//		std::acos(v.z),
-//		std::atan2(v.y, v.x)
-//	);
-//	if (result.y < FPCONST(0.0))
-//		result.y += FPCONST(2.0)*M_PI;
-//	return result;
-//}
-
-//Point2 squareToStdNormal(const Point2 &sample) {
-//	Float r   = std::sqrt(-FPCONST(2.0) * std::fastlog(FPCONST(1.0)-sample.x)),
-//		  phi = FPCONST(2.0) * M_PI * sample.y;
-//	Point2 result;
-//	std::sincos(phi, &result.y, &result.x);
-//	return result * r;
-//}
 
 
 }	/* namespace util */

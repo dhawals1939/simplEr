@@ -23,6 +23,7 @@
 
 namespace photon {
 
+template <template <typename> class VectorType>
 class Renderer {
 public:
 	Renderer(const int maxDepth, const Float maxPathlength, const bool useDirect) :
@@ -36,61 +37,55 @@ public:
 #endif
 	}
 
-	bool scatterOnce(tvec::Vec3f &p, tvec::Vec3f &d, Float &dist, Float &cosTheta,
-					const scn::Scene &scene, const med::Medium &medium,
+	bool scatterOnce(VectorType<Float> &p, VectorType<Float> &d, Float &dist,
+					const scn::Scene<VectorType> &scene, const med::Medium &medium,
 					smp::Sampler &sampler) const;
 
-	void scatter(const tvec::Vec3f &p, const tvec::Vec3f &d,
-				const scn::Scene &scene, const med::Medium &medium,
+	void scatter(const VectorType<Float> &p, const VectorType<Float> &d,
+				const scn::Scene<VectorType> &scene, const med::Medium &medium,
 				smp::Sampler &sampler, image::SmallImage &img, Float weight) const;
 
-	void scatterDeriv(const tvec::Vec3f &p, const tvec::Vec3f &d,
-					const scn::Scene &scene, const med::Medium &medium,
+	void scatterDeriv(const VectorType<Float> &p, const VectorType<Float> &d,
+					const scn::Scene<VectorType> &scene, const med::Medium &medium,
 					smp::Sampler &sampler, image::SmallImage &img,
 					image::SmallImage &dSigmaT, image::SmallImage &dAlbedo,
 					image::SmallImage &dGVal, Float weight) const;
 
-	bool scatterOnceWeight(tvec::Vec3f &p, tvec::Vec3f &d, Float &weight,
-							Float &dist, Float &cosTheta, const scn::Scene &scene,
+	bool scatterOnceWeight(VectorType<Float> &p, VectorType<Float> &d, Float &weight,
+							Float &dist, const scn::Scene<VectorType> &scene,
 							const med::Medium &medium, const med::Medium &samplingMedium,
 							smp::Sampler &sampler) const;
 
-	void scatterDerivWeight(const tvec::Vec3f &p, const tvec::Vec3f &d,
-						const scn::Scene &scene, const med::Medium &medium,
+	void scatterDerivWeight(const VectorType<Float> &p, const VectorType<Float> &d,
+						const scn::Scene<VectorType> &scene, const med::Medium &medium,
 						const med::Medium &samplingMedium,
 						smp::Sampler &sampler, image::SmallImage &img,
 						image::SmallImage &dSigmaT, image::SmallImage &dAlbedo,
 						image::SmallImage &dGVal, Float weight) const;
 
-
-//	bool scatterOnceWeight(tvec::Vec3f &p, tvec::Vec3f &d, Float &weight,
-//					const scn::Scene &scene, const med::Medium &medium, smp::Sampler &sampler) const;
-//
-//	void scatterWeight(const tvec::Vec3f &p, const tvec::Vec3f &d,
-//					const scn::Scene &scene, const med::Medium &medium,
-//					smp::Sampler &sampler, image::SmallImage &img, Float weight) const;
-
 	inline Float getMoveStep(const med::Medium &medium, smp::Sampler &sampler) const {
 		return -medium.getMfp() * std::log(sampler());
 	}
 
-	inline Float getWeight(const med::Medium &, const scn::Scene &scene, const int64 numPhotons) const {
-		return scene.getAreaSource().getLi() * scene.getFresnelTrans() / static_cast<Float>(numPhotons);
+	inline Float getWeight(const med::Medium &, const scn::Scene<VectorType> &scene,
+						const int64 numPhotons) const {
+		return scene.getAreaSource().getLi() * scene.getFresnelTrans()
+				/ static_cast<Float>(numPhotons);
 	}
 
 	void renderImage(image::SmallImage &img0,
-					const med::Medium &medium, const scn::Scene &scene,
+					const med::Medium &medium, const scn::Scene<VectorType> &scene,
 					const int64 numPhotons) const;
 
 	void renderDerivImage(image::SmallImage &img0, image::SmallImage &dSigmaT0,
 					image::SmallImage &dAlbedo0, image::SmallImage &dGVal0,
-					const med::Medium &medium, const scn::Scene &scene,
+					const med::Medium &medium, const scn::Scene<VectorType> &scene,
 					const int64 numPhotons) const;
 
 	void renderDerivImageWeight(image::SmallImage &img0, image::SmallImage &dSigmaT0,
 					image::SmallImage &dAlbedo0, image::SmallImage &dGVal0,
 					const med::Medium &medium, const med::Medium &samplingMedium,
-					const scn::Scene &scene, const int64 numPhotons) const;
+					const scn::Scene<VectorType> &scene, const int64 numPhotons) const;
 
 	inline int getMaxDepth() const {
 		return m_maxDepth;

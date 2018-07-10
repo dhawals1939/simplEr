@@ -21,8 +21,10 @@ Float BSDF::eval(const tvec::Vec3f &in, const tvec::Vec3f &n, const tvec::Vec3f 
  * TODO: Need to make sure that if this is ever used for refraction, then the
  * calling routine will apply the eta*eta radiance scaling. See Veach, page 141.
  */
-void SmoothDielectric::sample(const tvec::Vec3f &in, const tvec::Vec3f &n,
-                              smp::Sampler &sampler, tvec::Vec3f &out) const {
+
+template <template <typename> class VectorType>
+void SmoothDielectric<VectorType>::sample(const VectorType<Float> &in, const VectorType<Float> &n,
+                              smp::Sampler &sampler, VectorType<Float> &out) const {
 
 	if (std::abs(m_ior1 - m_ior2) < M_EPSILON) {
 		// index matched
@@ -38,12 +40,12 @@ void SmoothDielectric::sample(const tvec::Vec3f &in, const tvec::Vec3f &n,
 			eta = m_ior1/m_ior2;
 		}
 
-		tvec::Vec3f outT;
+		VectorType<Float> outT;
 		if (!util::refract(in, n, eta, outT)) {
 			// TIR
 			out = outT;
 		} else {
-			tvec::Vec3f outR;
+			VectorType<Float> outR;
 			util::reflect(in, n, outR);
 
 			Float cosI = tvec::absDot(n, in), cosT = tvec::absDot(n, outT);
@@ -54,5 +56,8 @@ void SmoothDielectric::sample(const tvec::Vec3f &in, const tvec::Vec3f &n,
 		}
 	}
 }
+
+template class SmoothDielectric<tvec::TVector2>;
+template class SmoothDielectric<tvec::TVector3>;
 
 } //namespace bsdf

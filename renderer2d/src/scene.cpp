@@ -16,10 +16,11 @@ namespace scn {
  * disx is the smallest distance that must be traveled till intersection if outside the box. If inside the box, dis.x = 0;
  * disy is the smallest distance that must be traveled till intersection if inside the box.
  */
-bool Block::intersect(const tvec::Vec3f &p, const tvec::Vec3f &d, Float &disx, Float &disy) const {
-	tvec::Vec3d l(M_MIN), r(M_MAX);
+template <template <typename> class VectorType>
+bool Block<VectorType>::intersect(const VectorType<Float> &p, const VectorType<Float> &d, Float &disx, Float &disy) const {
 
-	for (int i = 0; i < 3; ++i) {
+	VectorType<Float> l(M_MIN), r(M_MAX);
+	for (int i = 0; i < p.dim; ++i) {
 		if (std::abs(d[i]) > M_EPSILON * std::max(FPCONST(1.0), std::abs(d[i]))) {
 			l[i] = (m_blockL[i] - p[i])/d[i];
 			r[i] = (m_blockR[i] - p[i])/d[i];
@@ -31,20 +32,8 @@ bool Block::intersect(const tvec::Vec3f &p, const tvec::Vec3f &d, Float &disx, F
 		}
 	}
 
-	disx = l[0];
-	if (l[1] > disx) {
-		disx = l[1];
-	}
-	if (l[2] > disx) {
-		disx = l[2];
-	}
-	disy = r[0];
-	if (disy > r[1]) {
-		disy = r[1];
-	}
-	if (disy > r[2]) {
-		disy = r[2];
-	}
+	disx = l.max();
+	disy = r.max();
 	if (disx < FPCONST(0.0)) {
 		disx = FPCONST(0.0);
 	}
@@ -55,28 +44,27 @@ bool Block::intersect(const tvec::Vec3f &p, const tvec::Vec3f &d, Float &disx, F
 	return true;
 }
 
-bool Camera::samplePosition(tvec::Vec3f &pos, smp::Sampler &sampler) const {
-	Float xi1 = sampler();
-	Float yCoordShift = - m_plane.x / FPCONST(2.0) + xi1 * m_plane.x;
-	/*
-	 * TODO: Changed this for 2D version.
-	 */
-	pos = m_origin + tvec::Vec3f(FPCONST(0.0), yCoordShift, FPCONST(0.0));
+template <template <typename> class VectorType>
+bool Camera<VectorType>::samplePosition(VectorType<Float> &pos, smp::Sampler &sampler) const {
+	pos = m_origin;
+	for (int iter = 1; iter < m_origin.dim; ++iter) {
+		pos[iter] += - m_plane[iter - 1] / FPCONST(2.0) + sampler() * m_plane[iter - 1];
+	}
 	return true;
 }
 
-bool AreaSource::sampleRay(tvec::Vec3f &pos, tvec::Vec3f &dir, smp::Sampler &sampler) const {
-	Float xi1 = sampler();
-	Float yCoordShift = - m_plane.x / FPCONST(2.0) + xi1 * m_plane.x;
-	/*
-	 * TODO: Changed this for 2D version.
-	 */
-	pos = m_origin + tvec::Vec3f(FPCONST(0.0), yCoordShift, FPCONST(0.0));
+template <template <typename> class VectorType>
+bool AreaSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler) const {
+	pos = m_origin;
+	for (int iter = 1; iter < m_origin.dim; ++iter) {
+		pos[iter] += - m_plane[iter - 1] / FPCONST(2.0) + sampler() * m_plane[iter - 1];
+	}
 	dir = m_dir;
 	return true;
 }
 
-bool Scene::genRay(tvec::Vec3f &pos, tvec::Vec3f &dir,
+template <template <typename> class VectorType>
+bool Scene<VectorType>::genRay(VectorType<Float> &pos, VectorType<Float> &dir,
 						smp::Sampler &sampler) const {
 
 	if (m_source.sampleRay(pos, dir, sampler)) {
@@ -96,9 +84,10 @@ bool Scene::genRay(tvec::Vec3f &pos, tvec::Vec3f &dir,
 	}
 }
 
-bool Scene::genRay(tvec::Vec3f &pos, tvec::Vec3f &dir,
+template <template <typename> class VectorType>
+bool Scene<VectorType>::genRay(VectorType<Float> &pos, VectorType<Float> &dir,
 						smp::Sampler &sampler,
-						tvec::Vec3f &possrc, tvec::Vec3f &dirsrc) const {
+						VectorType<Float> &possrc, VectorType<Float> &dirsrc) const {
 
 	if (m_source.sampleRay(pos, dir, sampler)) {
 		possrc = pos;
@@ -118,11 +107,12 @@ bool Scene::genRay(tvec::Vec3f &pos, tvec::Vec3f &dir,
 	}
 }
 
-bool Scene::movePhoton(tvec::Vec3f &p, tvec::Vec3f &d, Float dist,
-					smp::Sampler &sampler) const {
+template <template <typename> class VectorType>
+bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
+									Float dist, smp::Sampler &sampler) const {
 
-	tvec::Vec3f p1 = p + dist * d;
-    tvec::Vec3f d1, norm;
+	VectorType<Float> p1 = p + dist * d;
+	VectorType<Float> d1, norm;
 
 	while (!m_block.inside(p1)) {
 		Float disx, disy;
@@ -136,7 +126,7 @@ bool Scene::movePhoton(tvec::Vec3f &p, tvec::Vec3f &d, Float dist,
 
 		int i;
 		norm.zero();
-		for (i = 0; i < 3; ++i) {
+		for (i = 0; i < p.dim; ++i) {
 			if (std::abs(m_block.getBlockL()[i] - p[i]) < M_EPSILON) {
 				norm[i] = -FPCONST(1.0);
 				break;
@@ -146,14 +136,14 @@ bool Scene::movePhoton(tvec::Vec3f &p, tvec::Vec3f &d, Float dist,
 				break;
 			}
 		}
-		Assert(i < 3);
+		Assert(i < p.dim);
 
 		Float minDiff = M_MAX;
 		Float minDir = FPCONST(0.0);
-		tvec::Vec3f normalt;
+		VectorType<Float> normalt;
 		normalt.zero();
-		int chosenI = 3;
-		for (i = 0; i < 3; ++i) {
+		int chosenI = p.dim;
+		for (i = 0; i < p.dim; ++i) {
 			Float diff = std::abs(m_block.getBlockL()[i] - p[i]);
 			if (diff < minDiff) {
 				minDiff = diff;
@@ -188,17 +178,12 @@ bool Scene::movePhoton(tvec::Vec3f &p, tvec::Vec3f &d, Float dist,
 	return true;
 }
 
-void Scene::addEnergyToImage(image::SmallImage &img, const tvec::Vec3f &p,
+template <>
+void Scene<tvec::TVector3>::addEnergyToImage(image::SmallImage &img, const tvec::Vec3f &p,
 							Float pathlength, Float val) const {
-	/*
-	 * TODO: I don't think we need viewX and viewY anymore.
-	 */
-	Float x = tvec::dot(m_camera.getX(), p) - m_camera.getOrigin().y;
-	Float y = tvec::dot(m_camera.getY(), p) - m_camera.getOrigin().z;
-	/*
-	 * TODO: Added this check for 2D version.
-	 */
-	Assert(y == 0);
+
+	Float x = tvec::dot(m_camera.getHorizontal(), p) - m_camera.getOrigin().y;
+	Float y = tvec::dot(m_camera.getVertical(), p) - m_camera.getOrigin().z;
 
 	Assert(((std::abs(x) < FPCONST(0.5) * m_camera.getPlane().x)
 				&& (std::abs(y) < FPCONST(0.5) * m_camera.getPlane().y)));
@@ -227,19 +212,52 @@ void Scene::addEnergyToImage(image::SmallImage &img, const tvec::Vec3f &p,
 
 		addPixel(img, ix, iy, iz, val*(FPCONST(1.0) - fx)*(FPCONST(1.0) - fy));
 		addPixel(img, ix + 1, iy, iz, val*fx*(FPCONST(1.0) - fy));
-		/*
-		 * TODO: Disabled these two additions for 2D version.
-		 */
-//		addPixel(img, ix, iy + 1, iz, val*(FPCONST(1.0) - fx)*fy);
-//		addPixel(img, ix + 1, iy + 1, iz, val*fx*fy);
+		addPixel(img, ix, iy + 1, iz, val*(FPCONST(1.0) - fx)*fy);
+		addPixel(img, ix + 1, iy + 1, iz, val*fx*fy);
 #else
 		addPixel(img, ix, iy, iz, val);
 #endif
     }
 }
 
-void Scene::addEnergy(image::SmallImage &img,
-			const tvec::Vec3f &p, const tvec::Vec3f &d, Float distTravelled,
+template <>
+void Scene<tvec::TVector2>::addEnergyToImage(image::SmallImage &img, const tvec::Vec2f &p,
+							Float pathlength, Float val) const {
+
+	Float x = tvec::dot(m_camera.getHorizontal(), p) - m_camera.getOrigin().y;
+
+	Assert(std::abs(x) < FPCONST(0.5) * m_camera.getPlane().x);
+	if (((m_camera.getPathlengthRange().x == -1) && (m_camera.getPathlengthRange().y == -1)) ||
+		((pathlength > m_camera.getPathlengthRange().x) && (pathlength < m_camera.getPathlengthRange().y))) {
+		x = (x / m_camera.getPlane().x + FPCONST(0.5)) * static_cast<Float>(img.getXRes());
+
+//		int ix = static_cast<int>(img.getXRes()/2) + static_cast<int>(std::floor(x));
+//		int iy = static_cast<int>(img.getYRes()/2) + static_cast<int>(std::floor(y));
+		int ix = static_cast<int>(std::floor(x));
+
+		int iz;
+		if ((m_camera.getPathlengthRange().x == -1) && (m_camera.getPathlengthRange().y == -1)) {
+			iz = 0;
+		} else {
+			Float z = pathlength - m_camera.getPathlengthRange().x;
+			Float range = m_camera.getPathlengthRange().y - m_camera.getPathlengthRange().x;
+			z = (z / range) * static_cast<Float>(img.getZRes());
+			iz = static_cast<int>(std::floor(z));
+		}
+#ifdef USE_PIXEL_SHARING
+		Float fx = x - std::floor(x);
+
+		addPixel(img, ix, 0, iz, val*(FPCONST(1.0) - fx));
+		addPixel(img, ix + 1, 0, iz, val*fx);
+#else
+		addPixel(img, ix, 0, iz, val);
+#endif
+    }
+}
+
+template <template <typename> class VectorType>
+void Scene<VectorType>::addEnergy(image::SmallImage &img,
+			const VectorType<Float> &p, const VectorType<Float> &d, Float distTravelled,
 			Float val, const med::Medium &medium, smp::Sampler &sampler) const {
 
 #ifdef USE_WEIGHT_NORMALIZATION
@@ -250,30 +268,31 @@ void Scene::addEnergy(image::SmallImage &img,
 #endif
 #endif
 
-	tvec::Vec3f sensorPoint;
+	VectorType<Float> sensorPoint;
 	if(m_camera.samplePosition(sensorPoint, sampler)) {
 		/*
 		 * TODO: Not sure why this check is here, but it was in the original code.
 		 */
 		Assert(m_block.inside(sensorPoint));
 
-		tvec::Vec3f distVec = sensorPoint - p;
+		VectorType<Float> distVec = sensorPoint - p;
 		Float distToSensor = distVec.length();
 
-		tvec::Vec3f dirToSensor = distVec;
+		VectorType<Float> dirToSensor = distVec;
 		dirToSensor.normalize();
 
-		tvec::Vec3f refrDirToSensor = dirToSensor;
+		VectorType<Float> refrDirToSensor = dirToSensor;
 		Float fresnelWeight = FPCONST(1.0);
 
 		if (m_ior > FPCONST(1.0)) {
-			refrDirToSensor.y = dirToSensor.y * m_ior;
-			refrDirToSensor.z = dirToSensor.z * m_ior;
-			refrDirToSensor.x = std::sqrt(FPCONST(1.0)
-								- dirToSensor.y * dirToSensor.y
-								- dirToSensor.z * dirToSensor.z);
+			Float sqrSum = FPCONST(0.0);
+			for (int iter = 1; iter < dirToSensor.dim; ++iter) {
+				refrDirToSensor[iter] = dirToSensor[iter] * m_ior;
+				sqrSum += refrDirToSensor[iter] * refrDirToSensor[iter];
+			}
+			refrDirToSensor.x = std::sqrt(FPCONST(1.0) - sqrSum);
 			if (dirToSensor.x < FPCONST(0.0)) {
-				dirToSensor.x *= -FPCONST(1.0);
+				refrDirToSensor.x *= -FPCONST(1.0);
 			}
 #ifndef USE_NO_FRESNEL
 			fresnelWeight = (FPCONST(1.0) -
@@ -290,22 +309,26 @@ void Scene::addEnergy(image::SmallImage &img,
 		Float foreshortening = dot(refrDirToSensor, m_camera.getDir());
 		Assert(foreshortening >= FPCONST(0.0));
 		Float totalDistance = (distTravelled + distToSensor) * m_ior;
-		/*
-		 * TODO: Changed this for 2D version.
-		 */
+		Float falloff = FPCONST(1.0);
+		if (p.dim == 2) {
+			falloff = distToSensor;
+		} else if (p.dim == 3) {
+			falloff = distToSensor * distToSensor;
+		}
 		Float totalPhotonValue = val
 				* std::exp(- medium.getSigmaT() * distToSensor)
 				* medium.getPhaseFunction()->f(d, dirToSensor)
 				* fresnelWeight
 				* foreshortening
-				/ distToSensor;
+				/ falloff;
 		addEnergyToImage(img, sensorPoint, totalDistance, totalPhotonValue);
 	}
 }
 
-void Scene::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
+template <template <typename> class VectorType>
+void Scene<VectorType>::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 						image::SmallImage &dAlbedo, image::SmallImage &dGVal,
-						const tvec::Vec3f &p, const tvec::Vec3f &d,
+						const VectorType<Float> &p, const VectorType<Float> &d,
 						Float distTravelled, Float val, Float sumScoreSigmaT,
 						Float sumScoreAlbedo, Float sumScoreGVal,
 						const med::Medium &medium, smp::Sampler &sampler) const {
@@ -321,33 +344,31 @@ void Scene::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 	std::cout << "total = " << distTravelled << std::endl;
 #endif
 
-	tvec::Vec3f sensorPoint;
+	VectorType<Float> sensorPoint;
 	if(m_camera.samplePosition(sensorPoint, sampler)) {
 		/*
 		 * TODO: Not sure why this check is here, but it was in the original code.
 		 */
 		Assert(m_block.inside(sensorPoint));
 
-		tvec::Vec3f distVec = sensorPoint - p;
+		VectorType<Float> distVec = sensorPoint - p;
 		Float distToSensor = distVec.length();
 
-		tvec::Vec3f dirToSensor = distVec;
+		VectorType<Float> dirToSensor = distVec;
 		dirToSensor.normalize();
 
-		tvec::Vec3f refrDirToSensor = dirToSensor;
+		VectorType<Float> refrDirToSensor = dirToSensor;
 		Float fresnelWeight = FPCONST(1.0);
-		/*
-		 * TODO: Not sure why this check is here, but it was in the original code.
-		 */
-		Assert(m_block.inside(sensorPoint));
+
 		if (m_ior > FPCONST(1.0)) {
-			refrDirToSensor.y = dirToSensor.y * m_ior;
-			refrDirToSensor.z = dirToSensor.z * m_ior;
-			refrDirToSensor.x = std::sqrt(FPCONST(1.0)
-								- dirToSensor.y * dirToSensor.y
-								- dirToSensor.z * dirToSensor.z);
+			Float sqrSum = FPCONST(0.0);
+			for (int iter = 1; iter < dirToSensor.dim; ++iter) {
+				refrDirToSensor[iter] = dirToSensor[iter] * m_ior;
+				sqrSum += refrDirToSensor[iter] * refrDirToSensor[iter];
+			}
+			refrDirToSensor.x = std::sqrt(FPCONST(1.0) - sqrSum);
 			if (dirToSensor.x < FPCONST(0.0)) {
-				dirToSensor.x *= -FPCONST(1.0);
+				refrDirToSensor.x *= -FPCONST(1.0);
 			}
 #ifndef USE_NO_FRESNEL
 			fresnelWeight = (FPCONST(1.0) -
@@ -365,15 +386,18 @@ void Scene::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 		Assert(foreshortening >= FPCONST(0.0));
 
 		Float totalDistance = (distTravelled + distToSensor) * m_ior;
-		/*
-		 * TODO: Changed this for 2D version.
-		 */
+		Float falloff = FPCONST(1.0);
+		if (p.dim == 2) {
+			falloff = distToSensor;
+		} else if (p.dim == 3) {
+			falloff = distToSensor * distToSensor;
+		}
 		Float totalPhotonValue = val
 				* std::exp(- medium.getSigmaT() * distToSensor)
 				* medium.getPhaseFunction()->f(d, dirToSensor)
 				* fresnelWeight
 				* foreshortening
-				/ distToSensor;
+				/ falloff;
 		addEnergyToImage(img, sensorPoint, totalDistance, totalPhotonValue);
 		Float valDSigmaT = totalPhotonValue * (sumScoreSigmaT - distToSensor);
 		addEnergyToImage(dSigmaT, sensorPoint, totalDistance, valDSigmaT);
@@ -385,50 +409,13 @@ void Scene::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 	}
 }
 
-//void Scene::addEnergyDirect(image::SmallImage &img,
-//			const tvec::Vec3f &p, const tvec::Vec3f &d, Float val,
-//			const med::Medium &medium) const {
-//
-//	tvec::Vec3f q;
-//	Float t;
-//
-//#ifdef USE_WEIGHT_NORMALIZATION
-//	val *=	static_cast<Float>(img.getXRes()) * static_cast<Float>(img.getYRes())
-//		/ (m_camera.getViewPlane().x * m_camera.getViewPlane().y);
-//#ifdef USE_PRINTING
-//		std::cout << "using weight normalization " << std::endl;
-//#endif
-//#endif
-//
-//	if (std::abs(m_refX.x) > M_EPSILON) {
-//		t = ((m_refX.x > FPCONST(0.0) ? m_mediumBlock.getBlockR().x : m_mediumBlock.getBlockL().x) - p.x)/m_refX.x;
-//		q = p + t*m_refX;
-//		if (m_mediumBlock.inside(q)) {
-//			if (d.aproxEqual(m_refX)) {
-//				addEnergyToImage(img, q, 0, val*std::exp(-medium.getSigmaT()*t));
-//			}
-//		}
-//	}
-//
-//	if (std::abs(m_refY.y) > M_EPSILON) {
-//		t = ((m_refY.y > FPCONST(0.0) ? m_mediumBlock.getBlockR().y : m_mediumBlock.getBlockL().y) - p.y)/m_refY.y;
-//		q = p + t*m_refY;
-//		if (m_mediumBlock.inside(q)) {
-//			if (d.aproxEqual(m_refY)) {
-//				addEnergyToImage(img, q, 0, val*std::exp(-medium.getSigmaT()*t));
-//			}
-//		}
-//	}
-//
-//	if (std::abs(m_refZ.z) > M_EPSILON) {
-//		t = ((m_refZ.z > FPCONST(0.0) ? m_mediumBlock.getBlockR().z : m_mediumBlock.getBlockL().z) - p.z)/m_refZ.z;
-//		q = p + t*m_refZ;
-//		if (m_mediumBlock.inside(q)) {
-//			if (d.aproxEqual(m_refZ)) {
-//				addEnergyToImage(img, q, 0, val*std::exp(-medium.getSigmaT()*t));
-//			}
-//		}
-//	}
-//}
+template class Block<tvec::TVector2>;
+template class Block<tvec::TVector3>;
+template class Camera<tvec::TVector2>;
+template class Camera<tvec::TVector3>;
+template class AreaSource<tvec::TVector2>;
+template class AreaSource<tvec::TVector3>;
+template class Scene<tvec::TVector2>;
+template class Scene<tvec::TVector3>;
 
 }	/* namespace scn */

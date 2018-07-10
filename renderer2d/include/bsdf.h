@@ -15,7 +15,8 @@
 #include "constants.h"
 
 namespace bsdf {
- 
+
+template <template <typename> class VectorType>
 class SmoothDielectric {
 public:
 	SmoothDielectric(Float ior1, Float ior2) :
@@ -28,8 +29,8 @@ public:
 
     //virtual Float eval(const tvec::Vec3f &in, const tvec::Vec3f &n, const tvec::Vec3f &out) const;
 
-	void sample(const tvec::Vec3f &in, const tvec::Vec3f &n,
-				smp::Sampler &sampler, tvec::Vec3f &out) const;
+	void sample(const VectorType<Float> &in, const VectorType<Float> &n,
+				smp::Sampler &sampler, VectorType<Float> &out) const;
 
 	inline Float getIor1() const {
 		return m_ior1;

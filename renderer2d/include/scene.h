@@ -24,110 +24,94 @@
 
 namespace scn {
 
+template <template <typename> class VectorType>
 struct Block {
 
-	Block(const tvec::Vec3f &blockL, const tvec::Vec3f &blockR)
+	Block(const VectorType<Float> &blockL, const VectorType<Float> &blockR)
 		: m_blockL(blockL),
 		  m_blockR(blockR) { }
 
 	/*
 	 * TODO: Maybe replace these with comparisons to FPCONST(0.0)?
 	 */
-	inline bool inside(const tvec::Vec3f &p) const {
-		return
-			p.x - m_blockL.x > -M_EPSILON &&
-			m_blockR.x - p.x > -M_EPSILON &&
-			p.y - m_blockL.y > -M_EPSILON &&
-			m_blockR.y - p.y > -M_EPSILON &&
-			p.z - m_blockL.z > -M_EPSILON &&
-			m_blockR.z - p.z > -M_EPSILON;
-//			p.x - m_boxL.x > M_EPSILON && m_boxR.x - p.x > M_EPSILON &&
-//			p.y - m_blockL.y > M_EPSILON && m_blockR.y - p.y > M_EPSILON &&
-//			p.z - m_blockL.z > M_EPSILON && m_blockR.z - p.z > M_EPSILON;
-//			p.x - m_boxL.x > FPCONST(0.0) && m_boxR.x - p.x > FPCONST(0.0) &&
-//			p.y - m_boxL.y > FPCONST(0.0) && m_boxR.y - p.y > FPCONST(0.0) &&
-//			p.z - m_boxL.z > FPCONST(0.0) && m_boxR.z - p.z > FPCONST(0.0);
+	inline bool inside(const VectorType<Float> &p) const {
+		bool result = true;
+		for (int iter = 0; iter < p.dim; ++iter) {
+			result = result
+				&& (p[iter] - m_blockL[iter] > -M_EPSILON)
+				&& (m_blockR[iter] - p[iter] > -M_EPSILON);
+			/*
+			 * TODO: Maybe remove this check, it may be slowing performance down
+			 * due to the branching.
+			 */
+			if (!result) {
+				break;
+			}
+		}
+		return result;
 	}
 
-	inline bool inside(const tvec::Vec3f &p, bool &xInside, bool &yInside, bool &zInside) const {
-		xInside = p.x - m_blockL.x > -M_EPSILON &&
-		m_blockR.x - p.x > -M_EPSILON;
-		yInside = p.y - m_blockL.y > -M_EPSILON &&
-		m_blockR.y - p.y > -M_EPSILON;
-		zInside = p.z - m_blockL.z > -M_EPSILON &&
-		m_blockR.z - p.z > -M_EPSILON;
-//		xInside = p.x - m_boxL.x > M_EPSILON && m_boxR.x - p.x > M_EPSILON;
-//		yInside = p.y - m_boxL.y > M_EPSILON && m_boxR.y - p.y > M_EPSILON;
-//		zInside = p.z - m_boxL.z > M_EPSILON && m_boxR.z - p.z > M_EPSILON;
-//		xInside = p.x - m_boxL.x > -M_EPSILON && m_boxR.x - p.x > -M_EPSILON;
-//		yInside = p.y - m_boxL.y > -M_EPSILON && m_boxR.y - p.y > -M_EPSILON;
-//		zInside = p.z - m_boxL.z > -M_EPSILON && m_boxR.z - p.z > -M_EPSILON;
-		return xInside && yInside && zInside;
-	}
-
-//	bool intersect(const tvec::Vec3f &p, const tvec::Vec3f &d, tvec::Vec2d &dis) const;
-	bool intersect(const tvec::Vec3f &p, const tvec::Vec3f &d,
+	bool intersect(const VectorType<Float> &p, const VectorType<Float> &d,
 				Float &disx, Float &disy) const;
 
-	inline const tvec::Vec3f& getBlockL() const {
+
+	inline const VectorType<Float>& getBlockL() const {
 		return m_blockL;
 	}
 
-	inline const tvec::Vec3f& getBlockR() const {
+	inline const VectorType<Float>& getBlockR() const {
 		return m_blockR;
 	}
 
 	virtual ~Block() { }
 
 protected:
-	tvec::Vec3f m_blockL;
-	tvec::Vec3f m_blockR;
+	VectorType<Float> m_blockL;
+	VectorType<Float> m_blockR;
 };
 
+template <template <typename> class VectorType>
 struct Camera {
-	/*
-	 * TODO: Need to make sure m_x and m_y are used correctly. Maybe they are
-	 * not needed at all..
-	 */
-	Camera(const tvec::Vec3f &origin, const tvec::Vec3f &dir,
-		const tvec::Vec3f &x, const tvec::Vec3f &y,
-		const tvec::Vec2f &plane, const tvec::Vec2f &pathlengthRange) :
+
+	Camera(const VectorType<Float> &origin,
+		const VectorType<Float> &dir,
+		const VectorType<Float> &horizontal,
+		const tvec::Vec2f &plane,
+		const tvec::Vec2f &pathlengthRange) :
 			m_origin(origin),
 			m_dir(dir),
-			m_x(x),
-			m_y(y),
+			m_horizontal(horizontal),
+			m_vertical(),
 			m_plane(plane),
 			m_pathlengthRange(pathlengthRange) {
 		Assert(((m_pathlengthRange.x == -FPCONST(1.0)) && (m_pathlengthRange.y == -FPCONST(1.0))) ||
 				((m_pathlengthRange.x >= 0) && (m_pathlengthRange.y >= m_pathlengthRange.x)));
-		/*
-		 * TODO: Added this check for 2D version.
-		 */
-		Assert((m_origin.z == 0) && (m_dir.z == 0));
 		m_dir.normalize();
-		m_x.normalize();
-		m_y.normalize();
+		m_horizontal.normalize();
+		if (m_origin.dim == 3) {
+			m_vertical = tvec::cross(m_dir, m_horizontal);
+		}
 	}
 
 	/*
 	 * TODO: Inline this method.
 	 */
-	bool samplePosition(tvec::Vec3f &pos, smp::Sampler &sampler) const;
+	bool samplePosition(VectorType<Float> &pos, smp::Sampler &sampler) const;
 
-	inline const tvec::Vec3f& getOrigin() const {
+	inline const VectorType<Float>& getOrigin() const {
 		return m_origin;
 	}
 
-	inline const tvec::Vec3f& getDir() const {
+	inline const VectorType<Float>& getDir() const {
 		return m_dir;
 	}
 
-	inline const tvec::Vec3f& getX() const {
-		return m_x;
+	inline const VectorType<Float>& getHorizontal() const {
+		return m_horizontal;
 	}
 
-	inline const tvec::Vec3f& getY() const {
-		return m_y;
+	inline const VectorType<Float>& getVertical() const {
+		return m_vertical;
 	}
 
 	inline const tvec::Vec2f& getPlane() const {
@@ -141,17 +125,18 @@ struct Camera {
 	virtual ~Camera() { }
 
 protected:
-	tvec::Vec3f m_origin;
-	tvec::Vec3f m_dir;
-	tvec::Vec3f m_x;
-	tvec::Vec3f m_y;
+	VectorType<Float> m_origin;
+	VectorType<Float> m_dir;
+	VectorType<Float> m_horizontal;
+	VectorType<Float> m_vertical;
 	tvec::Vec2f m_plane;
 	tvec::Vec2f m_pathlengthRange;
 };
 
+template <template <typename> class VectorType>
 struct AreaSource {
 
-	AreaSource(const tvec::Vec3f &origin, const tvec::Vec3f &dir,
+	AreaSource(const VectorType<Float> &origin, const VectorType<Float> &dir,
 			const tvec::Vec2f &plane, Float Li)
 			: m_origin(origin),
 			  m_dir(dir),
@@ -160,23 +145,27 @@ struct AreaSource {
 		/*
 		 * TODO: Added this check for 2D version.
 		 */
-		Assert((m_origin.z == 0) && (m_dir.z == 0));
 		m_dir.normalize();
 #ifdef USE_PRINTING
-		std::cout << " dir " << m_dir.x << " " << m_dir.y << " " << m_dir.z << std::endl;
+		std::cout << " dir " << m_dir.x << " " << m_dir.y;
+		if (m_dir.dim == 3) {
+			std::cout << " " << m_dir.z << std::endl;
+		} else {
+			std::cout << std::endl;
+		}
 #endif
 	}
 
 	/*
 	 * TODO: Inline this method.
 	 */
-	bool sampleRay(tvec::Vec3f &pos, tvec::Vec3f &dir, smp::Sampler &sampler) const;
+	bool sampleRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler) const;
 
-	inline const tvec::Vec3f& getOrigin() const {
+	inline const VectorType<Float>& getOrigin() const {
 		return m_origin;
 	}
 
-	inline const tvec::Vec3f& getDir() const {
+	inline const VectorType<Float>& getDir() const {
 		return m_dir;
 	}
 
@@ -191,42 +180,45 @@ struct AreaSource {
 	virtual ~AreaSource() { }
 
 protected:
-	tvec::Vec3f m_origin;
-	tvec::Vec3f m_dir;
+	VectorType<Float> m_origin;
+	VectorType<Float> m_dir;
 	tvec::Vec2f m_plane;
 	Float m_Li;
 };
 
+template <template <typename> class VectorType>
 class Scene {
 public:
-	Scene(const Float ior,
-			const tvec::Vec3f &blockL,
-			const tvec::Vec3f &blockR,
-			const tvec::Vec3f &lightOrigin,
-			const tvec::Vec3f &lightDir,
+	Scene(Float ior,
+			const VectorType<Float> &blockL,
+			const VectorType<Float> &blockR,
+			const VectorType<Float> &lightOrigin,
+			const VectorType<Float> &lightDir,
 			const tvec::Vec2f &lightPlane,
 			const Float Li,
-			const tvec::Vec3f &viewOrigin,
-			const tvec::Vec3f &viewDir,
-			const tvec::Vec3f &viewX,
-			const tvec::Vec3f &viewY,
+			const VectorType<Float> &viewOrigin,
+			const VectorType<Float> &viewDir,
+			const VectorType<Float> &viewHorizontal,
 			const tvec::Vec2f &viewPlane,
 			const tvec::Vec2f &pathlengthRange) :
 				m_ior(ior),
 				m_fresnelTrans(FPCONST(1.0)),
-				m_refrDir(FPCONST(1.0), FPCONST(0.0), FPCONST(0.0)),
+				m_refrDir(),
 				m_block(blockL, blockR),
 				m_source(lightOrigin, lightDir, lightPlane, Li),
-				m_camera(viewOrigin, viewDir, viewX, viewY, viewPlane, pathlengthRange),
+				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange),
 				m_bsdf(FPCONST(1.0), ior) {
 
 		Assert(((std::abs(m_source.getOrigin().x - m_block.getBlockL().x) < M_EPSILON) && (m_source.getDir().x > FPCONST(0.0)))||
 				((std::abs(m_source.getOrigin().x - m_block.getBlockR().x) < M_EPSILON) && (m_source.getDir().x < FPCONST(0.0))));
 
 		if (m_ior > FPCONST(1.0)) {
-			m_refrDir.y = m_source.getDir().y / m_ior;
-			m_refrDir.z = m_source.getDir().z / m_ior;
-			m_refrDir.x = std::sqrt(FPCONST(1.0) - m_refrDir.y * m_refrDir.y - m_refrDir.z * m_refrDir.z);
+			Float sumSqr = FPCONST(0.0);
+			for (int iter = 1; iter < m_refrDir.dim; ++iter) {
+				m_refrDir[iter] = m_source.getDir()[iter] / m_ior;
+				sumSqr += m_refrDir[iter] * m_refrDir[iter];
+			}
+			m_refrDir.x = std::sqrt(FPCONST(1.0) - sumSqr);
 			if (m_source.getDir().x < FPCONST(0.0)) {
 				m_refrDir.x *= -FPCONST(1.0);
 			}
@@ -246,12 +238,12 @@ public:
 	/*
 	 * TODO: Inline these methods in implementations.
 	 */
-	bool movePhoton(tvec::Vec3f &p, tvec::Vec3f &d, Float dist,
+	bool movePhoton(VectorType<Float> &p, VectorType<Float> &d, Float dist,
 					smp::Sampler &sampler) const;
-	bool genRay(tvec::Vec3f &pos, tvec::Vec3f &dir, smp::Sampler &sampler) const;
-	bool genRay(tvec::Vec3f &pos, tvec::Vec3f &dir, smp::Sampler &sampler,
-				tvec::Vec3f &possrc, tvec::Vec3f &dirsrc) const;
-	void addEnergyToImage(image::SmallImage &img, const tvec::Vec3f &p,
+	bool genRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler) const;
+	bool genRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler,
+				VectorType<Float> &possrc, VectorType<Float> &dirsrc) const;
+	void addEnergyToImage(image::SmallImage &img, const VectorType<Float> &p,
 						Float pathlength, Float val) const;
 
 	inline void addPixel(image::SmallImage &img, int x, int y, int z, Float val) const {
@@ -261,13 +253,13 @@ public:
 		}
 	}
 
-	void addEnergy(image::SmallImage &img, const tvec::Vec3f &p,
-						const tvec::Vec3f &d, Float distTravelled, Float val,
+	void addEnergy(image::SmallImage &img, const VectorType<Float> &p,
+						const VectorType<Float> &d, Float distTravelled, Float val,
 						const med::Medium &medium, smp::Sampler &sampler) const;
 
 	void addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 						image::SmallImage &dAlbedo, image::SmallImage &dGVal,
-						const tvec::Vec3f &p, const tvec::Vec3f &d,
+						const VectorType<Float> &p, const VectorType<Float> &d,
 						Float distTravelled, Float val, Float sumScoreSigmaT,
 						Float sumScoreAlbedo, Float sumScoreGVal,
 						const med::Medium &medium, smp::Sampler &sampler) const;
@@ -287,23 +279,23 @@ public:
 		return m_fresnelTrans;
 	}
 
-	inline const tvec::Vec3f& getRefrDir() const {
+	inline const VectorType<Float>& getRefrDir() const {
 		return m_refrDir;
 	}
 
-	inline const Block& getMediumBlock() const {
+	inline const Block<VectorType>& getMediumBlock() const {
 		return m_block;
 	}
 
-	inline const AreaSource& getAreaSource() const {
+	inline const AreaSource<VectorType>& getAreaSource() const {
 		return m_source;
 	}
 
-	inline const Camera& getCamera() const {
+	inline const Camera<VectorType>& getCamera() const {
 		return m_camera;
 	}
 
-	inline const bsdf::SmoothDielectric& getBSDF() const {
+	inline const bsdf::SmoothDielectric<VectorType>& getBSDF() const {
 		return m_bsdf;
 	}
 
@@ -312,11 +304,11 @@ public:
 protected:
 	Float m_ior;
 	Float m_fresnelTrans;
-	tvec::Vec3f m_refrDir;
-	Block m_block;
-	AreaSource m_source;
-	Camera m_camera;
-	bsdf::SmoothDielectric m_bsdf;
+	VectorType<Float> m_refrDir;
+	Block<VectorType> m_block;
+	AreaSource<VectorType> m_source;
+	Camera<VectorType> m_camera;
+	bsdf::SmoothDielectric<VectorType> m_bsdf;
 };
 
 }	/* namespace scn */

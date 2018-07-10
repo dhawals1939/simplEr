@@ -18,8 +18,7 @@ bool Renderer::scatterOnce(tvec::Vec3f &p, tvec::Vec3f &d, Float &dist, Float &c
 
 	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
 		tvec::Vec3f d1;
-		medium.getPhaseFunction()->sample(d, sampler, d1);
-		cosTheta = tvec::dot(d, d1);
+		cosTheta = medium.getPhaseFunction()->sample(d, sampler, d1);
 		d = d1;
 		dist = getMoveStep(medium, sampler);
 		return scene.movePhoton(p, d, dist, sampler);
@@ -108,8 +107,7 @@ bool Renderer::scatterOnceWeight(tvec::Vec3f &p, tvec::Vec3f &d, Float &weight,
 	if ((samplingMedium.getAlbedo() > FPCONST(0.0)) && ((samplingMedium.getAlbedo() >= FPCONST(1.0))
 			|| (sampler() < samplingMedium.getAlbedo()))) {
 		tvec::Vec3f d1;
-		samplingMedium.getPhaseFunction()->sample(d, sampler, d1);
-		cosTheta = tvec::dot(d, d1);
+		cosTheta = samplingMedium.getPhaseFunction()->sample(d, sampler, d1);
 		d = d1;
 		dist = getMoveStep(samplingMedium, sampler);
 

@@ -29,9 +29,9 @@ const Imf::PixelType kEXRFloatUsed = Imf::FLOAT;
 namespace image {
 
 /*
- * NOTE: Replace the image data and access operations with ipp ones, for faster
+ * TODO: Replace the image data and access operations with ipp ones, for faster
  * parallelism.
- * NOTE: Add version for reference return, or unary operators to single pixels.
+ * TODO: Add version for reference return, or unary operators to single pixels.
  */
 template <typename T>
 class Image2 {

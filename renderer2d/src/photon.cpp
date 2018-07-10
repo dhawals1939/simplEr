@@ -12,14 +12,14 @@
 
 namespace photon {
 
-bool Renderer::scatterOnce(tvec::Vec3f &p, tvec::Vec3f &d, Float &dist, Float &cosTheta,
-						const scn::Scene &scene, const med::Medium &medium,
+template <template <typename> class VectorType>
+bool Renderer<VectorType>::scatterOnce(VectorType<Float> &p, VectorType<Float> &d, Float &dist,
+						const scn::Scene<VectorType> &scene, const med::Medium &medium,
 						smp::Sampler &sampler) const {
 
 	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
-		tvec::Vec3f d1;
+		VectorType<Float> d1;
 		medium.getPhaseFunction()->sample(d, sampler, d1);
-		cosTheta = tvec::dot(d, d1);
 		d = d1;
 		dist = getMoveStep(medium, sampler);
 		return scene.movePhoton(p, d, dist, sampler);
@@ -29,16 +29,16 @@ bool Renderer::scatterOnce(tvec::Vec3f &p, tvec::Vec3f &d, Float &dist, Float &c
 	}
 }
 
-void Renderer::scatter(const tvec::Vec3f &p, const tvec::Vec3f &d,
-					const scn::Scene &scene, const med::Medium &medium,
+template <template <typename> class VectorType>
+void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<Float> &d,
+					const scn::Scene<VectorType> &scene, const med::Medium &medium,
 					smp::Sampler &sampler, image::SmallImage &img, Float weight) const {
 
 	Assert(scene.getMediumBlock().inside(p));
 
 	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
-		tvec::Vec3f pos(p), dir(d);
+		VectorType<Float> pos(p), dir(d);
 
-		Float cosTheta = FPCONST(0.0);
 		Float dist = getMoveStep(medium, sampler);
 		if (!scene.movePhoton(pos, dir, dist, sampler)) {
 			return;
@@ -50,21 +50,18 @@ void Renderer::scatter(const tvec::Vec3f &p, const tvec::Vec3f &d,
 				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
 			scene.addEnergy(img, pos, dir, totalDist, weight, medium, sampler);
 
-			if (!scatterOnce(pos, dir, dist, cosTheta, scene, medium, sampler)) {
+			if (!scatterOnce(pos, dir, dist, scene, medium, sampler)) {
 				break;
 			}
-			/*
-			 * TODO: Added this check for 2D version.
-			 */
-			Assert(pos.z == 0);
 			totalDist += dist;
 			++depth;
 		}
 	}
 }
 
-void Renderer::scatterDeriv(const tvec::Vec3f &p, const tvec::Vec3f &d,
-							const scn::Scene &scene, const med::Medium &medium,
+template <template <typename> class VectorType>
+void Renderer<VectorType>::scatterDeriv(const VectorType<Float> &p, const VectorType<Float> &d,
+							const scn::Scene<VectorType> &scene, const med::Medium &medium,
 							smp::Sampler &sampler, image::SmallImage &img,
 							image::SmallImage &dSigmaT, image::SmallImage &dAlbedo,
 							image::SmallImage &dGVal, Float weight) const {
@@ -72,16 +69,15 @@ void Renderer::scatterDeriv(const tvec::Vec3f &p, const tvec::Vec3f &d,
 	Assert(scene.getMediumBlock().inside(p));
 
 	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
-		tvec::Vec3f pos(p), dir(d);
+		VectorType<Float> pos(p), dir(d);
 
-
-		Float cosTheta = FPCONST(0.0);
 		Float dist = getMoveStep(medium, sampler);
 		if (!scene.movePhoton(pos, dir, dist, sampler)) {
 			return;
 		}
 
 		int depth = 1;
+		VectorType<Float> prevDir(d);
 		Float totalDist = dist;
 		Float sumScoreSigmaT = (FPCONST(1.0) - medium.getSigmaT() * dist);
 		Float sumScoreAlbedo = FPCONST(1.0) / medium.getAlbedo();
@@ -92,39 +88,36 @@ void Renderer::scatterDeriv(const tvec::Vec3f &p, const tvec::Vec3f &d,
 							totalDist, weight, sumScoreSigmaT, sumScoreAlbedo,
 							sumScoreGVal, medium, sampler);
 
-			if (!scatterOnce(pos, dir, dist, cosTheta, scene, medium, sampler)) {
+			prevDir = dir;
+			if (!scatterOnce(pos, dir, dist, scene, medium, sampler)) {
 				break;
 			}
-			/*
-			 * TODO: Added this check for 2D version.
-			 */
-			Assert(pos.z == 0);
 			totalDist += dist;
 			++depth;
 			sumScoreAlbedo += FPCONST(1.0) / medium.getAlbedo();
 			sumScoreSigmaT += (FPCONST(1.0) - medium.getSigmaT() * dist);
-			sumScoreGVal += medium.getPhaseFunction()->score(cosTheta);
+			sumScoreGVal += medium.getPhaseFunction()->score(prevDir, dir);
 		}
 	}
 }
 
-bool Renderer::scatterOnceWeight(tvec::Vec3f &p, tvec::Vec3f &d, Float &weight,
-						Float &dist, Float &cosTheta, const scn::Scene &scene,
+template <template <typename> class VectorType>
+bool Renderer<VectorType>::scatterOnceWeight(VectorType<Float> &p, VectorType<Float> &d, Float &weight,
+						Float &dist, const scn::Scene<VectorType> &scene,
 						const med::Medium &medium, const med::Medium &samplingMedium,
 						smp::Sampler &sampler) const {
 
 	if ((samplingMedium.getAlbedo() > FPCONST(0.0)) && ((samplingMedium.getAlbedo() >= FPCONST(1.0))
 			|| (sampler() < samplingMedium.getAlbedo()))) {
-		tvec::Vec3f d1;
+		VectorType<Float> d1;
 		samplingMedium.getPhaseFunction()->sample(d, sampler, d1);
-		cosTheta = tvec::dot(d, d1);
-		d = d1;
 		dist = getMoveStep(samplingMedium, sampler);
 
 		weight *= (medium.getAlbedo() / samplingMedium.getAlbedo()) *
 				((medium.getSigmaT() * std::exp(-medium.getSigmaT() * dist)) /
 						(samplingMedium.getSigmaT() * std::exp(-samplingMedium.getSigmaT() * dist))) *
-				(medium.getPhaseFunction()->f(cosTheta) / samplingMedium.getPhaseFunction()->f(cosTheta));
+				(medium.getPhaseFunction()->f(d, d1) / samplingMedium.getPhaseFunction()->f(d, d1));
+		d = d1;
 		return scene.movePhoton(p, d, dist, sampler);
 	} else {
 		dist = FPCONST(0.0);
@@ -132,8 +125,9 @@ bool Renderer::scatterOnceWeight(tvec::Vec3f &p, tvec::Vec3f &d, Float &weight,
 	}
 }
 
-void Renderer::scatterDerivWeight(const tvec::Vec3f &p, const tvec::Vec3f &d,
-							const scn::Scene &scene, const med::Medium &medium,
+template <template <typename> class VectorType>
+void Renderer<VectorType>::scatterDerivWeight(const VectorType<Float> &p, const VectorType<Float> &d,
+							const scn::Scene<VectorType> &scene, const med::Medium &medium,
 							const med::Medium &samplingMedium,
 							smp::Sampler &sampler, image::SmallImage &img,
 							image::SmallImage &dSigmaT, image::SmallImage &dAlbedo,
@@ -143,10 +137,8 @@ void Renderer::scatterDerivWeight(const tvec::Vec3f &p, const tvec::Vec3f &d,
 
 	if ((samplingMedium.getAlbedo() > FPCONST(0.0)) && ((samplingMedium.getAlbedo() >= FPCONST(1.0)) ||
 		(sampler() < samplingMedium.getAlbedo()))) {
-		tvec::Vec3f pos(p), dir(d);
+		VectorType<Float> pos(p), dir(d);
 
-
-		Float cosTheta = FPCONST(0.0);
 		Float dist = getMoveStep(samplingMedium, sampler);
 #ifdef USE_PRINTING
 		std::cout << "sampled first = " << dist << std::endl;
@@ -156,6 +148,7 @@ void Renderer::scatterDerivWeight(const tvec::Vec3f &p, const tvec::Vec3f &d,
 		}
 
 		int depth = 1;
+		VectorType<Float> prevDir(d);
 		Float totalDist = dist;
 		weight *= (medium.getAlbedo() / samplingMedium.getAlbedo()) *
 				((medium.getSigmaT() * std::exp(-medium.getSigmaT() * dist)) /
@@ -174,7 +167,8 @@ void Renderer::scatterDerivWeight(const tvec::Vec3f &p, const tvec::Vec3f &d,
 							sumScoreGVal, medium, sampler);
 //			}
 
-			if (!scatterOnceWeight(pos, dir, weight, dist, cosTheta, scene,
+			prevDir = dir;
+			if (!scatterOnceWeight(pos, dir, weight, dist, scene,
 								medium, samplingMedium, sampler)) {
 				break;
 			}
@@ -185,7 +179,7 @@ void Renderer::scatterDerivWeight(const tvec::Vec3f &p, const tvec::Vec3f &d,
 			++depth;
 			sumScoreAlbedo += FPCONST(1.0) / medium.getAlbedo();
 			sumScoreSigmaT += (FPCONST(1.0) - medium.getSigmaT() * dist);
-			sumScoreGVal += medium.getPhaseFunction()->score(cosTheta);
+			sumScoreGVal += medium.getPhaseFunction()->score(prevDir, dir);
 		}
 	}
 }
@@ -193,8 +187,9 @@ void Renderer::scatterDerivWeight(const tvec::Vec3f &p, const tvec::Vec3f &d,
 /**
  * Render an image.
  **/
-void Renderer::renderImage(image::SmallImage &img0,
-				const med::Medium &medium, const scn::Scene &scene,
+template <template <typename> class VectorType>
+void Renderer<VectorType>::renderImage(image::SmallImage &img0,
+				const med::Medium &medium, const scn::Scene<VectorType> &scene,
 				const int64 numPhotons) const {
 
 #ifdef USE_THREADED
@@ -229,7 +224,7 @@ void Renderer::renderImage(image::SmallImage &img0,
 #else
 		const int id = 0;
 #endif
-		tvec::Vec3f pos, dir;
+		VectorType<Float> pos, dir;
 		if (scene.genRay(pos, dir, sampler[id])) {
 
 			/*
@@ -243,9 +238,10 @@ void Renderer::renderImage(image::SmallImage &img0,
 	img.mergeImages(img0);
 }
 
-void Renderer::renderDerivImage(image::SmallImage &img0, image::SmallImage &dSigmaT0,
+template <template <typename> class VectorType>
+void Renderer<VectorType>::renderDerivImage(image::SmallImage &img0, image::SmallImage &dSigmaT0,
 					image::SmallImage &dAlbedo0, image::SmallImage &dGVal0,
-					const med::Medium &medium, const scn::Scene &scene,
+					const med::Medium &medium, const scn::Scene<VectorType> &scene,
 					const int64 numPhotons) const {
 
 #ifdef USE_THREADED
@@ -289,7 +285,7 @@ void Renderer::renderDerivImage(image::SmallImage &img0, image::SmallImage &dSig
 #else
 		const int id = 0;
 #endif
-		tvec::Vec3f pos, dir;
+		VectorType<Float> pos, dir;
 		if (scene.genRay(pos, dir, sampler[id])) {
 
 			/*
@@ -307,10 +303,11 @@ void Renderer::renderDerivImage(image::SmallImage &img0, image::SmallImage &dSig
 	dGVal.mergeImages(dGVal0);
 }
 
-void Renderer::renderDerivImageWeight(image::SmallImage &img0, image::SmallImage &dSigmaT0,
+template <template <typename> class VectorType>
+void Renderer<VectorType>::renderDerivImageWeight(image::SmallImage &img0, image::SmallImage &dSigmaT0,
 					image::SmallImage &dAlbedo0, image::SmallImage &dGVal0,
 					const med::Medium &medium, const med::Medium &samplingMedium,
-					const scn::Scene &scene, const int64 numPhotons) const {
+					const scn::Scene<VectorType> &scene, const int64 numPhotons) const {
 
 #ifdef USE_THREADED
 	int numThreads = omp_get_num_procs();
@@ -353,7 +350,7 @@ void Renderer::renderDerivImageWeight(image::SmallImage &img0, image::SmallImage
 #else
 		const int id = 0;
 #endif
-		tvec::Vec3f pos, dir;
+		VectorType<Float> pos, dir;
 		if (scene.genRay(pos, dir, sampler[id])) {
 
 			/*
@@ -370,5 +367,8 @@ void Renderer::renderDerivImageWeight(image::SmallImage &img0, image::SmallImage
 	dAlbedo.mergeImages(dAlbedo0);
 	dGVal.mergeImages(dGVal0);
 }
+
+template class Renderer<tvec::TVector2>;
+template class Renderer<tvec::TVector3>;
 
 }	/* namespace photon */

@@ -139,7 +139,7 @@ else
 endif
 
 ifeq ($(USE_MATLAB), 1)
-all: mexfiles samples
+all: mexfiles
 else
 all: samples
 endif
@@ -148,10 +148,7 @@ samples: \
 	$(SAMPLEDIR)/renderer2d_sample_bin
 
 mexfiles: \
-	$(MEXDIR)/renderImage2d_mex.$(MEXEXT) \
-	$(MEXDIR)/renderDerivImage2d_mex.$(MEXEXT) \
-	$(MEXDIR)/renderDerivImageWeight2d_mex.$(MEXEXT) \
-	$(MEXDIR)/test_fp2d_mex.$(MEXEXT)
+	$(MEXDIR)/renderImage2d_mex.$(MEXEXT)
 
 $(SAMPLEDIR)/%_bin: \
 	$(SAMPLEDIR)/%.o \
