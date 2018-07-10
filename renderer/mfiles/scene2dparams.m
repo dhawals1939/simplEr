@@ -1,4 +1,4 @@
-function params = sceneparams(varargin)
+function params = scene2dparams(varargin)
 %% 
 % All units are in mm.
 
@@ -6,13 +6,13 @@ function params = sceneparams(varargin)
 % index of refraction of the medium
 params.iorMedium = 1.3;
 % dimensions of the medium
-params.mediumDimensions = [2.5; 34; 22];
+params.mediumDimensions = [2.5; 34];
 
 %% directional area source
 % position of center of source
-params.lightOrigin = [-params.mediumDimensions(1) / 2; 0.0; 0.0];
+params.lightOrigin = [-params.mediumDimensions(1) / 2; 0.0];
 % direction of source
-params.lightDir = [1.0; 0.0; 0.0];
+params.lightDir = [1.0; 0.0];
 % extent of source
 params.lightPlane = params.mediumDimensions(2:3);
 % "intensity" of source
@@ -20,11 +20,11 @@ params.Li = 75000.0;
 
 %% lensless sensor
 % center of sensor plane
-params.viewOrigin = [params.mediumDimensions(1) / 2; 0.0; 0.0];
+params.viewOrigin = [params.mediumDimensions(1) / 2; 0.0];
 % normal of sensor plane
-params.viewDir = [-1.0; 0.0; 0.0];
+params.viewDir = [-1.0; 0.0];
 % orientation of sensor plane
-params.viewHorizontal = [0.0; -1.0; 0.0];
+params.viewHorizontal = [0.0; -1.0];
 % size of sensor plane
 params.viewPlane = [0.1; 0.1];
 % pathlength range of camera plane (leave [-1 -1] to measure all depths)

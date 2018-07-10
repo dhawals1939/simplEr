@@ -1,4 +1,4 @@
-function im = renderImage(sigmaT, albedo, gVal, scene, renderer)
+function im = renderImage3d(sigmaT, albedo, gVal, scene, renderer)
 %% 
 % All units are in mm.
 

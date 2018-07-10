@@ -1,4 +1,4 @@
-function params = sceneparams(varargin)
+function params = scene3dparams(varargin)
 %% 
 % All units are in mm.
 

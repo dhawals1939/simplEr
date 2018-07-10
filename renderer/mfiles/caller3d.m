@@ -66,7 +66,7 @@ scene = scene3dparams('iorMedium', iorMedium, 'mediumDimensions', mediumDimensio
 
 %% create renderer params
 useDirect = 0;			% Not implemented, always keep 0.
-renderer = renderer2dparams('useDirect', useDirect', 'numPhotons', numPhotons,...
+renderer = rendererparams('useDirect', useDirect', 'numPhotons', numPhotons,...
 			'maxDepth', maxDepth, 'maxPathlength', maxPathlength);
 
 %% do rendering
