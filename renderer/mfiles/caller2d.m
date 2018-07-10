@@ -12,34 +12,32 @@ sigmaT = 1;
 albedo = 0.9;
 gVal = 0.8;
 
-% sampling medium (used for path sampling)
-samplingSigmaT = sigmaT;
-samplingAlbedo = albedo;
-samplingGVal = gVal;
-% samplingSigmaT = 1;
-% samplingAlbedo = 0.95;
-% samplingGVal = 0.5;
-
 %% basic scene info
+% index of refraction
 iorMedium = 1;
-mediumDimensions = [2.5; 100; 100];
+% depth and width of medium
+mediumDimensions = [2.5; 100];
 
 %% lighting parameters
 % frontLightFlag = 1 for frontlighting
 % frontLightFlag = 0;
 % lightAngle = deg2rad(-45);
 lightFrontFlag = 1;
+% center of source
+lightOrigin = [0.0];
 lightAngle = deg2rad(225);
-lightPlane = mediumDimensions(2:3);
+% size of source, second dimension is not used
+lightPlane = [mediumDimensions(2) 0];
 Li = 75000.0;
 
 %% camera parameters
-% viewAngles = deg2rad([0; -10; -20]);
-viewOrigin = [0.0; 0.0];
+% center of sensor
+viewOrigin = [0.0];
 viewAngle = 0;
-viewPlane = [50; 50];
+% size of sensor, second dimension is not used
+viewPlane = [50; 0];
 pathlengthRange = [-1; -1];
-viewReso = [128; 128; 1];
+viewReso = [128; 1; 1];
 % pathlengthRange = [0; 100];
 % viewReso = [128; 128; 128];
 
@@ -52,19 +50,18 @@ maxPathlength = -1;
 %%%% do not edit below here
 %% create scene params
 viewOrigin = [-mediumDimensions(1) / 2; viewOrigin(:)];
-viewDir = -[cos(viewAngle); sin(viewAngle); 0];
-viewX = [0.0; -1.0; 0.0];
-viewY = [0.0; 0.0; -1.0];
+viewDir = -[cos(viewAngle); sin(viewAngle)];
+viewHorizontal = [0.0; -1.0];
 		
-lightDir = [cos(lightAngle); sin(lightAngle); 0];
+lightDir = [cos(lightAngle); sin(lightAngle)];
 if (frontLightFlag == 0),
-	lightOrigin = [-mediumDimensions(1) / 2; 0.0; 0.0];
+	lightOrigin = [-mediumDimensions(1) / 2; lightOrigin(:)];
 else
-	lightOrigin = [mediumDimensions(1) / 2; 0.0; 0.0];
+	lightOrigin = [mediumDimensions(1) / 2; lightOrigin(:)];
 end;
 scene = scene2dparams('iorMedium', iorMedium, 'mediumDimensions', mediumDimensions,...
 	'lightOrigin', lightOrigin, 'lightDir', lightDir, 'lightPlane', lightPlane, 'Li', Li,...
-	'viewOrigin', viewOrigin, 'viewDir', viewDir, 'viewX', viewX, 'viewY', viewY,...
+	'viewOrigin', viewOrigin, 'viewDir', viewDir, 'viewHorizontal', viewHorizontal,...
 	'viewPlane', viewPlane, 'pathlengthRange', pathlengthRange, 'viewReso', viewReso);
 
 %% create renderer params
@@ -81,10 +78,3 @@ renderer = renderer2dparams('useDirect', useDirect', 'numPhotons', numPhotons,..
 
 % render an image by importance sampling the simulated medium
 imss = renderImage(sigmaT, albedo, gVal, scene, renderer);
-
-% render an image and derivatives by importance sampling the simulated medium
-[im_altss, dSigmaTss, dAlbedoss, dGValss] = renderDerivImage(sigmaT, albedo, gVal, scene, renderer);
-
-% render an image and derivatives by importance sampling the alternative sampling medium
-[im_altwss, dSigmaTwss, dAlbedowss, dGValwss] = renderDerivImageWeight(sigmaT, albedo, gVal,...
-										samplingSigmaT, samplingAlbedo, samplingGVal, scene, renderer);

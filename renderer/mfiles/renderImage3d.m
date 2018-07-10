@@ -1,4 +1,4 @@
-function [im, dSigmaT, dAlbedo, dGVal] = renderDerivImage(sigmaT, albedo, gVal, scene, renderer)
+function im = renderImage(sigmaT, albedo, gVal, scene, renderer)
 %% 
 % All units are in mm.
 
@@ -15,8 +15,7 @@ Li = scene.Li;
 % camera and image
 viewOrigin = scene.viewOrigin;
 viewDir = scene.viewDir;
-viewX = scene.viewX;
-viewY = scene.viewY;
+viewHorizontal = scene.viewHorizontal;
 viewPlane = scene.viewPlane;
 pathlengthRange = scene.pathlengthRange;
 viewReso = scene.viewReso;
@@ -28,12 +27,9 @@ maxPathlength = renderer.maxPathlength;
 useDirect = renderer.useDirect;
 
 %%
-[im, dSigmaT, dAlbedo, dGVal] = renderDerivImage_mex(sigmaT, albedo, gVal, ...
-					iorMedium, mediumDimensions, ...
-					lightOrigin, lightDir, lightPlane, Li, ...
-					viewOrigin, viewDir, viewX, viewY, viewPlane, pathlengthRange, viewReso, ...
-					numPhotons, maxDepth, maxPathlength, useDirect);
+im = renderImage3d_mex(sigmaT, albedo, gVal, ...
+		iorMedium, mediumDimensions, ...
+		lightOrigin, lightDir, lightPlane, Li, ...
+		viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange, viewReso, ...
+		numPhotons, maxDepth, maxPathlength, useDirect);
 im = permute(im, [2 1 3]);
-dSigmaT = permute(dSigmaT, [2 1 3]);
-dAlbedo = permute(dAlbedo, [2 1 3]);
-dGVal = permute(dGVal, [2 1 3]);
