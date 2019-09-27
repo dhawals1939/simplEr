@@ -52,7 +52,7 @@ int main() {
 	/*
 	 * Initialize rendering parameters.
 	 */
-	const int64 numPhotons = 500L;
+	const int64 numPhotons = 10000L;
 //	const int64 numPhotons = 10000L;
 //	const int64 numPhotons = 5L;
 //	const int64 numPhotons = 20000000L;
@@ -76,7 +76,7 @@ int main() {
 	const tvec::Vec3f axis_ux( FPCONST(0.0), FPCONST(0.0), FPCONST(1.0));
 	const tvec::Vec3f p_u(FPCONST(0.0),  FPCONST(0.0), FPCONST(0.0));
 
-	const Float er_stepsize = 1e-6;
+	const Float er_stepsize = 1e-3;
 
 //	printf("\nnum photons = %ld\n", numPhotons);
 //	printf("max depth = %d\n", maxDepth);

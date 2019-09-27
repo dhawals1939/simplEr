@@ -203,7 +203,7 @@ void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &
 	VectorType<Float> oldp, oldd;
 
     Float distance = 0;
-    long int maxsteps = std::ceil(dist/m_us.er_stepsize) + 1, i, precision = 0;
+    long int maxsteps = std::ceil(dist/m_us.er_stepsize) + 1, i, precision = 3;
 
     Float current_stepsize = m_us.er_stepsize;
 
