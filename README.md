@@ -1,2 +1,2 @@
-# crdr
-Basic renderer for scattering media. Supports steady-state and transient, forward and differentiable, intensity and covariance modes.
+# AOOCT_V1
+First basic working version of AO + ACT simulator. Support steady-state, transient for forward model. 
