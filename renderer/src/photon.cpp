@@ -48,11 +48,12 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 		Float totalDist = dist;
 		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
 				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
-			scene.addEnergy(img, pos, dir, totalDist, weight, medium, sampler);
+			scene.addEnergyInParticle(img, pos, dir, totalDist, weight, medium, sampler);
 
 			if (!scatterOnce(pos, dir, dist, scene, medium, sampler)) {
 				break;
 			}
+
 			totalDist += dist;
 			++depth;
 		}
@@ -218,12 +219,12 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 	#pragma omp parallel for
 #endif
 	for (int64 omp_i = 0; omp_i < numPhotons; ++omp_i) {
-
 #ifdef USE_THREADED
 		const int id = omp_get_thread_num();
 #else
 		const int id = 0;
 #endif
+
 		VectorType<Float> pos, dir;
 		if (scene.genRay(pos, dir, sampler[id])) {
 
@@ -368,7 +369,7 @@ void Renderer<VectorType>::renderDerivImageWeight(image::SmallImage &img0, image
 	dGVal.mergeImages(dGVal0);
 }
 
-template class Renderer<tvec::TVector2>;
+//template class Renderer<tvec::TVector2>;
 template class Renderer<tvec::TVector3>;
 
 }	/* namespace photon */

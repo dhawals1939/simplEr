@@ -1,3 +1,6 @@
+
+addpath(genpath('../'));
+
 %%%%%%%%%%%%%%%%%%
 %%%% setup problem
 
@@ -8,26 +11,27 @@
 %% scattering medium
 
 % simulated medium
-sigmaT = 1;
+sigmaT = .1;
 albedo = 0.9;
-gVal = 0.8;
+gVal = 0;
 
 %% basic scene info
 % index of refraction
-iorMedium = 1;
+iorMedium = 1.3333;
 % depth, width, and height of medium
-mediumDimensions = [2.5; 100 100];
+mediumDimensions = [3 1000 1000];
 
 %% lighting parameters
 % frontLightFlag = 1 for frontlighting
-% frontLightFlag = 0;
-% lightAngle = deg2rad(-45);
-lightFrontFlag = 1;
+frontLightFlag = 1;
+lightAngle = deg2rad(180);
+% lightFrontFlag = 1;
 % center of source
 lightOrigin = [0.0 0.0];
-lightAngle = deg2rad(225);
+% lightAngle = deg2rad(225);
 % size of source
-lightPlane = [mediumDimensions(2:3)];
+% lightPlane = [mediumDimensions(2:3)];
+lightPlane = [.1 .1];
 Li = 75000.0;
 
 %% camera parameters
@@ -35,14 +39,18 @@ Li = 75000.0;
 viewOrigin = [0.0 0.0];
 viewAngle = 0;
 % size of sensor
-viewPlane = [50; 50];
-pathlengthRange = [-1; -1];
-viewReso = [128; 1; 1];
-% pathlengthRange = [0; 100];
-% viewReso = [128; 128; 128];
+viewPlane = [5; 5];
+% pathlengthRange = [-1; -1];
+% viewReso = [128; 1; 1];
+pathlengthRange = [2.95; 3.5];
+% pathlengthRange = [0; 30];
+viewReso = [128; 128; 128];
 
 %% renderer options
-numPhotons = 10000000;
+% numPhotons = 100;
+% numPhotons = 10000000;
+numPhotons = 1e8;
+% numPhotons = 11000000;
 maxDepth = -1;
 maxPathlength = -1;
 
@@ -77,4 +85,4 @@ renderer = rendererparams('useDirect', useDirect', 'numPhotons', numPhotons,...
 %		simulated and sampling mediums are the same;
 
 % render an image by importance sampling the simulated medium
-imss = renderImage(sigmaT, albedo, gVal, scene, renderer);
+imss = renderImage3d(sigmaT, albedo, gVal, scene, renderer);

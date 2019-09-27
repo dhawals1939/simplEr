@@ -1,11 +1,11 @@
 ## compilation options
 USE_GCC = 1
 PRODUCE_REPORTS = 0
-DEBUG_MODE = 1
+DEBUG_MODE = 0
 USE_PRINTING = 0
 
 ## MATLAB options
-USE_MATLAB = 1
+USE_MATLAB = 0
 
 ## sampler options
 USE_SFMT = 1
@@ -145,10 +145,10 @@ all: samples
 endif
 
 samples: \
-	$(SAMPLEDIR)/renderer2d_sample_bin
+	$(SAMPLEDIR)/renderer3d_sample_bin
 
 mexfiles: \
-	$(MEXDIR)/renderImage2d_mex.$(MEXEXT)
+	$(MEXDIR)/renderImage3d_mex.$(MEXEXT)
 
 $(SAMPLEDIR)/%_bin: \
 	$(SAMPLEDIR)/%.o \

@@ -76,6 +76,24 @@ public:
 		memset((void *) m_pixels, 0, m_xRes * m_yRes * sizeof(T));
 	}
 
+	//similar to MATLAB implementation
+	inline void ind2sub(const int &ndx, int &x, int &y) const {
+		Assert(ndx >= 0 && ndx < m_xRes*m_yRes);
+		y = ndx/m_xRes;
+		x = ndx - y*m_xRes;
+	}
+
+	//similar to MATLAB implementation
+	inline void sub2ind(const int &x, const int &y, int &ndx) const {
+		Assert(x >= 0 && x < m_xRes && y >= 0 && y < m_yRes);
+		ndx = y * m_xRes + x;
+	}
+
+	inline T getPixel(const int x) const {
+		Assert(x >= 0 && x < m_xRes*m_yRes);
+		return m_pixels[x];
+	}
+
 	inline T getPixel(const int x, const int y) const {
 		Assert(x >= 0 && x < m_xRes && y >= 0 && y < m_yRes);
 		return m_pixels[y * m_xRes + x];
@@ -115,6 +133,29 @@ public:
 			m_xRes * m_yRes * sizeof(T));
 	}
 
+
+	inline void readFile(const std::string& fileName,
+							const EFileFormat fileFormat = EPFM) {
+//							const EByteOrder fileEndianness = ELittleEndian)
+
+		switch (fileFormat) {
+			case EOpenEXR: {
+				readOpenEXR(fileName);
+				break;
+			}
+			case EPFM: {
+				readPFM(fileName);
+				break;
+			}
+			case EFileFormatInvalid:
+			default: {
+				Assert((fileFormat == EPFM) || (fileFormat == EOpenEXR));
+				break;
+			}
+		}
+	}
+
+
 	inline void writeToFile(const std::string& fileName,
 							const EFileFormat fileFormat = EPFM) const {
 //							const EByteOrder fileEndianness = ELittleEndian)
@@ -141,10 +182,89 @@ public:
 	}
 
 private:
+	void readPFM(const std::string& filename){
+		FILE * pFile;
+		pFile = fopen(filename.c_str(), "rb");
+		char c[100];
+		if (pFile != NULL) {
+			fscanf(pFile, "%s", c);
+			// strcmp() returns 0 if they are equal.
+			if (!strcmp(c, "Pf")) {
+				fscanf(pFile, "%s", c);
+				// atoi: ASCII to integer.
+				// itoa: integer to ASCII.
+				this->m_xRes = atoi(c);
+				fscanf(pFile, "%s", c);
+				this->m_yRes = atoi(c);
+				int length_ = this->m_xRes * this->m_yRes;
+				fscanf(pFile, "%s", c);
+				Float endianess = atof(c);
+
+				fseek(pFile, 0, SEEK_END);
+				long lSize = ftell(pFile);
+				long pos = lSize - this->m_xRes*this->m_yRes * sizeof(T);
+				fseek(pFile, pos, SEEK_SET);
+
+				T* img = new T[length_];
+				//cout << "sizeof(T) = " << sizeof(T);
+				fread(img, sizeof(T), length_, pFile);
+				fclose(pFile);
+
+				/* The raster is a sequence of pixels, packed one after another,
+				 * with no delimiters of any kind. They are grouped by row,
+				 * with the pixels in each row ordered left to right and
+				 * the rows ordered bottom to top.
+				 */
+				m_pixels = (T *)malloc(length_ * sizeof(T));// top-to-bottom.
+				//PFM SPEC image stored bottom -> top reversing image
+				for (int i = 0; i < this->m_yRes; i++) {
+					memcpy(&m_pixels[(this->m_yRes - i - 1)*(this->m_xRes)],
+						&img[(i*(this->m_xRes))],
+						(this->m_xRes) * sizeof(T));
+				}
+
+
+	//			if (this->is_little_big_endianness_swap()){
+	//				std::cout << "little-big endianness transformation is needed.\n";
+	//				// little-big endianness transformation is needed.
+	//				union {
+	//					T f;
+	//					unsigned char u8[sizeof(T)];
+	//				} source, dest;
+	//
+	//				for (int i = 0; i < length_; ++i) {
+	//					source.f = m_pixels[i];
+	//					for (unsigned int k = 0, s_T = sizeof(T); k < s_T; k++)
+	//						dest.u8[k] = source.u8[s_T - k - 1];
+	//					m_pixels[i] = dest.f;
+	//					//cout << dest.f << ", ";
+	//				}
+	//			}
+				delete[] img;
+
+			}
+			else {
+				std::cout << "Invalid magic number!"
+					<< " No Pf (meaning grayscale pfm) is missing!!\n";
+				fclose(pFile);
+				exit(0);
+			}
+
+		}
+		else {
+			std::cout << "Cannot open file " << filename
+				<< ", or it does not exist!\n";
+			fclose(pFile);
+			exit(0);
+		}
+	}
 	void writePFM(const std::string& fileName) const; //, const EByteOrder fileEndianness) const;
 #ifdef USE_OPENEXR
 	void writeOpenEXR(const std::string& fileName) const;
 #else
+	inline void readOpenEXR(const std::string&) const {
+		std::cerr << "Reading openEXR format is not implemented." << std::endl;
+	}
 	inline void writeOpenEXR(const std::string&) const {
 		std::cerr << "Writing to OpenEXR format disabled during compilation." << std::endl;
 	}
@@ -158,6 +278,19 @@ private:
 template <typename T>
 class Image3 {
 public:
+	enum EFileFormat {
+		EOpenEXR = 0,
+		EPFM = 1,
+		EFileFormatLength = 2,
+		EFileFormatInvalid = -1
+	};
+
+	enum EByteOrder {
+		EBigEndian = 0,
+		ELittleEndian = 1,
+		EByteOrderLength = 2,
+		EByteOrderInvalid = -1
+	};
 
 	Image3() :
 			m_xRes(0),
@@ -227,11 +360,43 @@ public:
 			m_xRes * m_yRes * m_zRes * sizeof(T));
 	}
 
+	inline void writeToFile(const std::string& fileName,
+							const EFileFormat fileFormat = EPFM) const {
+//							const EByteOrder fileEndianness = ELittleEndian)
+
+		switch (fileFormat) {
+			case EOpenEXR: {
+				writeOpenEXR(fileName);
+				break;
+			}
+			case EPFM: {
+				writePFM(fileName);//, fileEndianness);
+				break;
+			}
+			case EFileFormatInvalid:
+			default: {
+				Assert((fileFormat == EPFM) || (fileFormat == EOpenEXR));
+				break;
+			}
+		}
+	}
+
 	~Image3() {
 		free(m_pixels);
 	}
 
 private:
+	void writePFM(const std::string& fileNamePrefix) const;
+#ifdef USE_OPENEXR
+	void writeOpenEXR(const std::string& fileName) const;
+#else
+	inline void readOpenEXR(const std::string&) const {
+		std::cerr << "Reading openEXR format is not implemented." << std::endl;
+	}
+	inline void writeOpenEXR(const std::string&) const {
+		std::cerr << "Writing to OpenEXR format disabled during compilation." << std::endl;
+	}
+#endif
 
 	int m_xRes;
 	int m_yRes;
@@ -379,7 +544,7 @@ private:
 	int m_numImages;
 	Image3<T> *m_images;
 };
-
+typedef Image2<Float> Texture;
 typedef Image3<Float> SmallImage;
 typedef Image3Set<Float> SmallImageSet;
 
