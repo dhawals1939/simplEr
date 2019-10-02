@@ -30,6 +30,42 @@ bool Renderer<VectorType>::scatterOnce(VectorType<Float> &p, VectorType<Float> &
 }
 
 template <template <typename> class VectorType>
+void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const VectorType<Float> &d,
+					const scn::Scene<VectorType> &scene, const med::Medium &medium,
+					smp::Sampler &sampler, image::SmallImage &img, Float weight) const { // Adithya: Should this be in scene.cpp
+	VectorType<Float> p1 = p;
+	VectorType<Float> d1 = d;
+
+	std::cout << "Initial pos: (" << p1.x << ", " << p1.y << ", " << p1.z << ");" << std::endl;
+	Float distToSensor;
+	if(!scene.movePhotonTillSensor(p1, d1, distToSensor, sampler))
+		return;
+	std::cout << "Final pos: (" << p1.x << ", " << p1.y << ", " << p1.z << ");" << std::endl;
+	VectorType<Float> refrDirToSensor = d1;
+	Float fresnelWeight = FPCONST(1.0);
+
+	Float ior = scene.getMediumIor();
+
+	if (ior > FPCONST(1.0)) {
+		refrDirToSensor.normalize();
+#ifndef USE_NO_FRESNEL
+		fresnelWeight = (FPCONST(1.0) -
+		util::fresnelDielectric(d1.x, refrDirToSensor.x,
+			FPCONST(1.0) / ior))
+			/ ior / ior;
+#endif
+	}
+
+
+	Float totalDistance = (distToSensor) * ior;
+
+	Float totalPhotonValue = weight
+			* std::exp(-medium.getSigmaT() * distToSensor)
+			* fresnelWeight;
+	scene.addEnergyToImage(img, p1, totalDistance, totalPhotonValue);
+}
+
+template <template <typename> class VectorType>
 void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<Float> &d,
 					const scn::Scene<VectorType> &scene, const med::Medium &medium,
 					smp::Sampler &sampler, image::SmallImage &img, Float weight) const {
@@ -224,7 +260,6 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 #else
 		const int id = 0;
 #endif
-
 		VectorType<Float> pos, dir;
 		if (scene.genRay(pos, dir, sampler[id])) {
 
@@ -232,6 +267,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 			 * TODO: Direct energy computation is not implemented.
 			 */
 			Assert(!m_useDirect);
+			directTracing(pos, dir, scene, medium, sampler[id], img[id], weight); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
 			scatter(pos, dir, scene, medium, sampler[id], img[id], weight);
 		}
 	}

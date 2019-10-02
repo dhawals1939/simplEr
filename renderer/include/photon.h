@@ -41,6 +41,10 @@ public:
 					const scn::Scene<VectorType> &scene, const med::Medium &medium,
 					smp::Sampler &sampler) const;
 
+	void directTracing(const VectorType<Float> &pos, const VectorType<Float> &dir,
+					   const scn::Scene<VectorType> &scene, const med::Medium &medium,
+					   smp::Sampler &sampler, image::SmallImage &img, Float weight) const; // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
+
 	void scatter(const VectorType<Float> &p, const VectorType<Float> &d,
 				const scn::Scene<VectorType> &scene, const med::Medium &medium,
 				smp::Sampler &sampler, image::SmallImage &img, Float weight) const;

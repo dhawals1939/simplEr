@@ -248,14 +248,14 @@ protected:
 
 template <template <typename> class VectorType>
 struct US {
-    int    f_u;          // Ultrasound frequency (1/s or Hz)
-    int    speed_u;      // Ultrasound speed (m/s)
-    double wavelength_u; // (m)
+	Float    f_u;          // Ultrasound frequency (1/s or Hz)
+	Float    speed_u;      // Ultrasound speed (m/s)
+	Float  wavelength_u; // (m)
 
-    double n_o;          // Baseline refractive index
-    double n_max;        // Max refractive index variation
-    double k_r;
-    double z_max;        // Depth of the scattering medium (in m)
+	Float n_o;          // Baseline refractive index
+	Float n_max;        // Max refractive index variation
+	Float k_r;
+	Float z_max;        // Depth of the scattering medium (in m)
     int    mode;         // Order of the bessel function or mode of the ultrasound
 
     VectorType<Float>    axis_uz;          // Ultrasound axis
@@ -263,12 +263,12 @@ struct US {
 
     VectorType<Float>    p_u;             // A point on the ultra sound axis
 
-    double er_stepsize;
+    Float er_stepsize;
 
 
-    US(const int& f_u, const int& speed_u,
-                 const double& n_o, const double& n_max, const int& mode,
-                 const VectorType<Float> &axis_uz, const VectorType<Float> &axis_ux, const VectorType<Float> &p_u, const double &er_stepsize){
+    US(const Float& f_u, const Float& speed_u,
+                 const Float& n_o, const Float& n_max, const int& mode,
+                 const VectorType<Float> &axis_uz, const VectorType<Float> &axis_ux, const VectorType<Float> &p_u, const Float &er_stepsize){
         this->f_u            = f_u;
 		this->speed_u        = speed_u;      
 		this->wavelength_u   = ((double) speed_u)/f_u; 
@@ -308,15 +308,15 @@ public:
 			const tvec::Vec2f &viewPlane,
 			const tvec::Vec2f &pathlengthRange, 
 			//Ultrasound parameters: a lot of them are currently not used
-			const int& f_u,
-			const int& speed_u,
-			const double& n_o,
-			const double& n_max,
+			const Float& f_u,
+			const Float& speed_u,
+			const Float& n_o,
+			const Float& n_max,
 			const int& mode,
 			const VectorType<Float> &axis_uz,
 			const VectorType<Float> &axis_ux,
 			const VectorType<Float> &p_u,
-			const double &er_stepsize
+			const Float &er_stepsize
             ) :
 				m_ior(ior),
 				m_fresnelTrans(FPCONST(1.0)),
