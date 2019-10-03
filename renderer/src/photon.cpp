@@ -36,11 +36,9 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 	VectorType<Float> p1 = p;
 	VectorType<Float> d1 = d;
 
-	std::cout << "Initial pos: (" << p1.x << ", " << p1.y << ", " << p1.z << ");" << std::endl;
 	Float distToSensor;
 	if(!scene.movePhotonTillSensor(p1, d1, distToSensor, sampler))
 		return;
-	std::cout << "Final pos: (" << p1.x << ", " << p1.y << ", " << p1.z << ");" << std::endl;
 	VectorType<Float> refrDirToSensor = d1;
 	Float fresnelWeight = FPCONST(1.0);
 
@@ -267,7 +265,8 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 			 * TODO: Direct energy computation is not implemented.
 			 */
 			Assert(!m_useDirect);
-			directTracing(pos, dir, scene, medium, sampler[id], img[id], weight); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
+			if(m_useDirect)
+				directTracing(pos, dir, scene, medium, sampler[id], img[id], weight); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
 			scatter(pos, dir, scene, medium, sampler[id], img[id], weight);
 		}
 	}
