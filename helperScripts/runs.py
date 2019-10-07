@@ -1,40 +1,56 @@
 #!/usr/bin/python
 import os
+from colorama import Fore, Back, Style
 
-executable = "/home/ubuntu/mts_installs/mitsuba_transient/helperScripts/MeanAndVarianceEXRs/createMeanAndVarianceImages"
-folder     = "/shared/LATCGroundTruth"
-
-bunnies    = [ "908", 
-               "3632", 
-               "8172", 
-               "14528", 
-               "22700", 
-               "44492",
-               "90800",
-               "153452",
-               "204300"
-               ]
-samples    = [ 10,   8,   6,   5,   4,  2, 1, 1, 1]
-ss         = [100, 110, 125, 113, 110, 250, 450, 500, 110]
-#bunnies    = [ 
-#               "153452",
-#               "204300"
-#               ]
-#samples    = [1, 1]
-#ss         = [500, 110]
+# Renderer
+renderer      = "/home/ubuntu/AOOCT_V1/renderer/samples/renderer3d_sample_bin"
+outFolder     = "/home/ubuntu/AOOCT_V1/renderings"
+outFilePrefix = "RRTE_complexTiming_noAreaSource"
+clusterTemp   = "temp.sh"
+printcmds     = True
+submitcmds    = True
 
 
-for j in range(0, len(bunnies)):
-    for i in range(75, 101):
-        cmd = "mitsuba -D adapSampling=false -D ldSampling=false -D samples=787 -D tMin=1704 -D tMax=1708 -D tRes=4 -D subSamples=1 -D forceBounce=false -D sBounce=0 -D tBounce=0 -D decomposition=transient ~/BlenderScenes/cbox/cbox_bunnies.xml -D bunny=meshes/bunnies/bunnies_" + bunnies[j] + ".obj -o /shared/increasingComplexityToG/cbox_" + bunnies[j] + "_4_t_" + str(i) + ".exr"
-        os.system("echo PATH=\"\{\$PATH\}:\/home\/ubuntu\/mitsuba\/dist\" > temp.sh")
-        os.system("echo \"" + cmd + "\"" + " >> temp.sh")
-        os.system("qsub temp.sh")
-        cmd = "mitsuba -D adapSampling=false -D ldSampling=false -D samples=" + str(samples[j]) + " -D tMin=1704 -D tMax=1708 -D tRes=4 -D subSamples=" + str(ss[j]) +  " -D forceBounce=false -D sBounce=0 -D tBounce=0 -D decomposition=transientEllipse ~/BlenderScenes/cbox/cbox_bunnies.xml -D bunny=meshes/bunnies/bunnies_" + bunnies[j] + ".obj -o /shared/increasingComplexityToG/cbox_" + bunnies[j] + "_4_tE_" + str(i) + ".exr"
-        os.system("echo PATH=\"\{\$PATH\}:\/home\/ubuntu\/mitsuba\/dist\" > temp.sh")
-        os.system("echo \"" + cmd + "\"" + " >> temp.sh")
-        os.system("qsub temp.sh")
+# Renderer options
+numpackets    = 20 # Number of parallel cores
+numPhotons    = 1e5 # Number of samples for each job
+useDirect     = "false"
+sigmaT        = .01
+albedo        = .9
+gVal          = 0
+tBins         = 128
 
-#cmd = executable + " " + folder + "/DARPA_LATCScene_t_groundTruth 99"
-#print cmd
-#os.system(cmd)
+# Merge the packets in a single rendering
+MergeExecutable         = "/home/ubuntu/AOOCT_V1/helperScripts/mergeMultipleRenderings"
+tempMergeExecutable     = "tempMergeCommands.sh"
+deleteIntermediateRuns  = False # include deletion of individul runs? Not coded yet
+
+
+open(tempMergeExecutable, 'w').close() # Clear this file first
+                
+
+for i in range(0, numpackets):
+    cmd = renderer + " numPhotons=" + str(numPhotons) + \
+                     " outFilePrefix="  + outFolder + "/" + outFilePrefix + "_" + str(i) + "_" + str(numPhotons) + ".pfm" \
+                     " useDirect="  + useDirect + \
+                     " sigmaT="     + str(sigmaT) + \
+                     " albedo="     + str(albedo) + \
+                     " gVal="       + str(gVal) + \
+                     " pathLengthBins=" + str(tBins) 
+    
+    os.system("echo \"" + cmd + "\"" + " > " + clusterTemp)
+    if printcmds:
+        os.system("cat " + clusterTemp)
+    if submitcmds:
+        os.system("qsub " + clusterTemp)
+
+os.system("echo \"" + MergeExecutable + " prefix=" + outFolder + "/" + outFilePrefix  + \
+                                        " renderings="  + str(numpackets) + \
+                                        " tBins=" + str(tBins) + \
+                                        "\" >>" + tempMergeExecutable)
+if deleteIntermediateRuns:
+    print(Back.RED + "deleteIntermediateRuns not implemented yet")
+
+if printcmds:
+    print(Fore.GREEN + "printing the mergeExecutable:")
+    os.system("cat " + tempMergeExecutable)
