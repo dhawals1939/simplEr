@@ -369,15 +369,15 @@ public:
 
 	void er_step(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize) const;
 	void trace(VectorType<Float> &p, VectorType<Float> &d, const Float &distance) const; // Non optical
-	void traceTillBlock(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, Float &disx, Float &disy) const;
+	void traceTillBlock(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, Float &disx, Float &disy, Float &totalOpticalDistance) const;
 	void trace_optical_distance(VectorType<Float> &p, VectorType<Float> &d, const Float &distance) const; // optical
 
 	/*
 	 * TODO: Inline these methods in implementations.
 	 */
-	bool movePhotonTillSensor(VectorType<Float> &p, VectorType<Float> &d, Float &distToSensor,
+	bool movePhotonTillSensor(VectorType<Float> &p, VectorType<Float> &d, Float &distToSensor, Float &totalOpticalDistance,
 					smp::Sampler &sampler) const;
-	bool movePhoton(VectorType<Float> &p, VectorType<Float> &d, Float dist,
+	bool movePhoton(VectorType<Float> &p, VectorType<Float> &d, Float dist, Float &totalOpticalDistance,
 					smp::Sampler &sampler) const;
 	bool genRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler) const;
 	bool genRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler,
@@ -392,6 +392,7 @@ public:
 		}
 	}
 
+	//distTravelled is optical distance if USE_SIMPLIFIED_TIMING is not set and geometric distance if not
 	void addEnergyInParticle(image::SmallImage &img, const VectorType<Float> &p,
 						const VectorType<Float> &d, Float distTravelled, Float val,
 						const med::Medium &medium, smp::Sampler &sampler) const;

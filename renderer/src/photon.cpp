@@ -14,7 +14,7 @@ namespace photon {
 
 template <template <typename> class VectorType>
 bool Renderer<VectorType>::scatterOnce(VectorType<Float> &p, VectorType<Float> &d, Float &dist,
-						const scn::Scene<VectorType> &scene, const med::Medium &medium,
+						const scn::Scene<VectorType> &scene, const med::Medium &medium, Float &totalOpticalDistance,
 						smp::Sampler &sampler) const {
 
 	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
@@ -22,7 +22,7 @@ bool Renderer<VectorType>::scatterOnce(VectorType<Float> &p, VectorType<Float> &
 		medium.getPhaseFunction()->sample(d, sampler, d1);
 		d = d1;
 		dist = getMoveStep(medium, sampler);
-		return scene.movePhoton(p, d, dist, sampler);
+		return scene.movePhoton(p, d, dist, totalOpticalDistance, sampler);
 	} else {
 		dist = FPCONST(0.0);
 		return false;
@@ -33,11 +33,13 @@ template <template <typename> class VectorType>
 void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const VectorType<Float> &d,
 					const scn::Scene<VectorType> &scene, const med::Medium &medium,
 					smp::Sampler &sampler, image::SmallImage &img, Float weight) const { // Adithya: Should this be in scene.cpp
+
+	Float totalOpticalDistance = 0;
 	VectorType<Float> p1 = p;
 	VectorType<Float> d1 = d;
 
 	Float distToSensor;
-	if(!scene.movePhotonTillSensor(p1, d1, distToSensor, sampler))
+	if(!scene.movePhotonTillSensor(p1, d1, distToSensor, totalOpticalDistance, sampler))
 		return;
 	VectorType<Float> refrDirToSensor = d1;
 	Float fresnelWeight = FPCONST(1.0);
@@ -54,13 +56,13 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 #endif
 	}
 
-
-	Float totalDistance = (distToSensor) * ior;
-
+#if USE_SIMPLIFIED_TIMING
+	totalDistance = (distToSensor) * ior;
+#endif
 	Float totalPhotonValue = weight
 			* std::exp(-medium.getSigmaT() * distToSensor)
 			* fresnelWeight;
-	scene.addEnergyToImage(img, p1, totalDistance, totalPhotonValue);
+	scene.addEnergyToImage(img, p1, totalOpticalDistance, totalPhotonValue);
 }
 
 template <template <typename> class VectorType>
@@ -70,154 +72,158 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 
 	Assert(scene.getMediumBlock().inside(p));
 
-	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
-		VectorType<Float> pos(p), dir(d);
-
-		Float dist = getMoveStep(medium, sampler);
-		if (!scene.movePhoton(pos, dir, dist, sampler)) {
-			return;
-		}
-
-		int depth = 1;
-		Float totalDist = dist;
-		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
-				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
-			scene.addEnergyInParticle(img, pos, dir, totalDist, weight, medium, sampler);
-
-			if (!scatterOnce(pos, dir, dist, scene, medium, sampler)) {
-				break;
-			}
-
-			totalDist += dist;
-			++depth;
-		}
-	}
-}
-
-template <template <typename> class VectorType>
-void Renderer<VectorType>::scatterDeriv(const VectorType<Float> &p, const VectorType<Float> &d,
-							const scn::Scene<VectorType> &scene, const med::Medium &medium,
-							smp::Sampler &sampler, image::SmallImage &img,
-							image::SmallImage &dSigmaT, image::SmallImage &dAlbedo,
-							image::SmallImage &dGVal, Float weight) const {
-
-	Assert(scene.getMediumBlock().inside(p));
+	Float totalOpticalDistance = 0;
 
 	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
 		VectorType<Float> pos(p), dir(d);
 
 		Float dist = getMoveStep(medium, sampler);
-		if (!scene.movePhoton(pos, dir, dist, sampler)) {
+		if (!scene.movePhoton(pos, dir, dist, totalOpticalDistance, sampler)) {
 			return;
 		}
 
 		int depth = 1;
-		VectorType<Float> prevDir(d);
 		Float totalDist = dist;
-		Float sumScoreSigmaT = (FPCONST(1.0) - medium.getSigmaT() * dist);
-		Float sumScoreAlbedo = FPCONST(1.0) / medium.getAlbedo();
-		Float sumScoreGVal = FPCONST(0.0);
 		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
 				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
-			scene.addEnergyDeriv(img, dSigmaT, dAlbedo, dGVal, pos, dir,
-							totalDist, weight, sumScoreSigmaT, sumScoreAlbedo,
-							sumScoreGVal, medium, sampler);
+			scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, weight, medium, sampler);
 
-			prevDir = dir;
-			if (!scatterOnce(pos, dir, dist, scene, medium, sampler)) {
+			if (!scatterOnce(pos, dir, dist, scene, medium, totalOpticalDistance, sampler)) {
 				break;
 			}
-			totalDist += dist;
+
+#if USE_SIMPLIFIED_TIMING
+			totalOpticalDistance += dist;
+#endif
 			++depth;
-			sumScoreAlbedo += FPCONST(1.0) / medium.getAlbedo();
-			sumScoreSigmaT += (FPCONST(1.0) - medium.getSigmaT() * dist);
-			sumScoreGVal += medium.getPhaseFunction()->score(prevDir, dir);
 		}
 	}
 }
 
-template <template <typename> class VectorType>
-bool Renderer<VectorType>::scatterOnceWeight(VectorType<Float> &p, VectorType<Float> &d, Float &weight,
-						Float &dist, const scn::Scene<VectorType> &scene,
-						const med::Medium &medium, const med::Medium &samplingMedium,
-						smp::Sampler &sampler) const {
-
-	if ((samplingMedium.getAlbedo() > FPCONST(0.0)) && ((samplingMedium.getAlbedo() >= FPCONST(1.0))
-			|| (sampler() < samplingMedium.getAlbedo()))) {
-		VectorType<Float> d1;
-		samplingMedium.getPhaseFunction()->sample(d, sampler, d1);
-		dist = getMoveStep(samplingMedium, sampler);
-
-		weight *= (medium.getAlbedo() / samplingMedium.getAlbedo()) *
-				((medium.getSigmaT() * std::exp(-medium.getSigmaT() * dist)) /
-						(samplingMedium.getSigmaT() * std::exp(-samplingMedium.getSigmaT() * dist))) *
-				(medium.getPhaseFunction()->f(d, d1) / samplingMedium.getPhaseFunction()->f(d, d1));
-		d = d1;
-		return scene.movePhoton(p, d, dist, sampler);
-	} else {
-		dist = FPCONST(0.0);
-		return false;
-	}
-}
-
-template <template <typename> class VectorType>
-void Renderer<VectorType>::scatterDerivWeight(const VectorType<Float> &p, const VectorType<Float> &d,
-							const scn::Scene<VectorType> &scene, const med::Medium &medium,
-							const med::Medium &samplingMedium,
-							smp::Sampler &sampler, image::SmallImage &img,
-							image::SmallImage &dSigmaT, image::SmallImage &dAlbedo,
-							image::SmallImage &dGVal, Float weight) const {
-
-	Assert(scene.getMediumBlock().inside(p));
-
-	if ((samplingMedium.getAlbedo() > FPCONST(0.0)) && ((samplingMedium.getAlbedo() >= FPCONST(1.0)) ||
-		(sampler() < samplingMedium.getAlbedo()))) {
-		VectorType<Float> pos(p), dir(d);
-
-		Float dist = getMoveStep(samplingMedium, sampler);
-#ifdef USE_PRINTING
-		std::cout << "sampled first = " << dist << std::endl;
-#endif
-		if (!scene.movePhoton(pos, dir, dist, sampler)) {
-			return;
-		}
-
-		int depth = 1;
-		VectorType<Float> prevDir(d);
-		Float totalDist = dist;
-		weight *= (medium.getAlbedo() / samplingMedium.getAlbedo()) *
-				((medium.getSigmaT() * std::exp(-medium.getSigmaT() * dist)) /
-					(samplingMedium.getSigmaT() * std::exp(-samplingMedium.getSigmaT() * dist)));
-		Float sumScoreSigmaT = (FPCONST(1.0) - medium.getSigmaT() * dist);
-		Float sumScoreAlbedo = FPCONST(1.0) / medium.getAlbedo();
-		Float sumScoreGVal = FPCONST(0.0);
-		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
-				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
-#ifdef USE_PRINTING
-		std::cout << "total to add = " << totalDist << std::endl;
-#endif
-//			if (depth == 2) {
-			scene.addEnergyDeriv(img, dSigmaT, dAlbedo, dGVal, pos, dir,
-							totalDist, weight, sumScoreSigmaT, sumScoreAlbedo,
-							sumScoreGVal, medium, sampler);
+//template <template <typename> class VectorType>
+//void Renderer<VectorType>::scatterDeriv(const VectorType<Float> &p, const VectorType<Float> &d,
+//							const scn::Scene<VectorType> &scene, const med::Medium &medium,
+//							smp::Sampler &sampler, image::SmallImage &img,
+//							image::SmallImage &dSigmaT, image::SmallImage &dAlbedo,
+//							image::SmallImage &dGVal, Float weight) const {
+//
+//	Assert(scene.getMediumBlock().inside(p));
+//
+//	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
+//		VectorType<Float> pos(p), dir(d);
+//
+//		Float dist = getMoveStep(medium, sampler);
+//		if (!scene.movePhoton(pos, dir, dist, sampler)) {
+//			return;
+//		}
+//
+//		int depth = 1;
+//		VectorType<Float> prevDir(d);
+//		Float totalDist = dist;
+//		Float sumScoreSigmaT = (FPCONST(1.0) - medium.getSigmaT() * dist);
+//		Float sumScoreAlbedo = FPCONST(1.0) / medium.getAlbedo();
+//		Float sumScoreGVal = FPCONST(0.0);
+//		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
+//				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
+//			scene.addEnergyDeriv(img, dSigmaT, dAlbedo, dGVal, pos, dir,
+//							totalDist, weight, sumScoreSigmaT, sumScoreAlbedo,
+//							sumScoreGVal, medium, sampler);
+//
+//			prevDir = dir;
+//			if (!scatterOnce(pos, dir, dist, scene, medium, sampler)) {
+//				break;
 //			}
+//			totalDist += dist;
+//			++depth;
+//			sumScoreAlbedo += FPCONST(1.0) / medium.getAlbedo();
+//			sumScoreSigmaT += (FPCONST(1.0) - medium.getSigmaT() * dist);
+//			sumScoreGVal += medium.getPhaseFunction()->score(prevDir, dir);
+//		}
+//	}
+//}
 
-			prevDir = dir;
-			if (!scatterOnceWeight(pos, dir, weight, dist, scene,
-								medium, samplingMedium, sampler)) {
-				break;
-			}
-#ifdef USE_PRINTING
-			std::cout << "sampled = " << dist << std::endl;
-#endif
-			totalDist += dist;
-			++depth;
-			sumScoreAlbedo += FPCONST(1.0) / medium.getAlbedo();
-			sumScoreSigmaT += (FPCONST(1.0) - medium.getSigmaT() * dist);
-			sumScoreGVal += medium.getPhaseFunction()->score(prevDir, dir);
-		}
-	}
-}
+//template <template <typename> class VectorType>
+//bool Renderer<VectorType>::scatterOnceWeight(VectorType<Float> &p, VectorType<Float> &d, Float &weight,
+//						Float &dist, const scn::Scene<VectorType> &scene,
+//						const med::Medium &medium, const med::Medium &samplingMedium,
+//						smp::Sampler &sampler) const {
+//
+//	if ((samplingMedium.getAlbedo() > FPCONST(0.0)) && ((samplingMedium.getAlbedo() >= FPCONST(1.0))
+//			|| (sampler() < samplingMedium.getAlbedo()))) {
+//		VectorType<Float> d1;
+//		samplingMedium.getPhaseFunction()->sample(d, sampler, d1);
+//		dist = getMoveStep(samplingMedium, sampler);
+//
+//		weight *= (medium.getAlbedo() / samplingMedium.getAlbedo()) *
+//				((medium.getSigmaT() * std::exp(-medium.getSigmaT() * dist)) /
+//						(samplingMedium.getSigmaT() * std::exp(-samplingMedium.getSigmaT() * dist))) *
+//				(medium.getPhaseFunction()->f(d, d1) / samplingMedium.getPhaseFunction()->f(d, d1));
+//		d = d1;
+//		return scene.movePhoton(p, d, dist, sampler);
+//	} else {
+//		dist = FPCONST(0.0);
+//		return false;
+//	}
+//}
+
+//template <template <typename> class VectorType>
+//void Renderer<VectorType>::scatterDerivWeight(const VectorType<Float> &p, const VectorType<Float> &d,
+//							const scn::Scene<VectorType> &scene, const med::Medium &medium,
+//							const med::Medium &samplingMedium,
+//							smp::Sampler &sampler, image::SmallImage &img,
+//							image::SmallImage &dSigmaT, image::SmallImage &dAlbedo,
+//							image::SmallImage &dGVal, Float weight) const {
+//
+//	Assert(scene.getMediumBlock().inside(p));
+//
+//	if ((samplingMedium.getAlbedo() > FPCONST(0.0)) && ((samplingMedium.getAlbedo() >= FPCONST(1.0)) ||
+//		(sampler() < samplingMedium.getAlbedo()))) {
+//		VectorType<Float> pos(p), dir(d);
+//
+//		Float dist = getMoveStep(samplingMedium, sampler);
+//#ifdef USE_PRINTING
+//		std::cout << "sampled first = " << dist << std::endl;
+//#endif
+//		if (!scene.movePhoton(pos, dir, dist, sampler)) {
+//			return;
+//		}
+//
+//		int depth = 1;
+//		VectorType<Float> prevDir(d);
+//		Float totalDist = dist;
+//		weight *= (medium.getAlbedo() / samplingMedium.getAlbedo()) *
+//				((medium.getSigmaT() * std::exp(-medium.getSigmaT() * dist)) /
+//					(samplingMedium.getSigmaT() * std::exp(-samplingMedium.getSigmaT() * dist)));
+//		Float sumScoreSigmaT = (FPCONST(1.0) - medium.getSigmaT() * dist);
+//		Float sumScoreAlbedo = FPCONST(1.0) / medium.getAlbedo();
+//		Float sumScoreGVal = FPCONST(0.0);
+//		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
+//				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
+//#ifdef USE_PRINTING
+//		std::cout << "total to add = " << totalDist << std::endl;
+//#endif
+////			if (depth == 2) {
+//			scene.addEnergyDeriv(img, dSigmaT, dAlbedo, dGVal, pos, dir,
+//							totalDist, weight, sumScoreSigmaT, sumScoreAlbedo,
+//							sumScoreGVal, medium, sampler);
+////			}
+//
+//			prevDir = dir;
+//			if (!scatterOnceWeight(pos, dir, weight, dist, scene,
+//								medium, samplingMedium, sampler)) {
+//				break;
+//			}
+//#ifdef USE_PRINTING
+//			std::cout << "sampled = " << dist << std::endl;
+//#endif
+//			totalDist += dist;
+//			++depth;
+//			sumScoreAlbedo += FPCONST(1.0) / medium.getAlbedo();
+//			sumScoreSigmaT += (FPCONST(1.0) - medium.getSigmaT() * dist);
+//			sumScoreGVal += medium.getPhaseFunction()->score(prevDir, dir);
+//		}
+//	}
+//}
 
 /**
  * Render an image.
@@ -274,135 +280,135 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 	img.mergeImages(img0);
 }
 
-template <template <typename> class VectorType>
-void Renderer<VectorType>::renderDerivImage(image::SmallImage &img0, image::SmallImage &dSigmaT0,
-					image::SmallImage &dAlbedo0, image::SmallImage &dGVal0,
-					const med::Medium &medium, const scn::Scene<VectorType> &scene,
-					const int64 numPhotons) const {
-
-#ifdef USE_THREADED
-	int numThreads = omp_get_num_procs();
-	omp_set_num_threads(numThreads);
-#else
-	int numThreads = 1;
-#endif
-#ifndef NDEBUG
-	std::cout << "numthreads = " << numThreads << std::endl;
-	std::cout << "numphotons = " << numPhotons << std::endl;
-#endif
-
-	smp::SamplerSet sampler(numThreads);
-
-	image::SmallImageSet img(img0.getXRes(), img0.getYRes(), img0.getZRes(), numThreads);
-	img.zero();
-
-	image::SmallImageSet dSigmaT(dSigmaT0.getXRes(), dSigmaT0.getYRes(), dSigmaT0.getZRes(), numThreads);
-	dSigmaT.zero();
-
-	image::SmallImageSet dAlbedo(dAlbedo0.getXRes(), dAlbedo0.getYRes(), dAlbedo0.getZRes(), numThreads);
-	dAlbedo.zero();
-
-	image::SmallImageSet dGVal(dGVal0.getXRes(), dGVal0.getYRes(), dGVal0.getZRes(), numThreads);
-	dGVal.zero();
-
-	Float weight = getWeight(medium, scene, numPhotons);
-#ifdef USE_PRINTING
-	Float Li = scene.getAreaSource().getLi();
-	std::cout << "weight " << weight << " Li " << Li << std::endl;
-#endif
-
-#ifdef USE_THREADED
-	#pragma omp parallel for
-#endif
-	for (int64 omp_i = 0; omp_i < numPhotons; ++omp_i) {
-
-#ifdef USE_THREADED
-		const int id = omp_get_thread_num();
-#else
-		const int id = 0;
-#endif
-		VectorType<Float> pos, dir;
-		if (scene.genRay(pos, dir, sampler[id])) {
-
-			/*
-			 * TODO: Direct energy computation is not implemented.
-			 */
-			Assert(!m_useDirect);
-			scatterDeriv(pos, dir, scene, medium, sampler[id], img[id],
-						dSigmaT[id], dAlbedo[id], dGVal[id], weight);
-		}
-	}
-
-	img.mergeImages(img0);
-	dSigmaT.mergeImages(dSigmaT0);
-	dAlbedo.mergeImages(dAlbedo0);
-	dGVal.mergeImages(dGVal0);
-}
-
-template <template <typename> class VectorType>
-void Renderer<VectorType>::renderDerivImageWeight(image::SmallImage &img0, image::SmallImage &dSigmaT0,
-					image::SmallImage &dAlbedo0, image::SmallImage &dGVal0,
-					const med::Medium &medium, const med::Medium &samplingMedium,
-					const scn::Scene<VectorType> &scene, const int64 numPhotons) const {
-
-#ifdef USE_THREADED
-	int numThreads = omp_get_num_procs();
-	omp_set_num_threads(numThreads);
-#else
-	int numThreads = 1;
-#endif
-#ifndef NDEBUG
-	std::cout << "numthreads = " << numThreads << std::endl;
-	std::cout << "numphotons = " << numPhotons << std::endl;
-#endif
-
-	smp::SamplerSet sampler(numThreads);
-
-	image::SmallImageSet img(img0.getXRes(), img0.getYRes(), img0.getZRes(), numThreads);
-	img.zero();
-
-	image::SmallImageSet dSigmaT(dSigmaT0.getXRes(), dSigmaT0.getYRes(), dSigmaT0.getZRes(), numThreads);
-	dSigmaT.zero();
-
-	image::SmallImageSet dAlbedo(dAlbedo0.getXRes(), dAlbedo0.getYRes(), dAlbedo0.getZRes(), numThreads);
-	dAlbedo.zero();
-
-	image::SmallImageSet dGVal(dGVal0.getXRes(), dGVal0.getYRes(), dGVal0.getZRes(), numThreads);
-	dGVal.zero();
-
-	Float weight = getWeight(medium, scene, numPhotons);
-#ifdef USE_PRINTING
-	Float Li = scene.getAreaSource().getLi();
-	std::cout << "weight " << weight << " Li " << Li << std::endl;
-#endif
-
-#ifdef USE_THREADED
-	#pragma omp parallel for
-#endif
-	for (int64 omp_i = 0; omp_i < numPhotons; ++omp_i) {
-
-#ifdef USE_THREADED
-		const int id = omp_get_thread_num();
-#else
-		const int id = 0;
-#endif
-		VectorType<Float> pos, dir;
-		if (scene.genRay(pos, dir, sampler[id])) {
-
-			/*
-			 * TODO: Direct energy computation is not implemented.
-			 */
-			Assert(!m_useDirect);
-			scatterDerivWeight(pos, dir, scene, medium, samplingMedium, sampler[id], img[id],
-						dSigmaT[id], dAlbedo[id], dGVal[id], weight);
-		}
-	}
-
-	img.mergeImages(img0);
-	dSigmaT.mergeImages(dSigmaT0);
-	dAlbedo.mergeImages(dAlbedo0);
-	dGVal.mergeImages(dGVal0);
-}
+//template <template <typename> class VectorType>
+//void Renderer<VectorType>::renderDerivImage(image::SmallImage &img0, image::SmallImage &dSigmaT0,
+//					image::SmallImage &dAlbedo0, image::SmallImage &dGVal0,
+//					const med::Medium &medium, const scn::Scene<VectorType> &scene,
+//					const int64 numPhotons) const {
+//
+//#ifdef USE_THREADED
+//	int numThreads = omp_get_num_procs();
+//	omp_set_num_threads(numThreads);
+//#else
+//	int numThreads = 1;
+//#endif
+//#ifndef NDEBUG
+//	std::cout << "numthreads = " << numThreads << std::endl;
+//	std::cout << "numphotons = " << numPhotons << std::endl;
+//#endif
+//
+//	smp::SamplerSet sampler(numThreads);
+//
+//	image::SmallImageSet img(img0.getXRes(), img0.getYRes(), img0.getZRes(), numThreads);
+//	img.zero();
+//
+//	image::SmallImageSet dSigmaT(dSigmaT0.getXRes(), dSigmaT0.getYRes(), dSigmaT0.getZRes(), numThreads);
+//	dSigmaT.zero();
+//
+//	image::SmallImageSet dAlbedo(dAlbedo0.getXRes(), dAlbedo0.getYRes(), dAlbedo0.getZRes(), numThreads);
+//	dAlbedo.zero();
+//
+//	image::SmallImageSet dGVal(dGVal0.getXRes(), dGVal0.getYRes(), dGVal0.getZRes(), numThreads);
+//	dGVal.zero();
+//
+//	Float weight = getWeight(medium, scene, numPhotons);
+//#ifdef USE_PRINTING
+//	Float Li = scene.getAreaSource().getLi();
+//	std::cout << "weight " << weight << " Li " << Li << std::endl;
+//#endif
+//
+//#ifdef USE_THREADED
+//	#pragma omp parallel for
+//#endif
+//	for (int64 omp_i = 0; omp_i < numPhotons; ++omp_i) {
+//
+//#ifdef USE_THREADED
+//		const int id = omp_get_thread_num();
+//#else
+//		const int id = 0;
+//#endif
+//		VectorType<Float> pos, dir;
+//		if (scene.genRay(pos, dir, sampler[id])) {
+//
+//			/*
+//			 * TODO: Direct energy computation is not implemented.
+//			 */
+//			Assert(!m_useDirect);
+//			scatterDeriv(pos, dir, scene, medium, sampler[id], img[id],
+//						dSigmaT[id], dAlbedo[id], dGVal[id], weight);
+//		}
+//	}
+//
+//	img.mergeImages(img0);
+//	dSigmaT.mergeImages(dSigmaT0);
+//	dAlbedo.mergeImages(dAlbedo0);
+//	dGVal.mergeImages(dGVal0);
+//}
+//
+//template <template <typename> class VectorType>
+//void Renderer<VectorType>::renderDerivImageWeight(image::SmallImage &img0, image::SmallImage &dSigmaT0,
+//					image::SmallImage &dAlbedo0, image::SmallImage &dGVal0,
+//					const med::Medium &medium, const med::Medium &samplingMedium,
+//					const scn::Scene<VectorType> &scene, const int64 numPhotons) const {
+//
+//#ifdef USE_THREADED
+//	int numThreads = omp_get_num_procs();
+//	omp_set_num_threads(numThreads);
+//#else
+//	int numThreads = 1;
+//#endif
+//#ifndef NDEBUG
+//	std::cout << "numthreads = " << numThreads << std::endl;
+//	std::cout << "numphotons = " << numPhotons << std::endl;
+//#endif
+//
+//	smp::SamplerSet sampler(numThreads);
+//
+//	image::SmallImageSet img(img0.getXRes(), img0.getYRes(), img0.getZRes(), numThreads);
+//	img.zero();
+//
+//	image::SmallImageSet dSigmaT(dSigmaT0.getXRes(), dSigmaT0.getYRes(), dSigmaT0.getZRes(), numThreads);
+//	dSigmaT.zero();
+//
+//	image::SmallImageSet dAlbedo(dAlbedo0.getXRes(), dAlbedo0.getYRes(), dAlbedo0.getZRes(), numThreads);
+//	dAlbedo.zero();
+//
+//	image::SmallImageSet dGVal(dGVal0.getXRes(), dGVal0.getYRes(), dGVal0.getZRes(), numThreads);
+//	dGVal.zero();
+//
+//	Float weight = getWeight(medium, scene, numPhotons);
+//#ifdef USE_PRINTING
+//	Float Li = scene.getAreaSource().getLi();
+//	std::cout << "weight " << weight << " Li " << Li << std::endl;
+//#endif
+//
+//#ifdef USE_THREADED
+//	#pragma omp parallel for
+//#endif
+//	for (int64 omp_i = 0; omp_i < numPhotons; ++omp_i) {
+//
+//#ifdef USE_THREADED
+//		const int id = omp_get_thread_num();
+//#else
+//		const int id = 0;
+//#endif
+//		VectorType<Float> pos, dir;
+//		if (scene.genRay(pos, dir, sampler[id])) {
+//
+//			/*
+//			 * TODO: Direct energy computation is not implemented.
+//			 */
+//			Assert(!m_useDirect);
+//			scatterDerivWeight(pos, dir, scene, medium, samplingMedium, sampler[id], img[id],
+//						dSigmaT[id], dAlbedo[id], dGVal[id], weight);
+//		}
+//	}
+//
+//	img.mergeImages(img0);
+//	dSigmaT.mergeImages(dSigmaT0);
+//	dAlbedo.mergeImages(dAlbedo0);
+//	dGVal.mergeImages(dGVal0);
+//}
 
 //template class Renderer<tvec::TVector2>;
 template class Renderer<tvec::TVector3>;

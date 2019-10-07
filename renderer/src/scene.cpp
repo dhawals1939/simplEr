@@ -203,7 +203,7 @@ void Scene<VectorType>::trace(VectorType<Float> &p, VectorType<Float> &d, const 
 /* This code is similar to trace code and the intersect code of "Block" structure*/
 /* Based on ER equations, the ray is traced till we either meet end of a block or the distance (in that case, we have an error) */
 template <template <typename> class VectorType>
-void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, Float &disx, Float &disy) const{
+void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, Float &disx, Float &disy, Float &totalOpticalDistance) const{
 
 	VectorType<Float> oldp, oldd;
 
@@ -217,6 +217,7 @@ void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &
     	oldd = d;
 
     	er_step(p, d, current_stepsize);
+
     	// check if we are at the intersection, then, estimate the distance and keep going more accurately towards the boundary
     	if(!m_block.inside(p)){
     		precision--;
@@ -229,6 +230,9 @@ void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &
     		maxsteps = 11;
     	}else{
     		distance += current_stepsize;
+#if !USE_SIMPLIFIED_TIMING
+    		totalOpticalDistance += current_stepsize * m_us.RIF(p);
+#endif
     	}
     }
     Assert(i < maxsteps);
@@ -307,7 +311,7 @@ bool Scene<VectorType>::genRay(VectorType<Float> &pos, VectorType<Float> &dir,
 
 
 template <template <typename> class VectorType>
-bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Float> &d, Float &distToSensor,
+bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Float> &d, Float &distToSensor, Float &totalOpticalDistance,
 									smp::Sampler &sampler) const {
 	// moveTillSensor: moves the photon and reflects (with probability) and keeps going till it reaches sensor. TODO: change to weight
 
@@ -315,7 +319,7 @@ bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Fl
 
 	Float disx, disy;
 	VectorType<Float> d1, norm;
-	traceTillBlock(p, d, LargeDist, disx, disy);
+	traceTillBlock(p, d, LargeDist, disx, disy, totalOpticalDistance);
 	distToSensor = disy;
 	LargeDist -= disy;
 	while(true){
@@ -375,7 +379,7 @@ bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Fl
 			return false;
 		}
 
-    	traceTillBlock(p, d, LargeDist, disx, disy);
+    	traceTillBlock(p, d, LargeDist, disx, disy, totalOpticalDistance);
     	distToSensor += disy;
     	LargeDist -= disy;
 	}
@@ -386,7 +390,7 @@ bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Fl
 
 template <template <typename> class VectorType>
 bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
-									Float dist, smp::Sampler &sampler) const {
+									Float dist, Float &totalOpticalDistance, smp::Sampler &sampler) const {
 
 	// Algorithm
 	// 1. Move till you reach the boundary or till the distance is reached.
@@ -395,7 +399,7 @@ bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
 
 	Float disx, disy;
 	VectorType<Float> d1, norm;
-	traceTillBlock(p, d, dist, disx, disy);
+	traceTillBlock(p, d, dist, disx, disy, totalOpticalDistance);
 
 	dist -= static_cast<Float>(disy);
 
@@ -449,7 +453,7 @@ bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
 			return false;
 		}
 
-    	traceTillBlock(p, d, dist, disx, disy);
+    	traceTillBlock(p, d, dist, disx, disy, totalOpticalDistance);
     	dist -= static_cast<Float>(disy);
 	}
 	return true;
@@ -546,7 +550,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 		dirToSensor.x = -dirToSensor.x;
 
 	Float distToSensor;
-	if(!movePhotonTillSensor(p1, dirToSensor, distToSensor, sampler))
+	if(!movePhotonTillSensor(p1, dirToSensor, distToSensor, distTravelled, sampler))
 		return;
 
 	VectorType<Float> refrDirToSensor = dirToSensor;
@@ -562,14 +566,17 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 #endif
 	}
 
-
-	Float totalDistance = (distTravelled + distToSensor) * m_ior;
+#if USE_SIMPLIFIED_TIMING
+	Float totalOpticalDistance = (distTravelled + distToSensor) * m_ior;
+#else
+	Float totalOpticalDistance = distTravelled;
+#endif
 
 	Float totalPhotonValue = val*(2*M_PI)
 			* std::exp(-medium.getSigmaT() * distToSensor)
 			* medium.getPhaseFunction()->f(d, dirToSensor)
 			* fresnelWeight;
-	addEnergyToImage(img, p1, totalDistance, totalPhotonValue);
+	addEnergyToImage(img, p1, totalOpticalDistance, totalPhotonValue);
 }
 
 template <template <typename> class VectorType>

@@ -68,8 +68,7 @@ Image2<float>::EByteOrder getHostByteOrder() {
 template <>
 void Image2<float>::writePFM(const std::string& fileName) const {//,
 //						const EByteOrder fileEndianness) const {
-
-//	Assert((fileEndianness == EBigEndian) || (fileEndianness == ELittleEndian));
+	Assert((fileEndianness == EBigEndian) || (fileEndianness == ELittleEndian));
 
 	std::ofstream file(fileName.c_str(),
 					std::ofstream::out | std::ofstream::binary);
@@ -94,8 +93,20 @@ void Image2<float>::writePFM(const std::string& fileName) const {//,
 	file << '\n';
 	AssertEx(file, "Problem writing output file.");
 
-	file.write(reinterpret_cast<char*>(m_pixels),
-			m_xRes * m_yRes * sizeof(float));
+    Float* img = new Float[m_xRes*m_yRes];
+	for (int i = 0; i < m_yRes; i++) {
+		memcpy(&img[(m_yRes - i - 1)*(m_xRes)],
+			&m_pixels[(i*(m_xRes))],
+			(m_xRes) * sizeof(Float));
+	}
+
+	file.write(reinterpret_cast<char*>(img),
+			m_xRes * m_yRes * sizeof(Float));
+
+//  Old code
+//	file.write(reinterpret_cast<char*>(m_pixels),
+//			m_xRes * m_yRes * sizeof(float));
+
 	AssertEx(file, "Problem writing output file.");
 }
 

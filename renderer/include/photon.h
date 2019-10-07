@@ -38,7 +38,7 @@ public:
 	}
 
 	bool scatterOnce(VectorType<Float> &p, VectorType<Float> &d, Float &dist,
-					const scn::Scene<VectorType> &scene, const med::Medium &medium,
+					const scn::Scene<VectorType> &scene, const med::Medium &medium, Float &totalOpticalDistance,
 					smp::Sampler &sampler) const;
 
 	void directTracing(const VectorType<Float> &pos, const VectorType<Float> &dir,
