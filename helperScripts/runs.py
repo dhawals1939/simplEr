@@ -13,29 +13,40 @@ submitcmds    = True
 
 # Renderer options
 numpackets    = 20 # Number of parallel cores
-numPhotons    = 1e5 # Number of samples for each job
-useDirect     = "false"
-sigmaT        = .01
+numPhotons    = 1e6 # Number of samples for each job
+useDirect     = "true"
+sigmaT        = 1
 albedo        = .9
 gVal          = 0
 tBins         = 128
 
+pathLengthMax = 16;
+# US options
+n_max         = 0 
+
 # Merge the packets in a single rendering
 MergeExecutable         = "/home/ubuntu/AOOCT_V1/helperScripts/mergeMultipleRenderings"
-tempMergeExecutable     = "tempMergeCommands.sh"
-deleteIntermediateRuns  = False # include deletion of individul runs? Not coded yet
+tempMergeExecutable     = "tempMergeCommands_useDirect_nMax_.001.sh"
+deleteIntermediateRuns  = True # include deletion of individul runs? Not coded yet
 
 
 open(tempMergeExecutable, 'w').close() # Clear this file first
                 
+os.system("echo \"" + MergeExecutable + " prefix=" + outFolder + "/" + outFilePrefix + "_" + str(numPhotons) + "_" + str(n_max) + "_" + useDirect + \
+                                        " renderings="  + str(numpackets) + \
+                                        " tBins=" + str(tBins) + \
+                                        "\" >> " + tempMergeExecutable)
 
 for i in range(0, numpackets):
-    cmd = renderer + " numPhotons=" + str(numPhotons) + \
-                     " outFilePrefix="  + outFolder + "/" + outFilePrefix + "_" + str(i) + "_" + str(numPhotons) + ".pfm" \
+    fileName = outFolder + "/" + outFilePrefix + "_" + str(numPhotons) + "_" + str(n_max) + "_" + str(i) 
+    cmd = "time " + renderer + " numPhotons=" + str(numPhotons) + \
+                     " outFilePrefix="  + fileName + \
                      " useDirect="  + useDirect + \
                      " sigmaT="     + str(sigmaT) + \
                      " albedo="     + str(albedo) + \
                      " gVal="       + str(gVal) + \
+                     " n_max="       + str(n_max) + \
+                     " pathLengthMax=" + str(pathLengthMax) + \
                      " pathLengthBins=" + str(tBins) 
     
     os.system("echo \"" + cmd + "\"" + " > " + clusterTemp)
@@ -43,14 +54,13 @@ for i in range(0, numpackets):
         os.system("cat " + clusterTemp)
     if submitcmds:
         os.system("qsub " + clusterTemp)
+    if deleteIntermediateRuns:
+        for j in range(0,tBins):
+            os.system("echo \"" + "rm " + fileName + "_" + str(j) + ".pfm" + " \" >> " + tempMergeExecutable)
 
-os.system("echo \"" + MergeExecutable + " prefix=" + outFolder + "/" + outFilePrefix  + \
-                                        " renderings="  + str(numpackets) + \
-                                        " tBins=" + str(tBins) + \
-                                        "\" >>" + tempMergeExecutable)
-if deleteIntermediateRuns:
-    print(Back.RED + "deleteIntermediateRuns not implemented yet")
+#if deleteIntermediateRuns:
+#    print(Back.RED + "deleteIntermediateRuns not implemented yet")
 
-if printcmds:
-    print(Fore.GREEN + "printing the mergeExecutable:")
-    os.system("cat " + tempMergeExecutable)
+#if printcmds:
+#    print(Fore.GREEN + "printing the mergeExecutable:")
+#    os.system("cat " + tempMergeExecutable)
