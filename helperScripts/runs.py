@@ -8,7 +8,7 @@ from colorama import Fore, Back, Style
 # Renderer
 renderer      = "/home/ubuntu/AOOCT_V1/renderer/samples/renderer3d_sample_bin"
 outFolder     = "/home/ubuntu/AOOCT_V1/renderings"
-prefix        = "noProjector"
+prefix        = "Projector"
 clusterTemp   = "temp.sh"
 printcmds     = False
 submitcmds    = True
@@ -23,6 +23,7 @@ gVal          = 0
 n_o           = 1.3333
 n_max         = 0
 mode          = 0
+projectorTexture = "/home/ubuntu/AOOCT_V1/renderer/images/White.pfm"
 useDirect     = "true"
 maxDepth      = -1
 maxPathlength = -1
@@ -59,6 +60,8 @@ for i in range(1, len(sys.argv)):
         n_o = float(param[1])
     elif (str(param[0]) == "n_max"):
         n_max = float(param[1])
+    elif (str(param[0]) == "projectorTexture"):
+        projectorTexture = int(param[1])
     elif (str(param[0]) == "mode"):
         mode = int(param[1])
     elif (str(param[0]) == "useDirect"):
