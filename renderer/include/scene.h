@@ -322,8 +322,8 @@ public:
 				m_fresnelTrans(FPCONST(1.0)),
 				m_refrDir(),
 				m_block(blockL, blockR),
-				m_source(lightOrigin, lightDir, lightPlane, Li),
-//				m_source(lightOrigin, lightDir, lightTextureFile, lightPlane, Li),
+//				m_source(lightOrigin, lightDir, lightPlane, Li),
+				m_source(lightOrigin, lightDir, lightTextureFile, lightPlane, Li),
 				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange),
 				m_bsdf(FPCONST(1.0), ior),
 				m_us(f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize){
@@ -431,13 +431,13 @@ public:
 		return m_block;
 	}
 
-	inline const AreaSource<VectorType>& getAreaSource() const {
-		return m_source;
-	}
-
-//	inline const AreaTexturedSource<VectorType>& getAreaSource() const {
+//	inline const AreaSource<VectorType>& getAreaSource() const {
 //		return m_source;
 //	}
+
+	inline const AreaTexturedSource<VectorType>& getAreaSource() const {
+		return m_source;
+	}
 
 	inline const Camera<VectorType>& getCamera() const {
 		return m_camera;
@@ -454,8 +454,8 @@ protected:
 	Float m_fresnelTrans;
 	VectorType<Float> m_refrDir;
 	Block<VectorType> m_block;
-	AreaSource<VectorType> m_source;
-//	AreaTexturedSource<VectorType> m_source;
+//	AreaSource<VectorType> m_source;
+	AreaTexturedSource<VectorType> m_source;
 	Camera<VectorType> m_camera;
 	bsdf::SmoothDielectric<VectorType> m_bsdf;
 	US<VectorType> m_us;
