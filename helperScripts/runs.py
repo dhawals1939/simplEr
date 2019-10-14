@@ -133,6 +133,7 @@ for i in range(0, numpackets):
 					" n_o=" + str(n_o) + \
 					" n_max=" + str(n_max) + \
 					" mode=" + str(mode) + \
+					" projectorTexture=" + str(projectorTexture) + \
 					" useDirect=" + str(useDirect) + \
 					" maxDepth=" + str(maxDepth) + \
 					" maxPathlength=" + str(maxPathlength) + \

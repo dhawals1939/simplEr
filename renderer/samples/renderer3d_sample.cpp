@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
 	/*
 	 * Initialize US parameters
 	 */
-	Float f_u = 867*1e3*2*M_PI;
+	Float f_u = 848*1e3;
 	Float speed_u = 1500;
 	Float n_o = 1.3333;
 	Float n_max = 1e-3;
@@ -172,8 +172,8 @@ int main(int argc, char **argv) {
 	 * Initialize scene parameters.
 	 */
 	const Float ior = FPCONST(1.3333);
-	const tvec::Vec3f mediumL(-FPCONST(1.5), -FPCONST(5.0), -FPCONST(5.0));
-	const tvec::Vec3f mediumR( FPCONST(1.5),  FPCONST(5.0),  FPCONST(5.0));
+	const tvec::Vec3f mediumL(-FPCONST(.015), -FPCONST(5.0), -FPCONST(5.0));
+	const tvec::Vec3f mediumR( FPCONST(.015),  FPCONST(5.0),  FPCONST(5.0));
 
 	/*
 	 * Initialize source parameters.
@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
 	const Float lightAngle = FPCONST(M_PI);
 	const tvec::Vec3f lightDir(std::cos(lightAngle), std::sin(lightAngle),
 							FPCONST(0.0));
-	const tvec::Vec2f lightPlane(FPCONST(0.008), FPCONST(0.008));
+	const tvec::Vec2f lightPlane(FPCONST(0.010), FPCONST(0.010));
 	const Float Li = FPCONST(75000);
 
 	/*
@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
 	const tvec::Vec3f viewOrigin(mediumL[0], FPCONST(0.0), FPCONST(0.0));
 	const tvec::Vec3f viewDir(-FPCONST(1.0), FPCONST(0.0), FPCONST(0.0));
 	const tvec::Vec3f viewX(FPCONST(0.0), -FPCONST(1.0), FPCONST(0.0));
-	const tvec::Vec2f viewPlane(FPCONST(5.0), FPCONST(5.0));
+	const tvec::Vec2f viewPlane(FPCONST(.010), FPCONST(.010));
 	const tvec::Vec2f pathlengthRange(FPCONST(pathLengthMin), FPCONST(pathLengthMax));
 	const tvec::Vec3i viewReso(128, 128, pathLengthBins);
 
