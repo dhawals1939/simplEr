@@ -124,21 +124,27 @@ int main(int argc, char **argv) {
 			pathLengthBins = stoi(param[1]);
 		else{
 			std::cerr << "Unknown variable in the input argument:" << param[0] << std::endl;
-			std::cerr << "Should be on of "
-					  << "numPhotons "
-					  << "outFile "
-					  << "sigmaT "
-					  << "albedo "
-					  << "gVal "
-					  << "f_u "
-					  << "speed_u "
-					  << "n_o "
-					  << "n_max "
-					  << "mode "
-					  << "projectorTexture "
-					  << std::endl;
-			return -1;
-		}
+			std::cerr << "Should be one of "
+					  << "numPhotons, "
+					  << "outFile, "
+					  << "sigmaT, "
+					  << "albedo, "
+					  << "gVal, "
+					  << "f_u, "
+					  << "speed_u, "
+					  << "n_o, "
+					  << "n_max, "
+					  << "mode, "
+					  << "projectorTexture, "
+					  << "useDirect, "
+					  << "maxDepth, " 
+					  << "maxPathlength, " 
+					  << "pathLengthMin, " 
+					  << "pathLengthMax, " 
+					  << "pathLengthBins " 
+                      << std::endl;
+            return -1;
+        }
 	}
 
 	std::cout << "numPhotons = "<< numPhotons 	<< std::endl;

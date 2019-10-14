@@ -160,7 +160,7 @@ int main(int argc, char **argv){
 
     std::string prefix = "../renderings/complexTiming";
     int renderings = 2;
-    int tBins      = 4096;
+    int pathLengthBins      = 4096;
 
 	for(int i = 1; i < argc; i++){
 		std::vector<std::string> param = tokenize(argv[i], "=");
@@ -172,8 +172,8 @@ int main(int argc, char **argv){
 			prefix = param[1];
 		else if(param[0].compare("renderings")==0)
 			renderings = stoi(param[1]);
-		else if(param[0].compare("tBins")==0)
-			tBins = stoi(param[1]);
+		else if(param[0].compare("pathLengthBins")==0)
+			pathLengthBins = stoi(param[1]);
 		else{
 			std::cerr << "Unknown variable in the input argument:" << param[0] << std::endl;
 			std::cerr << "Should be one of "
@@ -192,30 +192,30 @@ int main(int argc, char **argv){
             prefix = param[1];
         else if(param[0].compare("renderings") == 0)
             renderings = stoi(param[1]);
-        else if(param[0].compare("tBins") == 0)
-            tBins = stoi(param[1]);
+        else if(param[0].compare("pathLengthBins") == 0)
+            pathLengthBins = stoi(param[1]);
         else{
 			std::cerr << "Unknown variable in the input argument:" << param[0] << std::endl;
 			std::cerr << "Should be one of "
 					  << "prefix "
 					  << "renderings "
-					  << "tBins "
+					  << "pathLengthBins "
 					  << std::endl;
 			return -1;
         }
     }
 
    
-    Float *mean_pixels[tBins];
-    Float *tmp_pixels[tBins];
+    Float *mean_pixels[pathLengthBins];
+    Float *tmp_pixels[pathLengthBins];
     int xRes;
     int yRes;
-    for(int j = 0; j < tBins; j++){
+    for(int j = 0; j < pathLengthBins; j++){
         readPFM(mean_pixels[j], xRes, yRes, prefix + "_0_" + std::to_string(j) + ".pfm");
     }
 
 
-    for(int j = 0; j < tBins; j++){
+    for(int j = 0; j < pathLengthBins; j++){
         for(int i = 1; i < renderings; i++){
             readPFM(tmp_pixels[j], xRes, yRes, prefix + "_" + std::to_string(i) + "_" + std::to_string(j) + ".pfm");
             for (int temp = 0; temp < xRes*yRes; temp++)
@@ -223,7 +223,7 @@ int main(int argc, char **argv){
         }
     }
 
-    for(int j = 0; j < tBins; j++){
+    for(int j = 0; j < pathLengthBins; j++){
         writePFM(mean_pixels[j], xRes, yRes, prefix + "_mean_" + std::to_string(j) + ".pfm");
     }
 
