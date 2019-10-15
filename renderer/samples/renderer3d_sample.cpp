@@ -47,6 +47,11 @@ int main(int argc, char **argv) {
 	Float pathLengthMax = 64; // This is for path length binning
 	int pathLengthBins = 128;
 
+	int spatialX = 128; // X resolution of the sensor
+	int spatialY = 128; // Y resolution of the sensor
+
+	Float emitter_sensor_size = FPCONST(0.01); // sizes of sensor and emitter are equal and are square shaped
+
 	/*
 	 * output file prefix
 	 */
@@ -122,6 +127,12 @@ int main(int argc, char **argv) {
 			pathLengthMax = stof(param[1]);
 		else if(param[0].compare("pathLengthBins")==0)
 			pathLengthBins = stoi(param[1]);
+		else if(param[0].compare("spatialX")==0)
+			spatialX = stoi(param[1]);
+		else if(param[0].compare("spatialY")==0)
+			spatialY = stoi(param[1]);
+		else if(param[0].compare("emitter_sensor_size")==0)
+			emitter_sensor_size = stof(param[1]);
 		else{
 			std::cerr << "Unknown variable in the input argument:" << param[0] << std::endl;
 			std::cerr << "Should be one of "
@@ -182,7 +193,7 @@ int main(int argc, char **argv) {
 	const Float lightAngle = FPCONST(M_PI);
 	const tvec::Vec3f lightDir(std::cos(lightAngle), std::sin(lightAngle),
 							FPCONST(0.0));
-	const tvec::Vec2f lightPlane(FPCONST(0.010), FPCONST(0.010));
+	const tvec::Vec2f lightPlane(FPCONST(emitter_sensor_size), FPCONST(emitter_sensor_size));
 	const Float Li = FPCONST(75000);
 
 	/*
@@ -191,9 +202,9 @@ int main(int argc, char **argv) {
 	const tvec::Vec3f viewOrigin(mediumL[0], FPCONST(0.0), FPCONST(0.0));
 	const tvec::Vec3f viewDir(-FPCONST(1.0), FPCONST(0.0), FPCONST(0.0));
 	const tvec::Vec3f viewX(FPCONST(0.0), -FPCONST(1.0), FPCONST(0.0));
-	const tvec::Vec2f viewPlane(FPCONST(.010), FPCONST(.010));
+	const tvec::Vec2f viewPlane(FPCONST(emitter_sensor_size), FPCONST(emitter_sensor_size));
 	const tvec::Vec2f pathlengthRange(FPCONST(pathLengthMin), FPCONST(pathLengthMax));
-	const tvec::Vec3i viewReso(128, 128, pathLengthBins);
+	const tvec::Vec3i viewReso(spatialX, spatialY, pathLengthBins);
 
 	/*
 	 * Initialize rendering parameters.

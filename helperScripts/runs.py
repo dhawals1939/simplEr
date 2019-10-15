@@ -30,6 +30,9 @@ maxPathlength = -1
 pathLengthMin = 0
 pathLengthMax = 64
 pathLengthBins= 128
+spatialX      = 128
+spatialY      = 128
+emitter_sensor_size = 0.01
 
 # Read input if available
 for i in range(1, len(sys.argv)):
@@ -61,7 +64,7 @@ for i in range(1, len(sys.argv)):
     elif (str(param[0]) == "n_max"):
         n_max = float(param[1])
     elif (str(param[0]) == "projectorTexture"):
-        projectorTexture = int(param[1])
+        projectorTexture = param[1]
     elif (str(param[0]) == "mode"):
         mode = int(param[1])
     elif (str(param[0]) == "useDirect"):
@@ -76,6 +79,12 @@ for i in range(1, len(sys.argv)):
         pathLengthMax = float(param[1])
     elif (str(param[0]) == "pathLengthBins"):
         pathLengthBins = float(param[1])
+    elif (str(param[0]) == "spatialX"):
+        spatialX = int(param[1])
+    elif (str(param[0]) == "spatialY"):
+        spatialY = int(param[1])
+    elif (str(param[0]) == "emitter_sensor_size"):
+        emitter_sensor_size = float(param[1])
     else:
         print("Unknown variable in the input argument:" + \
 		        "Should be one of " + \
@@ -97,7 +106,11 @@ for i in range(1, len(sys.argv)):
 				"maxPathlength, " + \
 				"pathLengthMin, " + \
 				"pathLengthMax, " + \
-				"pathLengthBins ")
+				"pathLengthBins, " + \
+				"spatialX, " + \
+				"spatialY, " + \
+				"emitter_sensor_size" + \
+				"")
         sys.exit()
 
 # suffix for both tempMerge and submit common
@@ -157,4 +170,5 @@ dependentJobs = dependentJobs[:-1]
 if printcmds:
     print(Fore.GREEN + "The mergeExecutable script is in:" + tempMergeExecutable)
 
-os.system("qsub -hold_jid " + dependentJobs + " " + tempMergeExecutable)
+if submitcmds:
+    os.system("qsub -hold_jid " + dependentJobs + " " + tempMergeExecutable)
