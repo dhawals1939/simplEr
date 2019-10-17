@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
 	int spatialX = 128; // X resolution of the sensor
 	int spatialY = 128; // Y resolution of the sensor
 
-	Float emitter_sensor_size = FPCONST(0.01); // sizes of sensor and emitter are equal and are square shaped
+	Float emitter_sensor_size = FPCONST(0.002); // sizes of sensor and emitter are equal and are square shaped
 
 	/*
 	 * output file prefix
@@ -153,6 +153,9 @@ int main(int argc, char **argv) {
 					  << "pathLengthMin, " 
 					  << "pathLengthMax, " 
 					  << "pathLengthBins " 
+					  << "spatialX "
+					  << "spatialY "
+                      << "emitter_sensor_size "
                       << std::endl;
             return -1;
         }
@@ -175,7 +178,9 @@ int main(int argc, char **argv) {
 	std::cout << "pathLengthMin = " << pathLengthMin << std::endl;
 	std::cout << "pathLengthMax = " << pathLengthMax << std::endl;
 	std::cout << "pathLengthBins = " << pathLengthBins << std::endl;
-
+	std::cout << "spatialX = " << spatialX << std::endl;
+	std::cout << "spatialY = " << spatialY << std::endl;
+	std::cout << "emitter_sensor_size = " << emitter_sensor_size << std::endl; 
 
 	pfunc::HenyeyGreenstein *phase = new pfunc::HenyeyGreenstein(gVal);
 
