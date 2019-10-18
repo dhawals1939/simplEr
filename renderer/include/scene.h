@@ -357,8 +357,11 @@ public:
 	/*
 	 * ER trackers
 	 */
-	inline VectorType<Float> dP(const VectorType<Float> d) const{
+	inline VectorType<Float> dP(const VectorType<Float> d) const{ // assuming omega tracking
 		return d;
+	}
+	inline VectorType<Float> dV(const VectorType<Float> p, const VectorType<Float> d) const{
+		return m_us.dRIF(p);
 	}
 	inline VectorType<Float> dOmega(const VectorType<Float> p, const VectorType<Float> d) const{
 		VectorType<Float> dn = m_us.dRIF(p);
@@ -418,6 +421,9 @@ public:
 	inline Float getMediumIor() const {
 		return m_ior;
 	}
+    inline Float getMediumIor(const VectorType<Float> &p) const {
+        return m_us.RIF(p);
+    }
 
 	inline Float getFresnelTrans() const {
 		return m_fresnelTrans;

@@ -164,15 +164,15 @@ const VectorType<Float> US<VectorType>::dRIF(const VectorType<Float> &q) const{
 
 template <template <typename> class VectorType>
 void Scene<VectorType>::er_step(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize) const{
-//	auto start = std::chrono::high_resolution_clock::now();
-
+#ifndef RK4
+    d += HALF * stepSize * dV(p, d);
+    p +=        stepSize * d/m_us.RIF(p);
+    d += HALF * stepSize * dV(p, d);
+#else
     Float two = 2; // To avoid type conversion
 
     VectorType<Float> K1P = stepSize * dP(d);
     VectorType<Float> K1O = stepSize * dOmega(p, d);
-
-//    auto finish = std::chrono::high_resolution_clock::now();
-//    std::cout << "Er_step took: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count() << "ns\n";
 
     VectorType<Float> K2P = stepSize * dP(d + HALF*K1O);
     VectorType<Float> K2O = stepSize * dOmega(p + HALF*K1P, d + HALF*K1O);
@@ -185,7 +185,7 @@ void Scene<VectorType>::er_step(VectorType<Float> &p, VectorType<Float> &d, cons
 
     p = p + ONE_SIXTH * (K1P + two*K2P + two*K3P + K4P);
     d = d + ONE_SIXTH * (K1O + two*K2O + two*K3O + K4O);
-
+#endif
 }
 
 template <template <typename> class VectorType>

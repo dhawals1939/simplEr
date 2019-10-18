@@ -77,6 +77,8 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
 		VectorType<Float> pos(p), dir(d);
 
+        dir = dir * scene.getMediumIor(p);
+
 		Float dist = getMoveStep(medium, sampler);
 		if (!scene.movePhoton(pos, dir, dist, totalOpticalDistance, sampler)) {
 			return;
