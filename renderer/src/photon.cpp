@@ -19,8 +19,9 @@ bool Renderer<VectorType>::scatterOnce(VectorType<Float> &p, VectorType<Float> &
 
 	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
 		VectorType<Float> d1;
-		medium.getPhaseFunction()->sample(d, sampler, d1);
-		d = d1;
+		Float magnitude = d.length();
+		medium.getPhaseFunction()->sample(d/magnitude, sampler, d1);
+		d = magnitude*d1;
 		dist = getMoveStep(medium, sampler);
 		return scene.movePhoton(p, d, dist, totalOpticalDistance, sampler);
 	} else {
@@ -46,7 +47,13 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 
 	Float ior = scene.getMediumIor();
 
+#ifndef OMEGA_TRACKING
+	d1.normalize();
+#endif
+
 	if (ior > FPCONST(1.0)) {
+		for (int iter = 1; iter < d1.dim; ++iter)
+			refrDirToSensor[iter] = d1[iter] * ior;
 		refrDirToSensor.normalize();
 #ifndef USE_NO_FRESNEL
 		fresnelWeight = (FPCONST(1.0) -
@@ -55,6 +62,9 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 			/ ior / ior;
 #endif
 	}
+	Float foreshortening = dot(refrDirToSensor, scene.getCamera().getDir())/dot(d1, scene.getCamera().getDir());
+	Assert(foreshortening >= FPCONST(0.0));
+
 
 #if USE_SIMPLIFIED_TIMING
 	totalDistance = (distToSensor) * ior;
@@ -76,8 +86,6 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 
 	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
 		VectorType<Float> pos(p), dir(d);
-
-        dir = dir * scene.getMediumIor(p);
 
 		Float dist = getMoveStep(medium, sampler);
 		if (!scene.movePhoton(pos, dir, dist, totalOpticalDistance, sampler)) {
@@ -272,6 +280,9 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 			/*
 			 * TODO: Direct energy computation is not implemented.
 			 */
+#ifndef OMEGA_TRACKING
+			dir *= scene.getMediumIor(pos);
+#endif
 			Assert(!m_useDirect);
 			if(m_useDirect)
 				directTracing(pos, dir, scene, medium, sampler[id], img[id], weight); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);

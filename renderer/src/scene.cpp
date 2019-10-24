@@ -164,7 +164,7 @@ const VectorType<Float> US<VectorType>::dRIF(const VectorType<Float> &q) const{
 
 template <template <typename> class VectorType>
 void Scene<VectorType>::er_step(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize) const{
-#ifndef RK4
+#ifndef OMEGA_TRACKING
     d += HALF * stepSize * dV(p, d);
     p +=        stepSize * d/m_us.RIF(p);
     d += HALF * stepSize * dV(p, d);
@@ -445,10 +445,11 @@ bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
 		 * TODO: I think that, because we always return to same medium (we ignore
 		 * refraction), there is no need to adjust radiance by eta*eta.
 		 */
-        m_bsdf.sample(d, norm, sampler, d1);
+		Float magnitude = d.length();
+        m_bsdf.sample(d/magnitude, norm, sampler, d1);
         if (tvec::dot(d1, norm) < FPCONST(0.0)) {
 			// re-enter the medium through reflection
-			d = d1;
+			d = d1*magnitude;
 		} else {
 			return false;
 		}
@@ -546,6 +547,12 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 	VectorType<Float> dirToSensor;
 	sampleRandomDirection(dirToSensor, sampler); // Samples by assuming that the sensor is in +x direction.
 
+
+#ifndef OMEGA_TRACKING
+	dirToSensor *= getMediumIor(p1);
+#endif
+
+
 	if(m_camera.getOrigin().x < m_source.getOrigin().x) // Direction to sensor is flipped. Compensate
 		dirToSensor.x = -dirToSensor.x;
 
@@ -553,11 +560,17 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 	if(!movePhotonTillSensor(p1, dirToSensor, distToSensor, distTravelled, sampler))
 		return;
 
+#ifndef OMEGA_TRACKING
+	dirToSensor.normalize();
+#endif
+
 	VectorType<Float> refrDirToSensor = dirToSensor;
 	Float fresnelWeight = FPCONST(1.0);
 
 	if (m_ior > FPCONST(1.0)) {
-		refrDirToSensor.normalize();
+		for (int iter = 1; iter < dirToSensor.dim; ++iter)
+			refrDirToSensor[iter] = dirToSensor[iter] * m_ior;
+		refrDirToSensor.normalize(); // REFRACTION COMPUTATION CODE IS MISSING !! Adithya: FIXME
 #ifndef USE_NO_FRESNEL
 		fresnelWeight = (FPCONST(1.0) -
 		util::fresnelDielectric(dirToSensor.x, refrDirToSensor.x,
@@ -565,6 +578,8 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 			/ m_ior / m_ior;
 #endif
 	}
+	Float foreshortening = dot(refrDirToSensor, m_camera.getDir())/dot(dirToSensor, m_camera.getDir());
+	Assert(foreshortening >= FPCONST(0.0));
 
 #if USE_SIMPLIFIED_TIMING
 	Float totalOpticalDistance = (distTravelled + distToSensor) * m_ior;
@@ -574,7 +589,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 
 	Float totalPhotonValue = val*(2*M_PI)
 			* std::exp(-medium.getSigmaT() * distToSensor)
-			* medium.getPhaseFunction()->f(d, dirToSensor)
+			* medium.getPhaseFunction()->f(d/d.length(), dirToSensor) // FIXME: Should be refractive index
 			* fresnelWeight;
 	addEnergyToImage(img, p1, totalOpticalDistance, totalPhotonValue);
 }
