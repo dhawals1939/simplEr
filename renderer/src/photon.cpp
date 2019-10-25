@@ -23,6 +23,9 @@ bool Renderer<VectorType>::scatterOnce(VectorType<Float> &p, VectorType<Float> &
 		medium.getPhaseFunction()->sample(d/magnitude, sampler, d1);
 		d = magnitude*d1;
 		dist = getMoveStep(medium, sampler);
+#ifdef PRINT_DEBUGLOG
+		std::cout << "sampler before move photon:" << sampler() << "\n";
+#endif
 		return scene.movePhoton(p, d, dist, totalOpticalDistance, sampler);
 	} else {
 		dist = FPCONST(0.0);
@@ -92,16 +95,29 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 			return;
 		}
 
+#ifdef PRINT_DEBUGLOG
+		std::cout << "dist: " << dist << "\n";
+		std::cout << "pos: (" << pos.x << ", " << pos.y << ", " << pos.z << ", " << "\n";
+		std::cout << "dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ", " << "\n";
+#endif
 		int depth = 1;
 		Float totalDist = dist;
 		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
 				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
 			scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, weight, medium, sampler);
-
 			if (!scatterOnce(pos, dir, dist, scene, medium, totalOpticalDistance, sampler)) {
+#ifdef PRINT_DEBUGLOG
+				std::cout << "sampler after failing scatter once:" << sampler() << std::endl;
+#endif
 				break;
 			}
+#ifdef PRINT_DEBUGLOG
+			std::cout << "sampler after succeeding scatter once:" << sampler() << std::endl;
 
+			std::cout << "dist: " << dist << "\n";
+			std::cout << "pos: (" << pos.x << ", " << pos.y << ", " << pos.z << ", " << "\n";
+			std::cout << "dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ", " << "\n";
+#endif
 #if USE_SIMPLIFIED_TIMING
 			totalOpticalDistance += dist;
 #endif
@@ -274,12 +290,21 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 #else
 		const int id = 0;
 #endif
+
+#ifdef PRINT_DEBUGLOG
+		std::cout << "id:" << id << "\n";
+		std::cout << "sampler:" << sampler[id]() << "\n";
+#endif
 		VectorType<Float> pos, dir;
 		if (scene.genRay(pos, dir, sampler[id])) {
 
 			/*
 			 * TODO: Direct energy computation is not implemented.
 			 */
+#ifdef PRINT_DEBUGLOG
+			std::cout << "Intial pos: (" << pos.x << ", " << pos.y << ", " << pos.z << ") \n";
+			std::cout << "Intial dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ") \n";
+#endif
 #ifndef OMEGA_TRACKING
 			dir *= scene.getMediumIor(pos);
 #endif

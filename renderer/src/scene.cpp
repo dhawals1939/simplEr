@@ -446,6 +446,10 @@ bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
 		 * refraction), there is no need to adjust radiance by eta*eta.
 		 */
 		Float magnitude = d.length();
+#ifdef PRINT_DEBUGLOG
+		std::cout << "Before BSDF sample, d: (" << d.x/magnitude << ", " << d.y/magnitude <<  ", " << d.z/magnitude << "); \n "
+				"norm: (" << norm.x << ", " << norm.y << ", " << norm.z << ");" << "A Sampler: " << sampler() << "\n";
+#endif
         m_bsdf.sample(d/magnitude, norm, sampler, d1);
         if (tvec::dot(d1, norm) < FPCONST(0.0)) {
 			// re-enter the medium through reflection
@@ -556,6 +560,10 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 	if(m_camera.getOrigin().x < m_source.getOrigin().x) // Direction to sensor is flipped. Compensate
 		dirToSensor.x = -dirToSensor.x;
 
+#ifdef PRINT_DEBUGLOG
+	std::cout << "dirToSensor: (" << dirToSensor.x << ", " << dirToSensor.y << ", " << dirToSensor.z << ") \n";
+#endif
+
 	Float distToSensor;
 	if(!movePhotonTillSensor(p1, dirToSensor, distToSensor, distTravelled, sampler))
 		return;
@@ -570,7 +578,10 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 	if (m_ior > FPCONST(1.0)) {
 		for (int iter = 1; iter < dirToSensor.dim; ++iter)
 			refrDirToSensor[iter] = dirToSensor[iter] * m_ior;
-		refrDirToSensor.normalize(); // REFRACTION COMPUTATION CODE IS MISSING !! Adithya: FIXME
+		refrDirToSensor.normalize(); 
+#ifdef PRINT_DEBUGLOG
+        std::cout << "refrDir: (" << refrDirToSensor[0] << ", " <<  refrDirToSensor[1] << ", " << refrDirToSensor[2] << ");" << std::endl;
+#endif
 #ifndef USE_NO_FRESNEL
 		fresnelWeight = (FPCONST(1.0) -
 		util::fresnelDielectric(dirToSensor.x, refrDirToSensor.x,
@@ -592,6 +603,13 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 			* medium.getPhaseFunction()->f(d/d.length(), dirToSensor) // FIXME: Should be refractive index
 			* fresnelWeight;
 	addEnergyToImage(img, p1, totalOpticalDistance, totalPhotonValue);
+#ifdef PRINT_DEBUGLOG
+    std::cout << "Added Energy:" << totalPhotonValue << " to (" << p1.x << ", " << p1.y << ", " << p1.z << ") at time:" << totalOpticalDistance << std::endl;
+    std::cout << "val term:" << val*(2*M_PI) << std::endl;
+    std::cout << "exp term:" << std::exp(-medium.getSigmaT() * distToSensor) << std::endl;
+    std::cout << "phase function term:" << medium.getPhaseFunction()->f(d/d.length(), dirToSensor) << std::endl;
+    std::cout << "fresnel weight:" << fresnelWeight << std::endl;
+#endif
 }
 
 template <template <typename> class VectorType>
