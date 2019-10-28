@@ -50,6 +50,7 @@ int main(int argc, char **argv) {
 	int spatialX = 128; // X resolution of the sensor
 	int spatialY = 128; // Y resolution of the sensor
 
+	Float halfThetaLimit = FPCONST(12.8e-3);
 	Float emitter_sensor_size = FPCONST(0.002); // sizes of sensor and emitter are equal and are square shaped
 
 	/*
@@ -131,13 +132,15 @@ int main(int argc, char **argv) {
 			spatialX = stoi(param[1]);
 		else if(param[0].compare("spatialY")==0)
 			spatialY = stoi(param[1]);
+		else if(param[0].compare("halfThetaLimit")==0)
+			halfThetaLimit = stof(param[1]);
 		else if(param[0].compare("emitter_sensor_size")==0)
 			emitter_sensor_size = stof(param[1]);
 		else{
 			std::cerr << "Unknown variable in the input argument:" << param[0] << std::endl;
 			std::cerr << "Should be one of "
 					  << "numPhotons, "
-					  << "outFile, "
+					  << "outFilePrefix, "
 					  << "sigmaT, "
 					  << "albedo, "
 					  << "gVal, "
@@ -180,6 +183,7 @@ int main(int argc, char **argv) {
 	std::cout << "pathLengthBins = " << pathLengthBins << std::endl;
 	std::cout << "spatialX = " << spatialX << std::endl;
 	std::cout << "spatialY = " << spatialY << std::endl;
+	std::cout << "halfThetaLimit = " << halfThetaLimit << std::endl;
 	std::cout << "emitter_sensor_size = " << emitter_sensor_size << std::endl; 
 
 	pfunc::HenyeyGreenstein *phase = new pfunc::HenyeyGreenstein(gVal);
@@ -223,7 +227,7 @@ int main(int argc, char **argv) {
 	const med::Medium medium(sigmaT, albedo, phase);
 
 	const scn::Scene<tvec::TVector3> scene(ior, mediumL, mediumR,
-						lightOrigin, lightDir, projectorTexture, lightPlane, Li,
+						lightOrigin, lightDir, halfThetaLimit, projectorTexture, lightPlane, Li,
 						viewOrigin, viewDir, viewX, viewPlane, pathlengthRange,
 						f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize);
 

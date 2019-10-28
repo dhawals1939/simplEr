@@ -78,6 +78,7 @@ bool AreaSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorType<Float>
 		pos[iter] += - m_plane[iter - 1] / FPCONST(2.0) + sampler() * m_plane[iter - 1];
 	}
 	dir = m_dir;
+
 	return true;
 }
 
@@ -96,8 +97,19 @@ bool AreaTexturedSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorTyp
 	}
 
 	dir = m_dir;
-	if(m_emittertype != EmitterType::directional)
-		std::cout << "Diffuse source not implemented; only directional source is implemented";
+
+	//FIXME: Hack: Works only for m_dir = [-1 0 0]
+	Float z   = sampler()*(1-m_ct) + m_ct;
+	Float zt  = std::sqrt(1-z*z);
+	Float phi = sampler()*2*M_PI;
+	dir[0] = -z;
+	dir[1] = zt*std::cos(phi);
+	dir[2] = zt*std::sin(phi);
+
+//	std::cout << dir[0] << ", " << dir[1] << ", " << dir[2] << std::endl;
+
+//	if(m_emittertype != EmitterType::directional)
+//		std::cout << "Diffuse source not implemented; only directional source is implemented";
 
 	return true;
 }
@@ -279,7 +291,7 @@ bool Scene<VectorType>::genRay(VectorType<Float> &pos, VectorType<Float> &dir,
 //		}
 //		pos += dist * dir;
 //		pos.x += M_EPSILON * 2;
-		dir = m_refrDir;
+//		dir = m_refrDir;
 		return true;
 	} else {
 		return false;

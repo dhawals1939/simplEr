@@ -140,10 +140,11 @@ struct AreaTexturedSource {
 
 	enum EmitterType{directional, diffuse}; //diffuse is still not implemented
 
-	AreaTexturedSource(const VectorType<Float> &origin, const VectorType<Float> &dir, const std::string& filename,
+	AreaTexturedSource(const VectorType<Float> &origin, const VectorType<Float> &dir, const Float &halfThetaLimit, const std::string& filename,
 			const tvec::Vec2f &plane, Float Li, const EmitterType &emittertype = EmitterType::directional)
 			: m_origin(origin),
 			  m_dir(dir),
+			  m_halfThetaLimit(halfThetaLimit),
 			  m_emittertype(emittertype),
 			  m_plane(plane),
 			  m_Li(Li) { /* m_dir(std::cos(angle), std::sin(angle), FPCONST(0.0)) */
@@ -152,6 +153,7 @@ struct AreaTexturedSource {
 		m_pixelsize.x = m_plane.x/m_texture.getXRes();
 		m_pixelsize.y = m_plane.y/m_texture.getYRes();
 
+		m_ct = std::cos(m_halfThetaLimit);
 
 		m_textureSampler.reserve(_length);
 		for(int i=0; i<_length; i++){
@@ -183,6 +185,8 @@ struct AreaTexturedSource {
 protected:
 	VectorType<Float> m_origin;
 	VectorType<Float> m_dir;
+	Float m_halfThetaLimit;
+	Float m_ct;
 	image::Texture m_texture;
 	DiscreteDistribution m_textureSampler;
 	tvec::Vec2f m_pixelsize;
@@ -299,6 +303,7 @@ public:
 			const VectorType<Float> &blockR,
 			const VectorType<Float> &lightOrigin,
 			const VectorType<Float> &lightDir,
+			const Float &halfThetaLimit,
 			const std::string &lightTextureFile,
 			const tvec::Vec2f &lightPlane,
 			const Float Li,
@@ -325,7 +330,7 @@ public:
 #ifndef PROJECTOR
 				m_source(lightOrigin, lightDir, lightPlane, Li),
 #else                
-				m_source(lightOrigin, lightDir, lightTextureFile, lightPlane, Li),
+				m_source(lightOrigin, lightDir, halfThetaLimit, lightTextureFile, lightPlane, Li),
 #endif
 				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange),
 				m_bsdf(FPCONST(1.0), ior),
