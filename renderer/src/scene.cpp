@@ -119,17 +119,17 @@ double US<VectorType>::RIF(const VectorType<Float> &p) const{
     VectorType<Float> p_axis = p_u + dot(p - p_u , axis_uz)*axis_uz; // point on the axis closest to p
 
     Float r    = (p-p_axis).length();
-//    Float dotp = dot(p-p_axis, axis_ux);
-//    Float detp = dot(cross(axis_ux, p-p_axis), axis_uz);
-//    Float phi  = std::atan2(detp, dotp);
+    Float dotp = dot(p-p_axis, axis_ux);
+    Float detp = dot(cross(axis_ux, p-p_axis), axis_uz);
+    Float phi  = std::atan2(detp, dotp);
 //    Float r   = std::sqrt(p.x*p.x + p.y*p.y);
 //    Float phi = std::atan2(p.y, p.x);
 
 
 //	return n_o + n_max * boost::math::cyl_bessel_j(mode, k_r*r) * std::cos(mode*phi);
 //	return n_o + n_max * boost::math::cyl_bessel_j(mode, k_r*r);
-//	return n_o + n_max * jn(mode, k_r*r) * std::cos(mode*phi);
-	return n_o + n_max * jn(mode, k_r*r); // Hardcoded to mode = 0;
+	return n_o + n_max * jn(mode, k_r*r) * std::cos(mode*phi);
+//	return n_o + n_max * jn(mode, k_r*r); // Hardcoded to mode = 0;
 }
 
 template <template <typename> class VectorType>
@@ -142,7 +142,7 @@ const VectorType<Float> US<VectorType>::dRIF(const VectorType<Float> &q) const{
     Float r    = p.length();
     Float dotp = dot(p, axis_ux);
     Float detp = dot(cross(axis_ux, p), axis_uz);
-//    Float phi  = std::atan2(detp, dotp);
+    Float phi  = std::atan2(detp, dotp);
 
     p.x  = p.x + M_EPSILON;
     p.y  = p.y + M_EPSILON;
@@ -168,9 +168,13 @@ const VectorType<Float> US<VectorType>::dRIF(const VectorType<Float> &q) const{
 //                         n_max * (dbesselj * k_r * p.y * invr),
 //                         0.0);
     VectorType<Float> dn(0.0,
-    					 n_max * (dbesselj * k_r * p.y * invr),
-                         n_max * (dbesselj * k_r * p.z * invr)
-                         ); // Adithya: FIXME: Assumed for now that ray is traveling in x direction.
+                         n_max * (dbesselj * k_r * p.y * invr * std::cos(mode*phi) - besselj*mode*std::sin(mode*phi)*p.z*invr*invr),
+                         n_max * (dbesselj * k_r * p.z * invr * std::cos(mode*phi) + besselj*mode*std::sin(mode*phi)*p.y*invr*invr)
+                         );
+//    VectorType<Float> dn(0.0,
+//    					 n_max * (dbesselj * k_r * p.y * invr),
+//                         n_max * (dbesselj * k_r * p.z * invr)
+//                         ); // Adithya: FIXME: Assumed for now that ray is traveling in x direction.
     return dn;
 }
 
