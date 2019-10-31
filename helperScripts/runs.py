@@ -20,6 +20,8 @@ numPhotons    = 1e6 # Number of samples for each job
 sigmaT        = 0
 albedo        = .9
 gVal          = 0
+f_u           = 848000
+speed_u       = 1500 
 n_o           = 1.3333
 n_max         = 0
 mode          = 0
@@ -59,6 +61,10 @@ for i in range(1, len(sys.argv)):
         albedo = float(param[1])
     elif (str(param[0]) == "gVal"):
         gVal = float(param[1])
+    elif (str(param[0]) == "f_u"):
+        f_u = float(param[1])
+    elif (str(param[0]) == "speed_u"):
+        speed_u = float(param[1])
     elif (str(param[0]) == "n_o"):
         n_o = float(param[1])
     elif (str(param[0]) == "n_max"):
@@ -78,7 +84,7 @@ for i in range(1, len(sys.argv)):
     elif (str(param[0]) == "pathLengthMax"):
         pathLengthMax = float(param[1])
     elif (str(param[0]) == "pathLengthBins"):
-        pathLengthBins = float(param[1])
+        pathLengthBins = int(param[1])
     elif (str(param[0]) == "spatialX"):
         spatialX = int(param[1])
     elif (str(param[0]) == "spatialY"):
@@ -98,6 +104,8 @@ for i in range(1, len(sys.argv)):
 				"sigmaT, " + \
 				"albedo, " + \
 				"gVal, " + \
+				"f_u, " + \
+				"speed_o, " + \
 				"n_o, " + \
 				"n_max, " + \
 				"mode, " + \
@@ -115,6 +123,7 @@ for i in range(1, len(sys.argv)):
 
 # suffix for both tempMerge and submit common
 suffix        = "_sca_" + str(sigmaT) + "_" + str(albedo) + "_" + str(gVal) + \
+                "_f_u_" + str(f_u) + "_" + str(speed_u) + \
                 "_n_" + str(n_o) + "_" + str(n_max) + \
                 "_" + useDirect + \
                 "_path_" + str(pathLengthMin) + "_" + str(pathLengthMax) + "_" + str(pathLengthBins) 
@@ -143,6 +152,8 @@ for i in range(0, numpackets):
 					" sigmaT=" + str(sigmaT) + \
 					" albedo=" + str(albedo) + \
 					" gVal=" + str(gVal) + \
+					" f_u=" + str(f_u) + \
+					" speed_u=" + str(speed_u) + \
 					" n_o=" + str(n_o) + \
 					" n_max=" + str(n_max) + \
 					" mode=" + str(mode) + \
@@ -152,7 +163,10 @@ for i in range(0, numpackets):
 					" maxPathlength=" + str(maxPathlength) + \
 					" pathLengthMin=" + str(pathLengthMin) + \
 					" pathLengthMax=" + str(pathLengthMax) + \
-					" pathLengthBins=" + str(pathLengthBins) 
+					" pathLengthBins=" + str(pathLengthBins) + \
+				    " spatialX=" + str(spatialX) + \
+				    " spatialY=" + str(spatialY) + \
+				    " emitter_sensor_size=" + str(emitter_sensor_size) 
     
     os.system("echo \"" + cmd + "\"" + " > " + clusterTemp)
     if printcmds:
