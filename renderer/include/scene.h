@@ -288,9 +288,9 @@ struct US {
 		this->er_stepsize    = er_stepsize;
     }
 
-    double RIF(const VectorType<Float> &p) const;
+    double RIF(const VectorType<Float> &p, const Float &scaling) const;
 
-    const VectorType<Float> dRIF(const VectorType<Float> &q) const;
+    const VectorType<Float> dRIF(const VectorType<Float> &q, const Float &scaling) const;
 
 };
 
@@ -365,31 +365,36 @@ public:
 	/*
 	 * ER trackers
 	 */
+
+    inline const Float getUSFrequency() const{
+    	return m_us.f_u;
+    }
+
 	inline VectorType<Float> dP(const VectorType<Float> d) const{ // assuming omega tracking
 		return d;
 	}
-	inline VectorType<Float> dV(const VectorType<Float> p, const VectorType<Float> d) const{
-		return m_us.dRIF(p);
+	inline VectorType<Float> dV(const VectorType<Float> p, const VectorType<Float> d, const Float &scaling) const{
+		return m_us.dRIF(p, scaling);
 	}
-	inline VectorType<Float> dOmega(const VectorType<Float> p, const VectorType<Float> d) const{
-		VectorType<Float> dn = m_us.dRIF(p);
-		Float              n = m_us.RIF(p);
+	inline VectorType<Float> dOmega(const VectorType<Float> p, const VectorType<Float> d, const Float &scaling) const{
+		VectorType<Float> dn = m_us.dRIF(p, scaling);
+		Float              n = m_us.RIF(p, scaling);
 
 		return (dn - dot(d, dn)*d)/n;
 	}
 
-	void er_step(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize) const;
-	void trace(VectorType<Float> &p, VectorType<Float> &d, const Float &distance) const; // Non optical
-	void traceTillBlock(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, Float &disx, Float &disy, Float &totalOpticalDistance) const;
-	void trace_optical_distance(VectorType<Float> &p, VectorType<Float> &d, const Float &distance) const; // optical
+	void er_step(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize, const Float &scaling) const;
+	void trace(VectorType<Float> &p, VectorType<Float> &d, const Float &distance, const Float &scaling) const; // Non optical
+	void traceTillBlock(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, Float &disx, Float &disy, Float &totalOpticalDistance, const Float &scaling) const;
+	void trace_optical_distance(VectorType<Float> &p, VectorType<Float> &d, const Float &distance, const Float &scaling) const; // optical
 
 	/*
 	 * TODO: Inline these methods in implementations.
 	 */
 	bool movePhotonTillSensor(VectorType<Float> &p, VectorType<Float> &d, Float &distToSensor, Float &totalOpticalDistance,
-					smp::Sampler &sampler) const;
+					smp::Sampler &sampler, const Float &scaling) const;
 	bool movePhoton(VectorType<Float> &p, VectorType<Float> &d, Float dist, Float &totalOpticalDistance,
-					smp::Sampler &sampler) const;
+					smp::Sampler &sampler, const Float &scaling) const;
 	bool genRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler) const;
 	bool genRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler,
 				VectorType<Float> &possrc, VectorType<Float> &dirsrc) const;
@@ -406,7 +411,7 @@ public:
 	//distTravelled is optical distance if USE_SIMPLIFIED_TIMING is not set and geometric distance if not
 	void addEnergyInParticle(image::SmallImage &img, const VectorType<Float> &p,
 						const VectorType<Float> &d, Float distTravelled, Float val,
-						const med::Medium &medium, smp::Sampler &sampler) const;
+						const med::Medium &medium, smp::Sampler &sampler, const Float &scaling) const;
 
 	void addEnergy(image::SmallImage &img, const VectorType<Float> &p,
 						const VectorType<Float> &d, Float distTravelled, Float val,
@@ -429,8 +434,8 @@ public:
 	inline Float getMediumIor() const {
 		return m_ior;
 	}
-    inline Float getMediumIor(const VectorType<Float> &p) const {
-        return m_us.RIF(p);
+    inline Float getMediumIor(const VectorType<Float> &p, const Float &scaling) const {
+        return m_us.RIF(p, scaling);
     }
 
 	inline Float getFresnelTrans() const {

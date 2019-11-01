@@ -15,7 +15,7 @@ namespace photon {
 template <template <typename> class VectorType>
 bool Renderer<VectorType>::scatterOnce(VectorType<Float> &p, VectorType<Float> &d, Float &dist,
 						const scn::Scene<VectorType> &scene, const med::Medium &medium, Float &totalOpticalDistance,
-						smp::Sampler &sampler) const {
+						smp::Sampler &sampler, const Float &scaling) const {
 
 	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
 		VectorType<Float> d1;
@@ -26,7 +26,7 @@ bool Renderer<VectorType>::scatterOnce(VectorType<Float> &p, VectorType<Float> &
 #ifdef PRINT_DEBUGLOG
 		std::cout << "sampler before move photon:" << sampler() << "\n";
 #endif
-		return scene.movePhoton(p, d, dist, totalOpticalDistance, sampler);
+		return scene.movePhoton(p, d, dist, totalOpticalDistance, sampler, scaling);
 	} else {
 		dist = FPCONST(0.0);
 		return false;
@@ -36,14 +36,14 @@ bool Renderer<VectorType>::scatterOnce(VectorType<Float> &p, VectorType<Float> &
 template <template <typename> class VectorType>
 void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const VectorType<Float> &d,
 					const scn::Scene<VectorType> &scene, const med::Medium &medium,
-					smp::Sampler &sampler, image::SmallImage &img, Float weight) const { // Adithya: Should this be in scene.cpp
+					smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling) const { // Adithya: Should this be in scene.cpp
 
 	Float totalOpticalDistance = 0;
 	VectorType<Float> p1 = p;
 	VectorType<Float> d1 = d;
 
 	Float distToSensor;
-	if(!scene.movePhotonTillSensor(p1, d1, distToSensor, totalOpticalDistance, sampler))
+	if(!scene.movePhotonTillSensor(p1, d1, distToSensor, totalOpticalDistance, sampler, scaling))
 		return;
 	VectorType<Float> refrDirToSensor = d1;
 	Float fresnelWeight = FPCONST(1.0);
@@ -81,7 +81,7 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 template <template <typename> class VectorType>
 void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<Float> &d,
 					const scn::Scene<VectorType> &scene, const med::Medium &medium,
-					smp::Sampler &sampler, image::SmallImage &img, Float weight) const {
+					smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling) const {
 
 	Assert(scene.getMediumBlock().inside(p));
 
@@ -91,7 +91,7 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 		VectorType<Float> pos(p), dir(d);
 
 		Float dist = getMoveStep(medium, sampler);
-		if (!scene.movePhoton(pos, dir, dist, totalOpticalDistance, sampler)) {
+		if (!scene.movePhoton(pos, dir, dist, totalOpticalDistance, sampler, scaling)) {
 			return;
 		}
 
@@ -104,8 +104,8 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 		Float totalDist = dist;
 		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
 				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
-			scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, weight, medium, sampler);
-			if (!scatterOnce(pos, dir, dist, scene, medium, totalOpticalDistance, sampler)) {
+			scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, weight, medium, sampler, scaling);
+			if (!scatterOnce(pos, dir, dist, scene, medium, totalOpticalDistance, sampler, scaling)){
 #ifdef PRINT_DEBUGLOG
 				std::cout << "sampler after failing scatter once:" << sampler() << std::endl;
 #endif
@@ -305,13 +305,21 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 			std::cout << "Intial pos: (" << pos.x << ", " << pos.y << ", " << pos.z << ") \n";
 			std::cout << "Intial dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ") \n";
 #endif
+
+#ifndef UNMODULATED
+			Float scaling = 1;
+			//			Float scaling = -1; % Negative modulated
+#else
+			scaling = std::sin(scene.getUSFrequency()*sampler[id]());
+#endif
+//			std::cout << "scaling:" << scaling <<std::endl;
 #ifndef OMEGA_TRACKING
-			dir *= scene.getMediumIor(pos);
+			dir *= scene.getMediumIor(pos, scaling);
 #endif
 			Assert(!m_useDirect);
 			if(m_useDirect)
-				directTracing(pos, dir, scene, medium, sampler[id], img[id], weight); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
-			scatter(pos, dir, scene, medium, sampler[id], img[id], weight);
+				directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
+			scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling);
 		}
 	}
 

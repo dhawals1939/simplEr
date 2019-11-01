@@ -115,7 +115,7 @@ bool AreaTexturedSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorTyp
 }
 
 template <template <typename> class VectorType>
-double US<VectorType>::RIF(const VectorType<Float> &p) const{
+double US<VectorType>::RIF(const VectorType<Float> &p, const Float &scaling) const{
     VectorType<Float> p_axis = p_u + dot(p - p_u , axis_uz)*axis_uz; // point on the axis closest to p
 
     Float r    = (p-p_axis).length();
@@ -128,12 +128,12 @@ double US<VectorType>::RIF(const VectorType<Float> &p) const{
 
 //	return n_o + n_max * boost::math::cyl_bessel_j(mode, k_r*r) * std::cos(mode*phi);
 //	return n_o + n_max * boost::math::cyl_bessel_j(mode, k_r*r);
-	return n_o + n_max * jn(mode, k_r*r) * std::cos(mode*phi);
+	return n_o + n_max * scaling * jn(mode, k_r*r) * std::cos(mode*phi);
 //	return n_o + n_max * jn(mode, k_r*r); // Hardcoded to mode = 0;
 }
 
 template <template <typename> class VectorType>
-const VectorType<Float> US<VectorType>::dRIF(const VectorType<Float> &q) const{
+const VectorType<Float> US<VectorType>::dRIF(const VectorType<Float> &q, const Float &scaling) const{
 
     VectorType<Float> p_axis = p_u + dot(q - p_u, axis_uz)*axis_uz; // point on the axis closest to p
 
@@ -168,8 +168,8 @@ const VectorType<Float> US<VectorType>::dRIF(const VectorType<Float> &q) const{
 //                         n_max * (dbesselj * k_r * p.y * invr),
 //                         0.0);
     VectorType<Float> dn(0.0,
-                         n_max * (dbesselj * k_r * p.y * invr * std::cos(mode*phi) - besselj*mode*std::sin(mode*phi)*p.z*invr*invr),
-                         n_max * (dbesselj * k_r * p.z * invr * std::cos(mode*phi) + besselj*mode*std::sin(mode*phi)*p.y*invr*invr)
+                         n_max * scaling * (dbesselj * k_r * p.y * invr * std::cos(mode*phi) - besselj*mode*std::sin(mode*phi)*p.z*invr*invr),
+                         n_max * scaling * (dbesselj * k_r * p.z * invr * std::cos(mode*phi) + besselj*mode*std::sin(mode*phi)*p.y*invr*invr)
                          );
 //    VectorType<Float> dn(0.0,
 //    					 n_max * (dbesselj * k_r * p.y * invr),
@@ -179,11 +179,11 @@ const VectorType<Float> US<VectorType>::dRIF(const VectorType<Float> &q) const{
 }
 
 template <template <typename> class VectorType>
-void Scene<VectorType>::er_step(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize) const{
+void Scene<VectorType>::er_step(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize, const Float &scaling) const{
 #ifndef OMEGA_TRACKING
-    d += HALF * stepSize * dV(p, d);
-    p +=        stepSize * d/m_us.RIF(p);
-    d += HALF * stepSize * dV(p, d);
+    d += HALF * stepSize * dV(p, d, scaling);
+    p +=        stepSize * d/m_us.RIF(p, scaling);
+    d += HALF * stepSize * dV(p, d, scaling);
 #else
     Float two = 2; // To avoid type conversion
 
@@ -205,13 +205,13 @@ void Scene<VectorType>::er_step(VectorType<Float> &p, VectorType<Float> &d, cons
 }
 
 template <template <typename> class VectorType>
-void Scene<VectorType>::trace(VectorType<Float> &p, VectorType<Float> &d, const Float &dist) const{
+void Scene<VectorType>::trace(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, const Float &scaling) const{
     Float distance = dist;
     int steps = distance/m_us.er_stepsize;
     distance  = distance - steps * m_us.er_stepsize;
     for(int i = 0; i < steps; i++)
-        er_step(p, d, m_us.er_stepsize);
-    er_step(p, d, distance);
+        er_step(p, d, m_us.er_stepsize, scaling);
+    er_step(p, d, distance, scaling);
 }
 
 
@@ -219,7 +219,7 @@ void Scene<VectorType>::trace(VectorType<Float> &p, VectorType<Float> &d, const 
 /* This code is similar to trace code and the intersect code of "Block" structure*/
 /* Based on ER equations, the ray is traced till we either meet end of a block or the distance (in that case, we have an error) */
 template <template <typename> class VectorType>
-void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, Float &disx, Float &disy, Float &totalOpticalDistance) const{
+void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, Float &disx, Float &disy, Float &totalOpticalDistance, const Float &scaling) const{
 
 	VectorType<Float> oldp, oldd;
 
@@ -232,7 +232,7 @@ void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &
     	oldp = p;
     	oldd = d;
 
-    	er_step(p, d, current_stepsize);
+    	er_step(p, d, current_stepsize, scaling);
 
     	// check if we are at the intersection, then, estimate the distance and keep going more accurately towards the boundary
     	if(!m_block.inside(p)){
@@ -247,7 +247,7 @@ void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &
     	}else{
     		distance += current_stepsize;
 #if !USE_SIMPLIFIED_TIMING
-    		totalOpticalDistance += current_stepsize * m_us.RIF(p);
+    		totalOpticalDistance += current_stepsize * m_us.RIF(p, scaling);
 #endif
     	}
     }
@@ -259,7 +259,7 @@ void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &
 
 
 template <template <typename> class VectorType>
-void Scene<VectorType>::trace_optical_distance(VectorType<Float> &p, VectorType<Float> &d, const Float &dist) const{
+void Scene<VectorType>::trace_optical_distance(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, const Float &scaling) const{
     Float distance = dist;
     int maxSteps = distance/m_us.er_stepsize + 1;
     Float opticalPathLength = 0;
@@ -268,16 +268,16 @@ void Scene<VectorType>::trace_optical_distance(VectorType<Float> &p, VectorType<
     for(int i = 0; i < maxSteps; i++){
         oldp = p;
         oldd = d;
-        er_step(p, d, m_us.er_stepsize);
-        opticalPathLength += m_us.er_stepsize * m_us.RIF(HALF * (oldp + p));
+        er_step(p, d, m_us.er_stepsize, scaling);
+        opticalPathLength += m_us.er_stepsize * m_us.RIF(HALF * (oldp + p), scaling);
         if(opticalPathLength > distance){
             p = oldp;
             d = oldd;
             break;
         }
     }
-    distance = (distance - opticalPathLength)/m_us.RIF(p);
-    er_step(p, d, distance);
+    distance = (distance - opticalPathLength)/m_us.RIF(p, scaling);
+    er_step(p, d, distance, scaling);
 }
 
 
@@ -328,14 +328,14 @@ bool Scene<VectorType>::genRay(VectorType<Float> &pos, VectorType<Float> &dir,
 
 template <template <typename> class VectorType>
 bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Float> &d, Float &distToSensor, Float &totalOpticalDistance,
-									smp::Sampler &sampler) const {
+									smp::Sampler &sampler, const Float& scaling) const {
 	// moveTillSensor: moves the photon and reflects (with probability) and keeps going till it reaches sensor. TODO: change to weight
 
 	Float LargeDist = (Float) 10000;
 
 	Float disx, disy;
 	VectorType<Float> d1, norm;
-	traceTillBlock(p, d, LargeDist, disx, disy, totalOpticalDistance);
+	traceTillBlock(p, d, LargeDist, disx, disy, totalOpticalDistance, scaling);
 	distToSensor = disy;
 	LargeDist -= disy;
 	while(true){
@@ -395,7 +395,7 @@ bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Fl
 			return false;
 		}
 
-    	traceTillBlock(p, d, LargeDist, disx, disy, totalOpticalDistance);
+    	traceTillBlock(p, d, LargeDist, disx, disy, totalOpticalDistance, scaling);
     	distToSensor += disy;
     	LargeDist -= disy;
 	}
@@ -406,7 +406,7 @@ bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Fl
 
 template <template <typename> class VectorType>
 bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
-									Float dist, Float &totalOpticalDistance, smp::Sampler &sampler) const {
+									Float dist, Float &totalOpticalDistance, smp::Sampler &sampler, const Float &scaling) const {
 
 	// Algorithm
 	// 1. Move till you reach the boundary or till the distance is reached.
@@ -415,7 +415,7 @@ bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
 
 	Float disx, disy;
 	VectorType<Float> d1, norm;
-	traceTillBlock(p, d, dist, disx, disy, totalOpticalDistance);
+	traceTillBlock(p, d, dist, disx, disy, totalOpticalDistance, scaling);
 
 	dist -= static_cast<Float>(disy);
 
@@ -474,7 +474,7 @@ bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
 			return false;
 		}
 
-    	traceTillBlock(p, d, dist, disx, disy, totalOpticalDistance);
+    	traceTillBlock(p, d, dist, disx, disy, totalOpticalDistance, scaling);
     	dist -= static_cast<Float>(disy);
 	}
 	return true;
@@ -560,7 +560,7 @@ void Scene<tvec::TVector2>::addEnergyToImage(image::SmallImage &img, const tvec:
 template <template <typename> class VectorType>
 void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 			const VectorType<Float> &p, const VectorType<Float> &d, Float distTravelled,
-			Float val, const med::Medium &medium, smp::Sampler &sampler) const {
+			Float val, const med::Medium &medium, smp::Sampler &sampler, const Float &scaling) const {
 
 	VectorType<Float> p1 = p;
 
@@ -569,7 +569,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 
 
 #ifndef OMEGA_TRACKING
-	dirToSensor *= getMediumIor(p1);
+	dirToSensor *= getMediumIor(p1, scaling);
 #endif
 
 
@@ -581,7 +581,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 #endif
 
 	Float distToSensor;
-	if(!movePhotonTillSensor(p1, dirToSensor, distToSensor, distTravelled, sampler))
+	if(!movePhotonTillSensor(p1, dirToSensor, distToSensor, distTravelled, sampler, scaling))
 		return;
 
 #ifndef OMEGA_TRACKING
