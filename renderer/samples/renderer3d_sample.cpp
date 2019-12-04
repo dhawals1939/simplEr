@@ -6,6 +6,9 @@
  */
 
 #include "renderer.h"
+#include "util.h"
+#include "sampler.h"
+#include "vmf.h"
 #include <sstream>
 
 /* ADITHYA: Known issues/inconsistencies to be fixed
@@ -36,22 +39,23 @@ std::vector<std::string> tokenize(const std::string &string, const std::string &
 
 int main(int argc, char **argv) {
 
-	/*
-	 * Initialize rendering parameters.
-	 */
-	int64 numPhotons = 500L;
-	bool useDirect = true;
-	int maxDepth = -1;
-	Float maxPathlength = -1;// This is for tracing. FIXME: inconsistent and redundant
-	Float pathLengthMin = 0; // This is for path length binning
-	Float pathLengthMax = 64; // This is for path length binning
-	int pathLengthBins = 128;
-
-	int spatialX = 128; // X resolution of the sensor
-	int spatialY = 128; // Y resolution of the sensor
-
-	Float halfThetaLimit = FPCONST(12.8e-3);
-	Float emitter_sensor_size = FPCONST(0.002); // sizes of sensor and emitter are equal and are square shaped
+//	/*
+//	 * Initialize rendering parameters.
+//	 */
+//	int64 numPhotons = 500L;
+//	bool useDirect = true;
+//    bool useAngularSampling = true;
+//	int maxDepth = -1;
+//	Float maxPathlength = -1;// This is for tracing. FIXME: inconsistent and redundant
+//	Float pathLengthMin = 0; // This is for path length binning
+//	Float pathLengthMax = 64; // This is for path length binning
+//	int pathLengthBins = 128;
+//
+//	int spatialX = 128; // X resolution of the sensor
+//	int spatialY = 128; // Y resolution of the sensor
+//
+//	Float halfThetaLimit = FPCONST(12.8e-3);
+//	Float emitter_sensor_size = FPCONST(0.002); // sizes of sensor and emitter are equal and are square shaped
 
 	/*
 	 * output file prefix
@@ -59,11 +63,57 @@ int main(int argc, char **argv) {
     std::string outFilePrefix = "USOCTRendering";
 
 	/*
+	 * film parameters 
+	 */
+	Float pathLengthMin = 0; // This is for path length binning
+	Float pathLengthMax = 64; // This is for path length binning
+	int pathLengthBins = 128;
+	int spatialX = 128; // X resolution of the film 
+	int spatialY = 128; // Y resolution of the film
+
+	/*
+	 * adhoc parameters -- Should be assigned to a better block. Very hacky now. 
+	 */
+	Float halfThetaLimit = FPCONST(12.8e-3);
+	Float emitter_sensor_size = FPCONST(0.002); // sizes of sensor and emitter are equal and are square shaped
+
+	/*
 	 * Initialize scattering parameters.
 	 */
 	Float sigmaT = FPCONST(0);
 	Float albedo = FPCONST(1.0);
 	Float gVal = FPCONST(0);
+
+	/*
+	 * Initialize scene parameters.
+	 */
+	Float ior = FPCONST(1.3333);
+	tvec::Vec3f mediumL(-FPCONST(.015), -FPCONST(5.0), -FPCONST(5.0));
+	tvec::Vec3f mediumR( FPCONST(.015),  FPCONST(5.0),  FPCONST(5.0));
+
+	/*
+	 * Initialize rendering parameters.
+	 */
+	int64 numPhotons = 500L;
+	int maxDepth = -1;
+	Float maxPathlength = -1;
+	bool useDirect = false;
+    bool useAngularSampling = true;
+
+	/*
+	 * Initialize final path importance sampling parameters.
+	 */
+    std::string distribution = "vmf"; // options are vmf, hg, uniform, none
+    Float gOrKappa = 4;
+
+	/*
+	 * Initialize lens parameters.
+	 */
+    Float lens_aperture = .015;
+    Float lens_focalLength = .015;
+    bool lens_active = false;
+
+    bool printInputs = true;
 
 	/*
 	 * Initialize US parameters
@@ -118,6 +168,17 @@ int main(int argc, char **argv) {
 				return -1;
 			}
 		}
+		else if(param[0].compare("useAngularSampling")==0){
+			transform(param[1].begin(), param[1].end(), param[1].begin(), ::tolower);
+			if(param[1].compare("true")==0)
+				useAngularSampling = true;
+			else if(param[1].compare("false")==0)
+				useAngularSampling = false;
+			else{
+				std::cerr << "useAngularSampling should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
+				return -1;
+			}
+		}
 		else if(param[0].compare("maxDepth")==0)
 			maxDepth = stoi(param[1]);
 		else if(param[0].compare("maxPathlength")==0)
@@ -136,6 +197,40 @@ int main(int argc, char **argv) {
 			halfThetaLimit = stof(param[1]);
 		else if(param[0].compare("emitter_sensor_size")==0)
 			emitter_sensor_size = stof(param[1]);
+		else if(param[0].compare("mediumLx")==0)
+			mediumL[0] = stof(param[1]);
+		else if(param[0].compare("mediumRx")==0)
+			mediumR[0] = stof(param[1]);
+		else if(param[0].compare("distribution")==0)
+			distribution = (param[1]);
+		else if(param[0].compare("gOrKappa")==0)
+			gOrKappa = stof(param[1]);
+		else if(param[0].compare("lens_aperture")==0)
+			lens_aperture = stof(param[1]);
+		else if(param[0].compare("lens_focalLength")==0)
+			lens_focalLength = stof(param[1]);
+		else if(param[0].compare("printInputs")==0){
+			transform(param[1].begin(), param[1].end(), param[1].begin(), ::tolower);
+			if(param[1].compare("true")==0)
+				printInputs = true;
+			else if(param[1].compare("false")==0)
+				printInputs = false;
+			else{
+				std::cerr << "printInputs should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
+				return -1;
+			}
+		}
+		else if(param[0].compare("lens_active")==0){
+			transform(param[1].begin(), param[1].end(), param[1].begin(), ::tolower);
+			if(param[1].compare("true")==0)
+				lens_active = true;
+			else if(param[1].compare("false")==0)
+				lens_active = false;
+			else{
+				std::cerr << "lens_active should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
+				return -1;
+			}
+		}
 		else{
 			std::cerr << "Unknown variable in the input argument:" << param[0] << std::endl;
 			std::cerr << "Should be one of "
@@ -151,49 +246,60 @@ int main(int argc, char **argv) {
 					  << "mode, "
 					  << "projectorTexture, "
 					  << "useDirect, "
+					  << "useAngularSampling, "
 					  << "maxDepth, " 
 					  << "maxPathlength, " 
 					  << "pathLengthMin, " 
 					  << "pathLengthMax, " 
-					  << "pathLengthBins " 
-					  << "spatialX "
-					  << "spatialY "
-                      << "emitter_sensor_size "
+					  << "pathLengthBins, " 
+					  << "spatialX, "
+					  << "spatialY, "
+                      << "halfThetaLimit, "
+                      << "emitter_sensor_size, "
+					  << "distribution, "
+					  << "gOrKappa, "
+					  << "lens_aperture, "
+					  << "lens_focalLength, "
+					  << "lens_active, "
+					  << "printInputs "
                       << std::endl;
             return -1;
         }
 	}
 
-	std::cout << "numPhotons = "<< numPhotons 	<< std::endl;
-	std::cout << "outFilePrefix = " << outFilePrefix 		<< std::endl;
-	std::cout << "sigmaT = " 	<< sigmaT 		<< std::endl;
-	std::cout << "albedo = " 	<< albedo 		<< std::endl;
-	std::cout << "gVal = " 		<< gVal 		<< std::endl;
-	std::cout << "f_u = " 		<< f_u 			<< std::endl;
-	std::cout << "speed_u = " 	<< speed_u 		<< std::endl;
-	std::cout << "n_o = " 		<< n_o 			<< std::endl;
-	std::cout << "n_max  = " 	<< n_max  		<< std::endl;
-	std::cout << "mode = " 		<< mode 		<< std::endl;
-	std::cout << "projectorTexture = "<< projectorTexture << std::endl;
-	std::cout << "useDirect = " << useDirect << std::endl;
-	std::cout << "maxDepth = " << maxDepth << std::endl;
-	std::cout << "maxPathlength = " << maxPathlength << std::endl;
-	std::cout << "pathLengthMin = " << pathLengthMin << std::endl;
-	std::cout << "pathLengthMax = " << pathLengthMax << std::endl;
-	std::cout << "pathLengthBins = " << pathLengthBins << std::endl;
-	std::cout << "spatialX = " << spatialX << std::endl;
-	std::cout << "spatialY = " << spatialY << std::endl;
-	std::cout << "halfThetaLimit = " << halfThetaLimit << std::endl;
-	std::cout << "emitter_sensor_size = " << emitter_sensor_size << std::endl; 
-
+	if(printInputs){
+		std::cout << "numPhotons = "<< numPhotons 	<< std::endl;
+		std::cout << "outFilePrefix = " << outFilePrefix 		<< std::endl;
+		std::cout << "sigmaT = " 	<< sigmaT 		<< std::endl;
+		std::cout << "albedo = " 	<< albedo 		<< std::endl;
+		std::cout << "gVal = " 		<< gVal 		<< std::endl;
+		std::cout << "f_u = " 		<< f_u 			<< std::endl;
+		std::cout << "speed_u = " 	<< speed_u 		<< std::endl;
+		std::cout << "n_o = " 		<< n_o 			<< std::endl;
+		std::cout << "n_max  = " 	<< n_max  		<< std::endl;
+		std::cout << "mode = " 		<< mode 		<< std::endl;
+		std::cout << "projectorTexture = "<< projectorTexture << std::endl;
+		std::cout << "useDirect = " << useDirect << std::endl;
+		std::cout << "useAngularSampling= " << useAngularSampling << std::endl;
+		std::cout << "maxDepth = " << maxDepth << std::endl;
+		std::cout << "maxPathlength = " << maxPathlength << std::endl;
+		std::cout << "pathLengthMin = " << pathLengthMin << std::endl;
+		std::cout << "pathLengthMax = " << pathLengthMax << std::endl;
+		std::cout << "pathLengthBins = " << pathLengthBins << std::endl;
+		std::cout << "spatialX = " << spatialX << std::endl;
+		std::cout << "spatialY = " << spatialY << std::endl;
+		std::cout << "halfThetaLimit = " << halfThetaLimit << std::endl;
+		std::cout << "emitter_sensor_size = " << emitter_sensor_size << std::endl;
+		std::cout << "distribution = " << distribution << std::endl;
+		std::cout << "gOrKappa = " << gOrKappa << std::endl;
+		std::cout << "lens_aperture = " << lens_aperture << std::endl;
+		std::cout << "lens_focalLength = " << lens_focalLength << std::endl;
+		std::cout << "lens_active = " << lens_active << std::endl;
+		std::cout << "printInputs = " << printInputs << std::endl;
+    }
 	pfunc::HenyeyGreenstein *phase = new pfunc::HenyeyGreenstein(gVal);
 
-	/*
-	 * Initialize scene parameters.
-	 */
-	const Float ior = FPCONST(1.3333);
-	const tvec::Vec3f mediumL(-FPCONST(.015), -FPCONST(5.0), -FPCONST(5.0));
-	const tvec::Vec3f mediumR( FPCONST(.015),  FPCONST(5.0),  FPCONST(5.0));
+    tvec::Vec3f lens_origin(mediumL[0], FPCONST(0.0), FPCONST(0.0));
 
 	/*
 	 * Initialize source parameters.
@@ -231,12 +337,13 @@ int main(int argc, char **argv) {
 						viewOrigin, viewDir, viewX, viewPlane, pathlengthRange,
 						f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize);
 
-	photon::Renderer<tvec::TVector3> renderer(maxDepth, maxPathlength, useDirect);
+	photon::Renderer<tvec::TVector3> renderer(maxDepth, maxPathlength, useDirect, useAngularSampling);
 
 	image::SmallImage img(viewReso.x, viewReso.y, viewReso.z);
 	renderer.renderImage(img, medium, scene, numPhotons);
 
-	img.writeToFile(outFilePrefix);
+//	img.writeToFile(outFilePrefix);
+	img.writePFM3D(outFilePrefix+".pfm3d");
 
 	delete phase;
 
