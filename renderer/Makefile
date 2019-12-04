@@ -12,6 +12,9 @@ USE_MATLAB = 0
 ## sampler options
 USE_SFMT = 1
 
+## CERES options
+USE_CERES = 1
+
 ## OpenEXR options
 USE_OPENEXR = 0
 
@@ -56,6 +59,13 @@ endif
 # specify algorithm to use
 ifeq ($(USE_SFMT), 1)
 	CFLAGS += -DUSE_SFMT
+endif
+
+## specify CERES flags, adds to LIBS and INCLUDES, available only with GCC
+ifeq ($(USE_CERES), 1)
+ifeq ($(USE_GCC), 1)
+	include ceres.mk
+endif
 endif
 
 ## specify OPENEXR flags, adds to LIBS and INCLUDES, available only with GCC

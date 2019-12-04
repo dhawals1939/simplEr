@@ -11,6 +11,16 @@
 #include "vmf.h"
 #include <sstream>
 
+#include <vector>
+#include "ceres/ceres.h"
+#include "glog/logging.h"
+
+using ceres::CostFunction;
+using ceres::SizedCostFunction;
+using ceres::Problem;
+using ceres::Solver;
+using ceres::Solve;
+
 /* ADITHYA: Known issues/inconsistencies to be fixed
  * 1. MaxPathLength and PathLengthRange's maxPathLength are inconsistent !!
  * 2. Timing information for the ER is not accurate
@@ -18,6 +28,55 @@
  * 4. Differential rendering part is completely broken
  * 5. 2D rendering is broken
  */
+
+// A CostFunction implementing analytically derivatives for the
+// function f(x) = 10 - x.
+class QuadraticCostFunction
+  : public SizedCostFunction<1 /* number of residuals */,
+                             3 /* size of first parameter */> {
+ public:
+  QuadraticCostFunction(double k_[]) {k[0] = k_[0]; k[1] = k_[1]; k[2] = k_[2]; }
+  virtual ~QuadraticCostFunction() {}
+
+  virtual bool Evaluate(double const* const* parameters,
+                        double* residuals,
+                        double** jacobians) const {
+    double x = parameters[0][0];
+    double y = parameters[0][1];
+    double z = parameters[0][2];
+
+    // f(x) = 10 - x.
+//    residuals[0] =  (x - k[0])*(x-k[0]) + 1 ;
+//    residuals[0] =  1 ;
+//    residuals[0] =  ( (x - k[0])*(x - k[0]) + (y - k[1])*(y - k[1])  )  + 1  ;
+    residuals[0] =  ( (x - k[0])*(x - k[0]) + (y - k[1])*(y - k[1]) + (z - k[2])*(z - k[2]) )  + 1 ;
+
+    // f'(x) = -1. Since there's only 1 parameter and that parameter
+    // has 1 dimension, there is only 1 element to fill in the
+    // jacobians.
+    //
+    // Since the Evaluate function can be called with the jacobians
+    // pointer equal to NULL, the Evaluate function must check to see
+    // if jacobians need to be computed.
+    //
+    // For this simple problem it is overkill to check if jacobians[0]
+    // is NULL, but in general when writing more complex
+    // CostFunctions, it is possible that Ceres may only demand the
+    // derivatives w.r.t. a subset of the parameter blocks.
+    if (jacobians != NULL && jacobians[0] != NULL) {
+//      jacobians[0][0] = 0;
+//      jacobians[0][1] = 0;
+//      jacobians[0][2] = 0; 
+      jacobians[0][0] =  2*(x - k[0]);
+      jacobians[0][1] =  2*(y - k[1]);
+      jacobians[0][2] =  2*(z - k[2]);
+    }
+
+    return true;
+  }
+ private: 
+  double k[3];
+};
 
 
 
@@ -38,6 +97,46 @@ std::vector<std::string> tokenize(const std::string &string, const std::string &
 
 
 int main(int argc, char **argv) {
+//  google::InitGoogleLogging(argv[0]);
+//
+//  // The variable to solve for with its initial value. It will be
+//  // mutated in place by the solver.
+//  double k_[] = {-10, 20,  -3130.03};
+//  double x[] = {0, 0, 0};
+//  const double initial_x[3] = {x[0], x[1], x[2]};
+//
+//  // Build the problem.
+//  Problem problem;
+//
+//  // Set up the only cost function (also known as residual).
+//  CostFunction* cost_function = new QuadraticCostFunction(k_);
+//  problem.AddResidualBlock(cost_function, NULL, x);
+//
+//  // Run the solver!
+//  Solver::Options options;
+//  options.check_gradients = false;
+//  options.max_num_iterations = 1000;
+//  options.minimizer_type = ceres::LINE_SEARCH;
+//  options.line_search_direction_type = ceres::BFGS;
+//  options.function_tolerance = 1e-18;
+//  options.gradient_tolerance = 1e-3;
+//  options.parameter_tolerance = 1e-10;
+//  options.minimizer_progress_to_stdout = false;
+//
+///*  std::string Error;
+//  options.IsValid(&Error);
+//  std::cout << Error << std::endl;
+//*/
+//  Solver::Summary summary;
+//  Solve(options, &problem, &summary);
+//
+////  std::cout << summary.BriefReport() << "\n";
+//  std::cout << "x : " << initial_x[0] << ", " << initial_x[1] << ", " << initial_x[2] 
+//            << " -> " << x[0] << ", " << x[1] << ", " << x[2] << "\n";
+//
+//  return 0;
+
+
 
 //	/*
 //	 * Initialize rendering parameters.
