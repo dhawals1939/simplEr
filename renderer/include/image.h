@@ -385,6 +385,7 @@ public:
 		free(m_pixels);
 	}
 
+	void writePFM3D(const std::string& fileName) const;
 private:
 	void writePFM(const std::string& fileNamePrefix) const;
 #ifdef USE_OPENEXR

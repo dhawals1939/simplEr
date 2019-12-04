@@ -151,4 +151,44 @@ void Image3<Float>::writePFM(const std::string& fileNamePrefix) const {//,
 }
 
 
+template <>
+void Image3<Float>::writePFM3D(const std::string& fileName) const {//,
+//						const EByteOrder fileEndianness) const {
+
+//	Assert((fileEndianness == EBigEndian) || (fileEndianness == ELittleEndian));
+
+
+	std::ofstream file(fileName.c_str(),
+					std::ofstream::out | std::ofstream::binary);
+	AssertEx(file, "Problem writing output file.");
+
+	file << "Pf";
+	AssertEx(file, "Problem writing output file.");
+	file << '\n';
+	AssertEx(file, "Problem writing output file.");
+	file << m_xRes;
+	AssertEx(file, "Problem writing output file.");
+	file << ' ';
+	AssertEx(file, "Problem writing output file.");
+	file << m_yRes;
+	file << ' ';
+	AssertEx(file, "Problem writing output file.");
+	file << m_zRes;
+	AssertEx(file, "Problem writing output file.");
+	file << '\n';
+	AssertEx(file, "Problem writing output file.");
+
+	file << ((getHostByteOrder() == Image2<Float>::EByteOrder::ELittleEndian)
+							?(static_cast<Float>(-1.0))
+							:(static_cast<Float>(1.0)));
+	AssertEx(file, "Problem writing output file.");
+	file << '\n';
+	AssertEx(file, "Problem writing output file.");
+
+	for(int z = 0; z < m_zRes; z++)
+		file.write(reinterpret_cast<char*>(m_pixels + z * m_xRes * m_yRes),
+				m_xRes * m_yRes * sizeof(Float));
+	AssertEx(file, "Problem writing output file.");
+}
+
 }	/* namespace image */

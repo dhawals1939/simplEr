@@ -26,10 +26,11 @@ namespace photon {
 template <template <typename> class VectorType>
 class Renderer {
 public:
-	Renderer(const int maxDepth, const Float maxPathlength, const bool useDirect) :
+	Renderer(const int maxDepth, const Float maxPathlength, const bool useDirect, const bool useAngularSampling) :
 			m_maxDepth(maxDepth),
 			m_maxPathlength(maxPathlength),
-			m_useDirect(useDirect) {
+			m_useDirect(useDirect),
+			m_useAngularSampling(useAngularSampling){
 #ifndef NDEBUG
 		std::cout << "maxDepth " << m_maxDepth << std::endl;
 		std::cout << "maxPathlength " << m_maxPathlength << std::endl;
@@ -109,6 +110,7 @@ protected:
 	int m_maxDepth;
 	Float m_maxPathlength;
 	bool m_useDirect;
+	bool m_useAngularSampling;
 };
 
 }	/* namespace photon */

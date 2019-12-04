@@ -104,7 +104,10 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 		Float totalDist = dist;
 		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
 				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
-			scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, weight, medium, sampler, scaling);
+			if(m_useAngularSampling)
+                scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, weight, medium, sampler, scaling);
+			else
+				scene.addEnergy(img, pos, dir, totalDist, weight, medium, sampler);
 			if (!scatterOnce(pos, dir, dist, scene, medium, totalOpticalDistance, sampler, scaling)){
 #ifdef PRINT_DEBUGLOG
 				std::cout << "sampler after failing scatter once:" << sampler() << std::endl;
