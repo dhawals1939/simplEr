@@ -8,6 +8,7 @@
 #ifndef TVECTOR_H_
 #define TVECTOR_H_
 
+#include <iostream>
 #include <cmath>
 #include <string>
 #include <vector>
@@ -382,6 +383,11 @@ template <typename T> struct TVector3 {
 	}
 
 };
+
+template <typename T> inline std::ostream& operator<<(std::ostream& os, const TVector3<T> &v) {
+    os <<  "Vector" << v.dim << "[" << v.x << ", " << v.y << ", " << v.z << "]" ;
+	return os;
+}
 
 template <typename T> inline TVector3<T> operator*(T f, const TVector3<T> &v) {
 	return v*f;

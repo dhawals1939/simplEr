@@ -32,11 +32,13 @@ typedef float Float;
 #define M_EPSILON	1.19209290e-07
 #define M_MAX	3.40282347e+38
 #define M_MIN	-3.40282347e+38
+#define RCPOVERFLOW  2.93873587705571876e-39f
 #else
 #define M_EPSILON	1.19209290e-07f
 //const float M_EPSILON = std::numeric_limits<float>.epsilon();
 #define M_MAX	3.40282347e+38f
 #define M_MIN	-3.40282347e+38f
+#define RCPOVERFLOW  5.56268464626800345e-309
 #endif
 
 #ifdef M_PI

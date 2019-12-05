@@ -138,17 +138,23 @@ HEADERS = \
 	$(INCLUDEDIR)/renderer.h \
 	$(INCLUDEDIR)/sampler.h \
 	$(INCLUDEDIR)/tvector.h \
+	$(INCLUDEDIR)/matrix.h \
 	$(INCLUDEDIR)/util.h \
 	$(INCLUDEDIR)/photon.h \
 	$(INCLUDEDIR)/scene.h \
+    $(INCLUDEDIR)/warp.h \
+    $(INCLUDEDIR)/vmf.h \
 	$(INCLUDEDIR)/bsdf.h
 	
 OBJ = \
 	$(SRCDIR)/image.o \
 	$(SRCDIR)/phase.o \
 	$(SRCDIR)/sampler.o \
+	$(SRCDIR)/matrix.o \
 	$(SRCDIR)/photon.o \
 	$(SRCDIR)/scene.o \
+    $(SRCDIR)/warp.o \
+    $(SRCDIR)/vmf.o \
 	$(SRCDIR)/bsdf.o
 
 ## specify sampler-related options
