@@ -19,12 +19,19 @@ void sampleRandomDirection(tvec::Vec2f &randDirection,  smp::Sampler &sampler){ 
 }
 
 void sampleRandomDirection(tvec::Vec3f &randDirection, smp::Sampler &sampler){
-	Float phi= 2*M_PI*sampler();
-	Float r1 = sampler();
-	Float sintheta = std::sqrt(r1*(2-r1));
-	randDirection.x = 1-r1;
-	randDirection.y = sintheta*std::cos(phi);
-	randDirection.z = sintheta*std::sin(phi);
+//	Float phi= 2*M_PI*sampler();
+//	Float r1 = sampler();
+//	Float sintheta = std::sqrt(r1*(2-r1));
+//	randDirection.x = 1-r1;
+//	randDirection.y = sintheta*std::cos(phi);
+//	randDirection.z = sintheta*std::sin(phi);
+	randDirection = warp::squareToUniformHemisphere(tvec::Vec2f(sampler(), sampler())); // this sampling is done in z=1 direction. need     to compensate for it.
+//	invPDF = 2.0f * M_PI;
+	Float temp = randDirection.x;
+	randDirection.x =-randDirection.z; // compensating that the direction of photon propagation is -x
+	randDirection.z = randDirection.y;
+	randDirection.y = temp;
+
 }
 
 
@@ -203,6 +210,17 @@ void Scene<VectorType>::er_step(VectorType<Float> &p, VectorType<Float> &d, cons
     d = d + ONE_SIXTH * (K1O + two*K2O + two*K3O + K4O);
 #endif
 }
+
+//template <template <typename> class VectorType>
+//void Scene<VectorType>::er_derivativestep(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize, const Float &scaling) const{
+//#ifndef OMEGA_TRACKING
+//    d += HALF * stepSize * dV(p, d, scaling);
+//    p +=        stepSize * d/m_us.RIF(p, scaling);
+//    d += HALF * stepSize * dV(p, d, scaling);
+//#else
+//    std::err << "Non omega derivative tracking not implemented;" << std::endl
+//#endif
+//}
 
 template <template <typename> class VectorType>
 void Scene<VectorType>::trace(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, const Float &scaling) const{
@@ -565,28 +583,28 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 	VectorType<Float> p1 = p;
 
 	VectorType<Float> dirToSensor;
+
 	sampleRandomDirection(dirToSensor, sampler); // Samples by assuming that the sensor is in +x direction.
+
+//	if(m_camera.getOrigin().x < m_source.getOrigin().x) // Direction to sensor is flipped. Compensate
+//		dirToSensor.x = -dirToSensor.x;
+
+#ifdef PRINT_DEBUGLOG
+	std::cout << "dirToSensor: (" << dirToSensor.x << ", " << dirToSensor.y << ", " << dirToSensor.z << ") \n";
+#endif
 
 
 #ifndef OMEGA_TRACKING
 	dirToSensor *= getMediumIor(p1, scaling);
 #endif
 
-
-	if(m_camera.getOrigin().x < m_source.getOrigin().x) // Direction to sensor is flipped. Compensate
-		dirToSensor.x = -dirToSensor.x;
-
-#ifdef PRINT_DEBUGLOG
-	std::cout << "dirToSensor: (" << dirToSensor.x << ", " << dirToSensor.y << ", " << dirToSensor.z << ") \n";
-#endif
-
 	Float distToSensor;
 	if(!movePhotonTillSensor(p1, dirToSensor, distToSensor, distTravelled, sampler, scaling))
 		return;
 
-#ifndef OMEGA_TRACKING
+//#ifdef OMEGA_TRACKING
 	dirToSensor.normalize();
-#endif
+//#endif
 
 	VectorType<Float> refrDirToSensor = dirToSensor;
 	Float fresnelWeight = FPCONST(1.0);
@@ -617,6 +635,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 	Float totalPhotonValue = val*(2*M_PI)
 			* std::exp(-medium.getSigmaT() * distToSensor)
 			* medium.getPhaseFunction()->f(d/d.length(), dirToSensor) // FIXME: Should be refractive index
+			* foreshortening
 			* fresnelWeight;
 	addEnergyToImage(img, p1, totalOpticalDistance, totalPhotonValue);
 #ifdef PRINT_DEBUGLOG
@@ -647,6 +666,21 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 		 * TODO: Not sure why this check is here, but it was in the original code.
 		 */
 		Assert(m_block.inside(sensorPoint));
+
+		// make a direct connection here and accurately measure the radiance
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 		VectorType<Float> distVec = sensorPoint - p;
 		Float distToSensor = distVec.length();

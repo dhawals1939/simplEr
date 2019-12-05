@@ -97,8 +97,8 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 
 #ifdef PRINT_DEBUGLOG
 		std::cout << "dist: " << dist << "\n";
-		std::cout << "pos: (" << pos.x << ", " << pos.y << ", " << pos.z << ", " << "\n";
-		std::cout << "dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ", " << "\n";
+		std::cout << "pos: (" << pos.x << ", " << pos.y << ", " << pos.z << ") " << "\n";
+		std::cout << "dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ") " << "\n";
 #endif
 		int depth = 1;
 		Float totalDist = dist;

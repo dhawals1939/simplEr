@@ -15,6 +15,8 @@
 #include "image.h"
 #include "phase.h"
 #include "pmf.h"
+#include "vmf.h"
+#include "warp.h"
 #include "sampler.h"
 #include "tvector.h"
 #include "medium.h"
