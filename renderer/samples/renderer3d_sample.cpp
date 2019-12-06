@@ -382,6 +382,7 @@ int main(int argc, char **argv) {
 		std::cout << "useAngularSampling= " << useAngularSampling << std::endl;
 		std::cout << "maxDepth = " << maxDepth << std::endl;
 		std::cout << "maxPathlength = " << maxPathlength << std::endl;
+        std::cout << "Total medium length = " << mediumR[0] - mediumL[0] << std::endl;
 		std::cout << "pathLengthMin = " << pathLengthMin << std::endl;
 		std::cout << "pathLengthMax = " << pathLengthMax << std::endl;
 		std::cout << "pathLengthBins = " << pathLengthBins << std::endl;
