@@ -8,6 +8,7 @@
 #include "scene.h"
 #include "util.h"
 #include <iostream>
+#include "math.h"
 
 namespace scn {
 
@@ -132,11 +133,7 @@ double US<VectorType>::RIF(const VectorType<Float> &p, const Float &scaling) con
 //    Float r   = std::sqrt(p.x*p.x + p.y*p.y);
 //    Float phi = std::atan2(p.y, p.x);
 
-
-//	return n_o + n_max * boost::math::cyl_bessel_j(mode, k_r*r) * std::cos(mode*phi);
-//	return n_o + n_max * boost::math::cyl_bessel_j(mode, k_r*r);
 	return n_o + n_max * scaling * jn(mode, k_r*r) * std::cos(mode*phi);
-//	return n_o + n_max * jn(mode, k_r*r); // Hardcoded to mode = 0;
 }
 
 template <template <typename> class VectorType>
@@ -151,13 +148,14 @@ const VectorType<Float> US<VectorType>::dRIF(const VectorType<Float> &q, const F
     Float detp = dot(cross(axis_ux, p), axis_uz);
     Float phi  = std::atan2(detp, dotp);
 
-    p.x  = p.x + M_EPSILON;
-    p.y  = p.y + M_EPSILON;
-    p.z  = p.z + M_EPSILON;
-    r    = r   + M_EPSILON;
+    if(r < M_EPSILON)
+    	p.y = M_EPSILON;
+    if(r < M_EPSILON)
+    	p.z = M_EPSILON;
+    if(r < M_EPSILON)
+    	r = M_EPSILON;
 
     Float krr = k_r * r;
-
 
 //    Float besselj   = boost::math::cyl_bessel_j(mode, krr);
 //
@@ -166,17 +164,15 @@ const VectorType<Float> US<VectorType>::dRIF(const VectorType<Float> &q, const F
 
     Float dbesselj  = mode/(krr) * besselj - jn(mode+1, krr);
 
-    Float invr= 1.0/r;
+    Float invr  = 1.0/r;
+    Float invr2 = invr * invr;
 
-//    VectorType<Float> dn(n_max * (dbesselj * k_r * p.x * invr * std::cos(mode*phi) - besselj*mode*std::sin(mode*phi)*p.y*invr*invr),
-//                         n_max * (dbesselj * k_r * p.y * invr * std::cos(mode*phi) + besselj*mode*std::sin(mode*phi)*p.x*invr*invr),
-//                         0.0);
-//    VectorType<Float> dn(n_max * (dbesselj * k_r * p.x * invr),
-//                         n_max * (dbesselj * k_r * p.y * invr),
-//                         0.0);
+    Float cosmp  = std::cos(mode * phi);
+    Float sinmp  = std::sin(mode * phi);
+
     VectorType<Float> dn(0.0,
-                         n_max * scaling * (dbesselj * k_r * p.y * invr * std::cos(mode*phi) - besselj*mode*std::sin(mode*phi)*p.z*invr*invr),
-                         n_max * scaling * (dbesselj * k_r * p.z * invr * std::cos(mode*phi) + besselj*mode*std::sin(mode*phi)*p.y*invr*invr)
+            			 n_max * scaling * (dbesselj * k_r * p.y * invr * cosmp - besselj*mode*sinmp*p.z*invr2),
+            			 n_max * scaling * (dbesselj * k_r * p.z * invr * cosmp + besselj*mode*sinmp*p.y*invr2)
                          );
 //    VectorType<Float> dn(0.0,
 //    					 n_max * (dbesselj * k_r * p.y * invr),
@@ -184,6 +180,70 @@ const VectorType<Float> US<VectorType>::dRIF(const VectorType<Float> &q, const F
 //                         ); // Adithya: FIXME: Assumed for now that ray is traveling in x direction.
     return dn;
 }
+
+template <template <typename> class VectorType>
+const Matrix3x3 US<VectorType>::HessianRIF(const VectorType<Float> &q, const Float &scaling) const{
+    VectorType<Float> p_axis = p_u + dot(q - p_u, axis_uz)*axis_uz; // point on the axis closest to p
+    VectorType<Float> p      = q - p_axis; // acts like p in case of axis aligned
+
+    Float r    = p.length();
+    Float dotp = dot(p, axis_ux);
+    Float detp = dot(cross(axis_ux, p), axis_uz);
+    Float phi  = std::atan2(detp, dotp);
+
+    if(r < M_EPSILON)
+    	p.y = M_EPSILON; // equivalent of y in matlab
+    if(r < M_EPSILON)
+    	p.z = M_EPSILON; // equivalent of x in matlab
+    if(r < M_EPSILON)
+    	r = M_EPSILON;
+
+    Float krr = k_r * r;
+
+    Float nbesselj  = jn(mode    , krr);
+    Float nbesselj1 = jn(mode + 1, krr);
+    Float nbesselj2 = jn(mode + 2, krr);
+
+    Float dbesselj  =     mode/(krr) * nbesselj  - nbesselj1;
+    Float dbesselj1 = (mode+1)/(krr) * nbesselj1 - nbesselj2;
+
+    Float invr  = 1.0/r;
+    Float invr2 = invr * invr;
+
+    Float cosp   = std::cos(phi);
+    Float sinp   = std::sin(phi);
+    Float cosmp  = std::cos(mode * phi);
+    Float sinmp  = std::sin(mode * phi);
+    Float cosm1p = std::cos((mode-1) * phi);
+    Float sinm1p = std::sin((mode-1) * phi);
+    Float cosm2p = std::cos((mode-2) * phi);
+    Float sinm2p = std::sin((mode-2) * phi);
+
+    Float Hxx = n_max * (
+						+ nbesselj  * mode * invr2 * (-cosm2p + mode * sinm1p * sinp)
+						+ dbesselj  * mode * invr * k_r * cosm1p * cosp
+						- nbesselj1 * k_r * p.y * invr2 * (sinp * cosmp + mode * cosp * sinmp)
+						- dbesselj1 * k_r * k_r * cosp * cosp * cosmp
+    					);
+    Float Hxy = n_max * (
+						- nbesselj  * mode * invr2 * (-sinm2p + mode * sinm1p * cosp)
+						+ dbesselj  * mode * invr * k_r * cosm1p * sinp
+						+ nbesselj1 * k_r * p.z * invr2 * (sinp * cosmp + mode * cosp * sinmp)
+						- dbesselj1 * k_r * k_r * cosp * sinp * cosmp
+    					);
+    Float Hyy = -n_max * (
+						+ nbesselj  * mode * invr2 * (-cosm2p + mode * cosm1p * cosp)
+						+ dbesselj  * mode * invr * k_r * sinm1p * sinp
+						+ nbesselj1 * k_r * p.z * invr2 * (cosp * cosmp - mode * sinp * sinmp)
+						+ dbesselj1 * k_r * k_r * sinp * sinp * cosmp
+    					);
+    return Matrix3x3(0, 0,   0,
+    				 0, Hyy, Hxy,
+					 0, Hxy, Hxx);
+
+
+}
+
 
 template <template <typename> class VectorType>
 void Scene<VectorType>::er_step(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize, const Float &scaling) const{
@@ -211,6 +271,16 @@ void Scene<VectorType>::er_step(VectorType<Float> &p, VectorType<Float> &d, cons
 #endif
 }
 
+template <template <typename> class VectorType>
+void Scene<VectorType>::er_derivativestep(VectorType<Float> &p, VectorType<Float> &v, Matrix3x3 &dpdv0, Matrix3x3 &dvdv0, const Float &stepSize, const Float &scaling) const{
+    v 	  += HALF * stepSize * dV(p, v, scaling);
+    dvdv0 += HALF * stepSize * d2V(p, v, dpdv0, scaling);
+    p 	  +=        stepSize * v/m_us.RIF(p, scaling);
+    dpdv0 +=        stepSize * d2Path(p, v, dpdv0, dvdv0, scaling);
+    v	  += HALF * stepSize * dV(p, v, scaling);
+    dvdv0 += HALF * stepSize * d2V(p, v, dpdv0, scaling);
+}
+
 //template <template <typename> class VectorType>
 //void Scene<VectorType>::er_derivativestep(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize, const Float &scaling) const{
 //#ifndef OMEGA_TRACKING
@@ -232,8 +302,7 @@ void Scene<VectorType>::trace(VectorType<Float> &p, VectorType<Float> &d, const 
     er_step(p, d, distance, scaling);
 }
 
-
-//ADITHYA: EDITING THIS
+// ADI: CONVERT THIS TO A BISECTION SEARCH
 /* This code is similar to trace code and the intersect code of "Block" structure*/
 /* Based on ER equations, the ray is traced till we either meet end of a block or the distance (in that case, we have an error) */
 template <template <typename> class VectorType>
@@ -275,7 +344,6 @@ void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &
 
 }
 
-
 template <template <typename> class VectorType>
 void Scene<VectorType>::trace_optical_distance(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, const Float &scaling) const{
     Float distance = dist;
@@ -298,6 +366,151 @@ void Scene<VectorType>::trace_optical_distance(VectorType<Float> &p, VectorType<
     er_step(p, d, distance, scaling);
 }
 
+template <template <typename> class VectorType>
+
+bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1, const VectorType<Float> &p2, const Float &scaling, smp::Sampler &sampler,
+														Float &distTravelled, VectorType<Float> &dirToSensor, Float &distToSensor, Float &weight) const{
+
+	Matrix3x3 dpdv0((Float)0);
+	Matrix3x3 dvdv0((Float)1, 0, 0,
+					0, 1, 0,
+					0, 0, 1);
+
+	while(true){
+		VectorType<Float> v;
+		sampleRandomDirection(v, sampler);
+
+		CostFunction* cost_function = new NEECostFunction<tvec::TVector3>(this, p1, p2, dpdv0, dvdv0, scaling);
+		Problem problem;
+		double x[] = {v.x, v.y, v.z};
+		problem.AddResidualBlock(cost_function, NULL, x);
+
+		Solver::Summary summary;
+		Solve(m_options, &problem, &summary);
+
+		if(summary.final_cost < m_us.getTol()){
+			dirToSensor[0] = x[0];
+			dirToSensor[1] = x[1];
+			dirToSensor[2] = x[2];
+			dirToSensor.normalize();
+			break;
+		}
+
+		// Did not converge, so perform russian roulette
+		if(sampler() < m_us.getrrWeight())
+			weight = weight * m_us.getInvrrWeight();
+		else{
+			dirToSensor[0] = x[0];
+			dirToSensor[1] = x[1];
+			dirToSensor[2] = x[2];
+			return false;
+		}
+	}
+
+	// success, the algorithm found a solution.
+	VectorType<Float> error;
+	Matrix3x3 derror;
+	Float opticalPathLength;
+	VectorType<Float> v = dirToSensor * m_us.RIF(p1, scaling);
+
+	computePathLengthstillZ(v, p1, p2, opticalPathLength, distToSensor, scaling);
+
+#if !USE_SIMPLIFIED_TIMING
+	distTravelled += opticalPathLength;
+#endif
+}
+
+template <template <typename> class VectorType>
+void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, const VectorType<Float> &p1, const VectorType<Float> &p2, Float &opticalPathLength, Float &t_l, const Float &scaling) const{
+	t_l = 0 ; // t_l is geometric length, required for computation of the radiance
+
+	Float currentStepSize = m_us.getStepSize();
+	int maxSteps = 5*floor((p2.x - p1.x)/v_i.x/currentStepSize)+1;
+	opticalPathLength = 0;
+	int dec_precision = 8; //ADI: Move this to parameters
+	int nBisectionSearches = ceil(dec_precision/log10(2)); //ADI: Make a log10(2) constant
+
+	VectorType<Float> p = p1, oldp = p1, v = v_i, oldv = v;
+	for(int i = 0; i < maxSteps; i++){
+		oldp     = p;
+		oldv     = v;
+		er_step(p, v, currentStepSize, scaling);
+		if(p.x < p2.x){ // outside medium (ADI: FIXME: Direct is negative. Hardcoded now :()
+			while(nBisectionSearches > 0){
+				nBisectionSearches--;
+				p     = oldp    ;
+				v     = oldv    ;
+				currentStepSize = currentStepSize/2;
+				er_step(p, v, currentStepSize, scaling);
+				if(p.x > p2.x){
+					t_l += currentStepSize;
+					oldp     = p;
+					oldv     = v;
+					opticalPathLength += currentStepSize*m_us.RIF(HALF * (oldp + p), scaling);
+				}
+			}
+			break;
+		}else{
+			t_l += currentStepSize;
+			opticalPathLength += currentStepSize*m_us.RIF(HALF * (oldp + p), scaling);
+		}
+	}
+}
+
+template <template <typename> class VectorType>
+void Scene<VectorType>::computefdfNEE(const VectorType<Float> &v_i, const VectorType<Float> &p1, const VectorType<Float> &p2, Matrix3x3 &dpdv0, Matrix3x3 &dvdv0, Float &t_l, const Float &scaling, VectorType<Float> &error, Matrix3x3 &derror) const{
+	t_l = 0 ; // t_l is geometric length, required for computation of the radiance
+
+	Float currentStepSize = m_us.getStepSize();
+	int maxSteps = 5*floor((p2.x - p1.x)/v_i.x/currentStepSize)+1;
+	Float opticalPathLength = 0;
+	int dec_precision = 8; //ADI: Move this to parameters
+	int nBisectionSearches = ceil(dec_precision/log10(2)); //ADI: Make a log10(2) constant
+
+	VectorType<Float> p = p1, oldp = p1, v = v_i, oldv = v;
+	Matrix3x3 olddpdv0 = dpdv0, olddvdv0 = dvdv0;
+	for(int i = 0; i < maxSteps; i++){
+		oldp     = p;
+		oldv     = v;
+		olddpdv0 = dpdv0;
+		olddvdv0 = dvdv0;
+		er_derivativestep(p, v, dpdv0, dvdv0, currentStepSize, scaling);
+		if(p.x < p2.x){ // outside medium (ADI: FIXME: Direct is negative. Hardcoded now :()
+			while(nBisectionSearches > 0){
+				nBisectionSearches--;
+				p     = oldp    ;
+				v     = oldv    ;
+				dpdv0 = olddpdv0;
+				dvdv0 = olddvdv0;
+				currentStepSize = currentStepSize/2;
+				er_derivativestep(p, v, dpdv0, dvdv0, currentStepSize, scaling);
+				if(p.x > p2.x){
+					t_l += currentStepSize;
+					oldp     = p;
+					oldv     = v;
+					olddpdv0 = dpdv0;
+					olddvdv0 = dvdv0;
+					opticalPathLength += currentStepSize*m_us.RIF(HALF * (oldp + p), scaling);
+				}
+			}
+			break;
+		}else{
+			t_l += currentStepSize;
+			opticalPathLength += currentStepSize*m_us.RIF(HALF * (oldp + p), scaling);
+		}
+	}
+
+	VectorType<Float> dpdt = v/m_us.RIF(p, scaling);
+	VectorType<Float> dgdQ(-1, 0, 0);
+
+	Float dp = dot(dgdQ, dpdt);
+    Matrix3x3 dQdV = (Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1) - Matrix3x3(dpdt, dgdQ)/dp)*dpdv0, dQdVt;
+    dQdV.transpose(dQdVt);
+//    error  = HALF * (p - p2).lengthSquared();
+//    derror =  dQdVt*(p - p2);
+    error  = (p - p2);
+    derror =  dQdVt;
+}
 
 template <template <typename> class VectorType>
 bool Scene<VectorType>::genRay(VectorType<Float> &pos, VectorType<Float> &dir,
@@ -650,7 +863,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 template <template <typename> class VectorType>
 void Scene<VectorType>::addEnergy(image::SmallImage &img,
 			const VectorType<Float> &p, const VectorType<Float> &d, Float distTravelled,
-			Float val, const med::Medium &medium, smp::Sampler &sampler) const {
+			Float val, const med::Medium &medium, smp::Sampler &sampler, const Float& scaling) const {
 
 #ifdef USE_WEIGHT_NORMALIZATION
 	val *=	static_cast<Float>(img.getXRes()) * static_cast<Float>(img.getYRes())
@@ -669,40 +882,23 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 
 		// make a direct connection here and accurately measure the radiance
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-		VectorType<Float> distVec = sensorPoint - p;
-		Float distToSensor = distVec.length();
-
-		VectorType<Float> dirToSensor = distVec;
-		dirToSensor.normalize();
+		Float weight = (Float) 1.0;
+		VectorType<Float> dirToSensor;
+		Float distToSensor;
+		if(!makeSurfaceDirectConnection(p, sensorPoint, scaling, sampler, distTravelled, dirToSensor, distToSensor, weight))
+			return;
 
 		VectorType<Float> refrDirToSensor = dirToSensor;
 		Float fresnelWeight = FPCONST(1.0);
 
 		if (m_ior > FPCONST(1.0)) {
-//			Float sqrSum = FPCONST(0.0);
-//			for (int iter = 1; iter < dirToSensor.dim; ++iter) {
-//				refrDirToSensor[iter] = dirToSensor[iter] * m_ior;
-//				sqrSum += refrDirToSensor[iter] * refrDirToSensor[iter];
-//			}
-//			refrDirToSensor.x = std::sqrt(FPCONST(1.0) - sqrSum);
-//			if (dirToSensor.x < FPCONST(0.0)) {
-//				refrDirToSensor.x *= -FPCONST(1.0);
-//			}
-			refrDirToSensor.x *= m_ior;
+			for (int iter = 1; iter < dirToSensor.dim; ++iter) {
+				refrDirToSensor[iter] = dirToSensor[iter] * m_ior;
+			}
 			refrDirToSensor.normalize();
+#ifdef PRINT_DEBUGLOG
+        std::cout << "refrDir: (" << refrDirToSensor[0] << ", " <<  refrDirToSensor[1] << ", " << refrDirToSensor[2] << ");" << std::endl;
+#endif
 #ifndef USE_NO_FRESNEL
 			fresnelWeight = (FPCONST(1.0) -
 			util::fresnelDielectric(dirToSensor.x, refrDirToSensor.x,
@@ -715,22 +911,29 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 		 * TODO: Double-check that the foreshortening term is needed, and
 		 * that it is applied after refraction.
 		 */
-		Float foreshortening = dot(refrDirToSensor, m_camera.getDir());
+		Float foreshortening = dot(refrDirToSensor, m_camera.getDir())/dot(dirToSensor, m_camera.getDir());
 		Assert(foreshortening >= FPCONST(0.0));
-		Float totalDistance = (distTravelled + distToSensor) * m_ior;
+
+#if USE_SIMPLIFIED_TIMING
+    Float totalOpticalDistance = (distTravelled + distToSensor) * m_ior;
+#else
+    Float totalOpticalDistance = distTravelled;
+#endif
+
 		Float falloff = FPCONST(1.0);
 		if (p.dim == 2) {
 			falloff = distToSensor;
 		} else if (p.dim == 3) {
 			falloff = distToSensor * distToSensor;
 		}
-		Float totalPhotonValue = val
+
+		Float totalPhotonValue = val * m_camera.getPlane().x * m_camera.getPlane().y
 				* std::exp(- medium.getSigmaT() * distToSensor)
 				* medium.getPhaseFunction()->f(d, dirToSensor)
 				* fresnelWeight
 				* foreshortening
 				/ falloff;
-		addEnergyToImage(img, sensorPoint, totalDistance, totalPhotonValue);
+		addEnergyToImage(img, sensorPoint, totalOpticalDistance, totalPhotonValue);
 	}
 }
 
@@ -818,17 +1021,20 @@ void Scene<VectorType>::addEnergyDeriv(image::SmallImage &img, image::SmallImage
 	}
 }
 
-template class Block<tvec::TVector2>;
+//template class Block<tvec::TVector2>;
 template class Block<tvec::TVector3>;
-template class Camera<tvec::TVector2>;
+//template class Camera<tvec::TVector2>;
 template class Camera<tvec::TVector3>;
-template class AreaSource<tvec::TVector2>;
+//template class AreaSource<tvec::TVector2>;
 template class AreaSource<tvec::TVector3>;
-template class AreaTexturedSource<tvec::TVector2>;
+//template class AreaTexturedSource<tvec::TVector2>;
 template class AreaTexturedSource<tvec::TVector3>;
 //template class US<tvec::TVector2>;
 template class US<tvec::TVector3>;
 //template class Scene<tvec::TVector2>;
 template class Scene<tvec::TVector3>;
+//template class NEECostFunction<tvec::TVector2>;
+template class NEECostFunction<tvec::TVector3>;
+
 
 }	/* namespace scn */

@@ -557,6 +557,13 @@ public:
 		m[2][0] = v1.z; m[2][1] = v2.z; m[2][2] = v3.z;
 	}
 
+	/// Initialize the matrix as outer product of 2 vectors
+	explicit inline Matrix3x3(const tvec::Vec3f &v1, const tvec::Vec3f &v2) {
+		m[0][0] = v1.x * v2.x; m[0][1] = v1.x * v2.y; m[0][2] = v1.x * v2.z;
+		m[1][0] = v1.y * v2.x; m[1][1] = v1.y * v2.y; m[1][2] = v1.y * v2.z;
+		m[2][0] = v1.z * v2.x; m[2][1] = v1.z * v2.y; m[2][2] = v1.z * v2.z;
+	}
+
 	/// Unserialize a matrix from a stream
 //	explicit inline Matrix3x3(Stream *stream) : Matrix<3, 3, Float>(stream) { }
 

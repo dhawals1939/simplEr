@@ -17,11 +17,21 @@
 #include "pmf.h"
 #include "vmf.h"
 #include "warp.h"
+#include "matrix.h"
+#include "tvector.h"
 #include "sampler.h"
 #include "tvector.h"
 #include "medium.h"
 #include "bsdf.h"
 #include "util.h"
+
+#include "ceres/ceres.h"
+
+using ceres::CostFunction;
+using ceres::SizedCostFunction;
+using ceres::Problem;
+using ceres::Solver;
+using ceres::Solve;
 
 #include <omp.h>
 
@@ -261,7 +271,6 @@ struct US {
 	Float n_o;          // Baseline refractive index
 	Float n_max;        // Max refractive index variation
 	Float k_r;
-	Float z_max;        // Depth of the scattering medium (in m)
     int    mode;         // Order of the bessel function or mode of the ultrasound
 
     VectorType<Float>    axis_uz;          // Ultrasound axis
@@ -269,12 +278,17 @@ struct US {
 
     VectorType<Float>    p_u;             // A point on the ultra sound axis
 
+    Float tol;
+    Float rrWeight;
+    Float invrrWeight;
+
     Float er_stepsize;
 
 
     US(const Float& f_u, const Float& speed_u,
                  const Float& n_o, const Float& n_max, const int& mode,
-                 const VectorType<Float> &axis_uz, const VectorType<Float> &axis_ux, const VectorType<Float> &p_u, const Float &er_stepsize){
+                 const VectorType<Float> &axis_uz, const VectorType<Float> &axis_ux, const VectorType<Float> &p_u, const Float &er_stepsize,
+				 const Float &tol, const Float &rrWeight){
         this->f_u            = f_u;
 		this->speed_u        = speed_u;      
 		this->wavelength_u   = ((double) speed_u)/f_u; 
@@ -288,12 +302,99 @@ struct US {
 		this->p_u            = p_u;
 
 		this->er_stepsize    = er_stepsize;
+
+		this->tol 			 = tol;
+		this->rrWeight       = rrWeight;
+		this->invrrWeight    = 1/rrWeight;
+
     }
 
     double RIF(const VectorType<Float> &p, const Float &scaling) const;
 
     const VectorType<Float> dRIF(const VectorType<Float> &q, const Float &scaling) const;
 
+    const Matrix3x3 HessianRIF(const VectorType<Float> &p, const Float &scaling) const;
+
+    const Float getStepSize() const{return er_stepsize;}
+
+    const Float getTol() const{return tol;}
+
+    const Float getrrWeight() const{return rrWeight;}
+
+    const Float getInvrrWeight() const{return invrrWeight;}
+
+};
+
+template <template <typename> class VectorType>
+class Scene;
+
+template <template <typename> class VectorType>
+class NEECostFunction: public SizedCostFunction<3, 3>
+{
+	public:
+	NEECostFunction(const Scene<VectorType>* refrScene, const VectorType<Float> &p1, const VectorType<Float> &p2, const Matrix3x3 &dpdv0, const Matrix3x3 &dvdv0, const Float &scaling) {
+		m_refrScene = refrScene;
+		m_p1 = p1;
+		m_p2 = p2;
+		m_dpdv0 = dpdv0;
+		m_dvdv0 = dvdv0;
+		m_scaling = scaling;
+	}
+
+	virtual ~NEECostFunction(){}
+
+	virtual bool Evaluate(double const* const* parameters,
+						  double* residuals,
+						  double** jacobians) const{
+
+		VectorType<Float> v_i;
+		VectorType<Float> p1 = m_p1;
+		VectorType<Float> p2 = m_p2;
+		Matrix3x3 dpdv0 = m_dpdv0;
+		Matrix3x3 dvdv0 = m_dvdv0;
+		Float t_l;
+		Float scaling = m_scaling;
+
+		VectorType<Float> error;
+		Matrix3x3 derror;
+
+		v_i[0] = parameters[0][0];
+		v_i[1] = parameters[0][1];
+		v_i[2] = parameters[0][2];
+		if(m_refrScene == NULL){
+			std::cerr << "Scene pointer is NULL; terminating the runs";
+			std::exit(EXIT_FAILURE);
+		}
+		m_refrScene->computefdfNEE(v_i, p1, p2, dpdv0, dvdv0, t_l, scaling, error, derror);
+
+		residuals[0] = error.x;
+		residuals[1] = error.y;
+		residuals[2] = error.z;
+		if (jacobians != NULL && jacobians[0] != NULL){
+			jacobians[0][0] = derror.m[0][0];
+			jacobians[0][1] = derror.m[0][1];
+			jacobians[0][2] = derror.m[0][2];
+			jacobians[0][3] = derror.m[1][0];
+			jacobians[0][4] = derror.m[1][1];
+			jacobians[0][5] = derror.m[1][2];
+			jacobians[0][6] = derror.m[2][0];
+			jacobians[0][7] = derror.m[2][1];
+			jacobians[0][8] = derror.m[2][2];
+		}
+		return true;
+	}
+
+	void assignScene() {}
+
+	private:
+	const Scene<VectorType> *m_refrScene;
+
+	VectorType<Float> m_p1;
+	VectorType<Float> m_p2;
+
+	Matrix3x3 m_dpdv0;
+	Matrix3x3 m_dvdv0;
+	Float m_scaling;
 };
 
 
@@ -323,7 +424,8 @@ public:
 			const VectorType<Float> &axis_uz,
 			const VectorType<Float> &axis_ux,
 			const VectorType<Float> &p_u,
-			const Float &er_stepsize
+			const Float &er_stepsize,
+			const Float &tol, const Float &rrWeight
             ) :
 				m_ior(ior),
 				m_fresnelTrans(FPCONST(1.0)),
@@ -336,7 +438,7 @@ public:
 #endif
 				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange),
 				m_bsdf(FPCONST(1.0), ior),
-				m_us(f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize){
+				m_us(f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight){
 
 		Assert(((std::abs(m_source.getOrigin().x - m_block.getBlockL().x) < M_EPSILON) && (m_source.getDir().x > FPCONST(0.0)))||
 				((std::abs(m_source.getOrigin().x - m_block.getBlockR().x) < M_EPSILON) && (m_source.getDir().x < FPCONST(0.0))));
@@ -362,6 +464,15 @@ public:
 #ifdef USE_PRINTING
 		std::cout << "fresnel " << m_fresnelTrans << std::endl;
 #endif
+
+		m_options.check_gradients = false;
+		m_options.max_num_iterations = 1000;
+		m_options.minimizer_type = ceres::LINE_SEARCH;
+		m_options.line_search_direction_type = ceres::BFGS;
+		m_options.function_tolerance = 1e-18;
+		m_options.gradient_tolerance = 0.0;
+		m_options.parameter_tolerance = 0.0;
+		m_options.minimizer_progress_to_stdout = false;
 	}
 
 	/*
@@ -375,9 +486,25 @@ public:
 	inline VectorType<Float> dP(const VectorType<Float> d) const{ // assuming omega tracking
 		return d;
 	}
-	inline VectorType<Float> dV(const VectorType<Float> p, const VectorType<Float> d, const Float &scaling) const{
+
+	inline VectorType<Float> dV(const VectorType<Float> &p, const VectorType<Float> &d, const Float &scaling) const{
 		return m_us.dRIF(p, scaling);
 	}
+
+	//Adi: Clean this code after bugfix
+	inline Matrix3x3 d2Path(const VectorType<Float> &p, const VectorType<Float> &v, const Matrix3x3 &dpdv0, const Matrix3x3 &dvdv0, const Float &scaling) const{
+		Float n = m_us.RIF(p, scaling);
+		Matrix3x3 t(v, m_us.dRIF(p, scaling));
+		t = t*dpdv0;
+		t = -1/(n*n) * t;
+		t += 1/n * dvdv0;
+		return t;
+	}
+
+	inline Matrix3x3 d2V(const VectorType<Float> &p, const VectorType<Float> &v, const Matrix3x3 &dpdv0, const Float &scaling) const{
+		return m_us.HessianRIF(p, scaling)*dpdv0;
+	}
+
 	inline VectorType<Float> dOmega(const VectorType<Float> p, const VectorType<Float> d, const Float &scaling) const{
 		VectorType<Float> dn = m_us.dRIF(p, scaling);
 		Float              n = m_us.RIF(p, scaling);
@@ -386,10 +513,25 @@ public:
 	}
 
 	void er_step(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize, const Float &scaling) const;
+	void er_derivativestep(VectorType<Float> &p, VectorType<Float> &v, Matrix3x3 &dpdv0, Matrix3x3 &dvdv0, const Float &stepSize, const Float &scaling) const;
+
 	void trace(VectorType<Float> &p, VectorType<Float> &d, const Float &distance, const Float &scaling) const; // Non optical
 	void traceTillBlock(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, Float &disx, Float &disy, Float &totalOpticalDistance, const Float &scaling) const;
 	void trace_optical_distance(VectorType<Float> &p, VectorType<Float> &d, const Float &distance, const Float &scaling) const; // optical
 
+	/* makeSurfaceDirectConnection: Makes direct connection by optimizing the direction to the sensor.
+	 * distTravelled is unaffected if we are using simplified timing or, is updated with the total new optical path length.
+	 * The dirTosensor is the optimal normalized direction found by the optimization algorithm.
+	 * distToSensor is the geometric distance of the optimized connections
+	 * Weight is the total weight that accounts for russian roulette passed runs, sampling of the initial velocity?
+	 * Returns if surface connection has succeeded or failed
+	 */
+	bool makeSurfaceDirectConnection(const VectorType<Float> &p1, const VectorType<Float> &p2, const Float &scaling, smp::Sampler &sampler,
+															Float &distTravelled, VectorType<Float> &dirToSensor, Float &distToSensor, Float &weight) const;
+
+	void computePathLengthstillZ(const VectorType<Float> &v, const VectorType<Float> &p1, const VectorType<Float> &p2, Float &opticalPathLength, Float &t_l, const Float &scaling) const;
+
+	void computefdfNEE(const VectorType<Float> &v_i, const VectorType<Float> &p1, const VectorType<Float> &p2, Matrix3x3 &dpdv0, Matrix3x3 &dvdv0, Float &t_l, const Float &scaling, VectorType<Float> &error, Matrix3x3 &derror) const;
 	/*
 	 * TODO: Inline these methods in implementations.
 	 */
@@ -417,7 +559,7 @@ public:
 
 	void addEnergy(image::SmallImage &img, const VectorType<Float> &p,
 						const VectorType<Float> &d, Float distTravelled, Float val,
-						const med::Medium &medium, smp::Sampler &sampler) const;
+						const med::Medium &medium, smp::Sampler &sampler, const Float& scaling) const;
 
 	void addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 						image::SmallImage &dAlbedo, image::SmallImage &dGVal,
@@ -485,6 +627,8 @@ protected:
 	Camera<VectorType> m_camera;
 	bsdf::SmoothDielectric<VectorType> m_bsdf;
 	US<VectorType> m_us;
+
+	Solver::Options m_options;
 };
 
 }	/* namespace scn */
