@@ -421,6 +421,12 @@ bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1,
 
 template <template <typename> class VectorType>
 void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, const VectorType<Float> &p1, const VectorType<Float> &p2, Float &opticalPathLength, Float &t_l, const Float &scaling) const{
+
+	if(v_i.x > 0){ // surely failing case
+		t_l = M_MAX;
+		opticalPathLength = M_MAX;
+	}
+
 	t_l = 0 ; // t_l is geometric length, required for computation of the radiance
 
 	Float currentStepSize = m_us.getStepSize();
@@ -457,12 +463,15 @@ void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, co
 }
 
 template <template <typename> class VectorType>
-void Scene<VectorType>::computefdfNEE(const VectorType<Float> &v_i, const VectorType<Float> &p1, const VectorType<Float> &p2, Matrix3x3 &dpdv0, Matrix3x3 &dvdv0, Float &t_l, const Float &scaling, VectorType<Float> &error, Matrix3x3 &derror) const{
-	t_l = 0 ; // t_l is geometric length, required for computation of the radiance
+void Scene<VectorType>::computefdfNEE(const VectorType<Float> &v_i, const VectorType<Float> &p1, const VectorType<Float> &p2, Matrix3x3 &dpdv0, Matrix3x3 &dvdv0, const Float &scaling, VectorType<Float> &error, Matrix3x3 &derror) const{
+
+	if(v_i.x > 0){ // surely failing case
+		error = VectorType<Float>(0);
+		derror = Matrix3x3((Float)0);
+	}
 
 	Float currentStepSize = m_us.getStepSize();
 	int maxSteps = 5*floor((p2.x - p1.x)/v_i.x/currentStepSize)+1;
-	Float opticalPathLength = 0;
 	int dec_precision = 8; //ADI: Move this to parameters
 	int nBisectionSearches = ceil(dec_precision/log10(2)); //ADI: Make a log10(2) constant
 
@@ -484,18 +493,13 @@ void Scene<VectorType>::computefdfNEE(const VectorType<Float> &v_i, const Vector
 				currentStepSize = currentStepSize/2;
 				er_derivativestep(p, v, dpdv0, dvdv0, currentStepSize, scaling);
 				if(p.x > p2.x){
-					t_l += currentStepSize;
 					oldp     = p;
 					oldv     = v;
 					olddpdv0 = dpdv0;
 					olddvdv0 = dvdv0;
-					opticalPathLength += currentStepSize*m_us.RIF(HALF * (oldp + p), scaling);
 				}
 			}
 			break;
-		}else{
-			t_l += currentStepSize;
-			opticalPathLength += currentStepSize*m_us.RIF(HALF * (oldp + p), scaling);
 		}
 	}
 

@@ -352,7 +352,6 @@ class NEECostFunction: public SizedCostFunction<3, 3>
 		VectorType<Float> p2 = m_p2;
 		Matrix3x3 dpdv0 = m_dpdv0;
 		Matrix3x3 dvdv0 = m_dvdv0;
-		Float t_l;
 		Float scaling = m_scaling;
 
 		VectorType<Float> error;
@@ -365,7 +364,7 @@ class NEECostFunction: public SizedCostFunction<3, 3>
 			std::cerr << "Scene pointer is NULL; terminating the runs";
 			std::exit(EXIT_FAILURE);
 		}
-		m_refrScene->computefdfNEE(v_i, p1, p2, dpdv0, dvdv0, t_l, scaling, error, derror);
+		m_refrScene->computefdfNEE(v_i, p1, p2, dpdv0, dvdv0, scaling, error, derror);
 
 		residuals[0] = error.x;
 		residuals[1] = error.y;
@@ -531,7 +530,7 @@ public:
 
 	void computePathLengthstillZ(const VectorType<Float> &v, const VectorType<Float> &p1, const VectorType<Float> &p2, Float &opticalPathLength, Float &t_l, const Float &scaling) const;
 
-	void computefdfNEE(const VectorType<Float> &v_i, const VectorType<Float> &p1, const VectorType<Float> &p2, Matrix3x3 &dpdv0, Matrix3x3 &dvdv0, Float &t_l, const Float &scaling, VectorType<Float> &error, Matrix3x3 &derror) const;
+	void computefdfNEE(const VectorType<Float> &v_i, const VectorType<Float> &p1, const VectorType<Float> &p2, Matrix3x3 &dpdv0, Matrix3x3 &dvdv0, const Float &scaling, VectorType<Float> &error, Matrix3x3 &derror) const;
 	/*
 	 * TODO: Inline these methods in implementations.
 	 */
