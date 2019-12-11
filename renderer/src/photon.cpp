@@ -107,7 +107,7 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 			if(m_useAngularSampling)
                 scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, weight, medium, sampler, scaling);
 			else
-				scene.addEnergy(img, pos, dir, totalDist, weight, medium, sampler, scaling);
+				scene.addEnergy(img, pos, dir, totalOpticalDistance, weight, medium, sampler, scaling);
 			if (!scatterOnce(pos, dir, dist, scene, medium, totalOpticalDistance, sampler, scaling)){
 #ifdef PRINT_DEBUGLOG
 				std::cout << "sampler after failing scatter once:" << sampler() << std::endl;

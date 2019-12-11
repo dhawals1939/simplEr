@@ -406,7 +406,6 @@ bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1,
 			return false;
 		}
 	}
-
 	// success, the algorithm found a solution.
 	VectorType<Float> error;
 	Matrix3x3 derror;
@@ -414,10 +413,10 @@ bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1,
 	VectorType<Float> v = dirToSensor * m_us.RIF(p1, scaling);
 
 	computePathLengthstillZ(v, p1, p2, opticalPathLength, distToSensor, scaling);
-
 #if !USE_SIMPLIFIED_TIMING
 	distTravelled += opticalPathLength;
 #endif
+	return true;
 }
 
 template <template <typename> class VectorType>
@@ -853,7 +852,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 	addEnergyToImage(img, p1, totalOpticalDistance, totalPhotonValue);
 #ifdef PRINT_DEBUGLOG
     std::cout << "Added Energy:" << totalPhotonValue << " to (" << p1.x << ", " << p1.y << ", " << p1.z << ") at time:" << totalOpticalDistance << std::endl;
-    std::cout << "val term:" << val*(2*M_PI) << std::endl;
+    std::cout << "val term:" << val << std::endl;
     std::cout << "exp term:" << std::exp(-medium.getSigmaT() * distToSensor) << std::endl;
     std::cout << "phase function term:" << medium.getPhaseFunction()->f(d/d.length(), dirToSensor) << std::endl;
     std::cout << "fresnel weight:" << fresnelWeight << std::endl;
@@ -911,7 +910,7 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 		 * TODO: Double-check that the foreshortening term is needed, and
 		 * that it is applied after refraction.
 		 */
-		Float foreshortening = dot(refrDirToSensor, m_camera.getDir())/dot(dirToSensor, m_camera.getDir());
+		Float foreshortening = dot(refrDirToSensor, m_camera.getDir());
 		Assert(foreshortening >= FPCONST(0.0));
 
 #if USE_SIMPLIFIED_TIMING
@@ -929,11 +928,21 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 
 		Float totalPhotonValue = val * m_camera.getPlane().x * m_camera.getPlane().y
 				* std::exp(- medium.getSigmaT() * distToSensor)
-				* medium.getPhaseFunction()->f(d, dirToSensor)
+				* medium.getPhaseFunction()->f(d/d.length(), dirToSensor)
 				* fresnelWeight
 				* foreshortening
 				/ falloff;
 		addEnergyToImage(img, sensorPoint, totalOpticalDistance, totalPhotonValue);
+#ifdef PRINT_DEBUGLOG
+    std::cout << "Added Energy:" << totalPhotonValue << " to (" << sensorPoint.x << ", " << sensorPoint.y << ", " << sensorPoint.z << ") at time:" << totalOpticalDistance << std::endl;
+    std::cout << "val term:" << val << std::endl;
+    std::cout << "exp term:" << std::exp(-medium.getSigmaT() * distToSensor) << std::endl;
+    std::cout << "phase function term:" << medium.getPhaseFunction()->f(d/d.length(), dirToSensor) << std::endl;
+    std::cout << "fresnel weight:" << fresnelWeight << std::endl;
+    std::cout << "foreshortening:" << foreshortening << std::endl;
+    std::cout << "falloff:" << falloff << std::endl;
+#endif
+
 	}
 }
 

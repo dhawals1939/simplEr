@@ -210,17 +210,6 @@ int main(int argc, char **argv) {
 			lens_aperture = stof(param[1]);
 		else if(param[0].compare("lens_focalLength")==0)
 			lens_focalLength = stof(param[1]);
-		else if(param[0].compare("printInputs")==0){
-			transform(param[1].begin(), param[1].end(), param[1].begin(), ::tolower);
-			if(param[1].compare("true")==0)
-				printInputs = true;
-			else if(param[1].compare("false")==0)
-				printInputs = false;
-			else{
-				std::cerr << "printInputs should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
-				return -1;
-			}
-		}
 		else if(param[0].compare("lens_active")==0){
 			transform(param[1].begin(), param[1].end(), param[1].begin(), ::tolower);
 			if(param[1].compare("true")==0)
@@ -229,6 +218,17 @@ int main(int argc, char **argv) {
 				lens_active = false;
 			else{
 				std::cerr << "lens_active should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
+				return -1;
+			}
+		}
+		else if(param[0].compare("printInputs")==0){
+			transform(param[1].begin(), param[1].end(), param[1].begin(), ::tolower);
+			if(param[1].compare("true")==0)
+				printInputs = true;
+			else if(param[1].compare("false")==0)
+				printInputs = false;
+			else{
+				std::cerr << "printInputs should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
 				return -1;
 			}
 		}
@@ -245,6 +245,9 @@ int main(int argc, char **argv) {
 					  << "n_o, "
 					  << "n_max, "
 					  << "mode, "
+					  << "er_stepsize, "
+					  << "directTol, "
+					  << "rrWeight, "
 					  << "projectorTexture, "
 					  << "useDirect, "
 					  << "useAngularSampling, "
@@ -257,6 +260,8 @@ int main(int argc, char **argv) {
 					  << "spatialY, "
                       << "halfThetaLimit, "
                       << "emitter_sensor_size, "
+					  << "mediumLx, "
+					  << "mediumRx, "
 					  << "distribution, "
 					  << "gOrKappa, "
 					  << "lens_aperture, "
