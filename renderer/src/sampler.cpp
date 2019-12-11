@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string>
 #include <time.h>
+#include <chrono>
 #include <vector>
 
 #include "sampler.h"
@@ -21,8 +22,12 @@ SamplerSet::SamplerSet(const int numSamplers)
 			: m_numSamplers(numSamplers),
 			  m_samplers() {
 	m_samplers = new Sampler[m_numSamplers];
-//	boost::mt19937 seedEngine(time(0));
-	boost::mt19937 seedEngine;
+    std::chrono::milliseconds ms = std::chrono::duration_cast< std::chrono::milliseconds >(
+                        std::chrono::system_clock::now().time_since_epoch()
+                    );
+	boost::mt19937 seedEngine(ms.count()); 
+//	boost::mt19937 seedEngine(time(0)); // Not very accurate when we launch on cluster
+//	boost::mt19937 seedEngine;
 	boost::uniform_int<unsigned int> seedDistr(0, UINT_MAX);
 	boost::variate_generator<boost::mt19937&,
 							boost::uniform_int<unsigned int> > seedGenerator(
