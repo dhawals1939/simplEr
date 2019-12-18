@@ -123,7 +123,7 @@ bool AreaTexturedSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorTyp
 }
 
 template <template <typename> class VectorType>
-double US<VectorType>::RIF(const VectorType<Float> &p, const Float &scaling) const{
+double US<VectorType>::bessel_RIF(const VectorType<Float> &p, const Float &scaling) const{
     VectorType<Float> p_axis = p_u + dot(p - p_u , axis_uz)*axis_uz; // point on the axis closest to p
 
     Float r    = (p-p_axis).length();
@@ -137,7 +137,7 @@ double US<VectorType>::RIF(const VectorType<Float> &p, const Float &scaling) con
 }
 
 template <template <typename> class VectorType>
-const VectorType<Float> US<VectorType>::dRIF(const VectorType<Float> &q, const Float &scaling) const{
+const VectorType<Float> US<VectorType>::bessel_dRIF(const VectorType<Float> &q, const Float &scaling) const{
 
     VectorType<Float> p_axis = p_u + dot(q - p_u, axis_uz)*axis_uz; // point on the axis closest to p
 
@@ -182,7 +182,7 @@ const VectorType<Float> US<VectorType>::dRIF(const VectorType<Float> &q, const F
 }
 
 template <template <typename> class VectorType>
-const Matrix3x3 US<VectorType>::HessianRIF(const VectorType<Float> &q, const Float &scaling) const{
+const Matrix3x3 US<VectorType>::bessel_HessianRIF(const VectorType<Float> &q, const Float &scaling) const{
     VectorType<Float> p_axis = p_u + dot(q - p_u, axis_uz)*axis_uz; // point on the axis closest to p
     VectorType<Float> p      = q - p_axis; // acts like p in case of axis aligned
 

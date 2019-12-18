@@ -119,6 +119,15 @@ int main(int argc, char **argv) {
 	Float directTol = 1e-5; // 10 um units
 	Float rrWeight  = 1e-2; // only one in hundred survives second path call
 
+
+	/*
+	 * Spline approximation, spline parameters
+	 */
+#ifdef SPLINE_RIF
+	Float xmin[] = {-0.01, -0.01};
+	Float xmax[] = { 0.01,  0.01};
+	int N[] = {100, 100};
+#endif
 	/*
 	 * Projector texture
 	 */
@@ -340,7 +349,12 @@ int main(int argc, char **argv) {
 	scn::Scene<tvec::TVector3> scene(ior, mediumL, mediumR,
 						lightOrigin, lightDir, halfThetaLimit, projectorTexture, lightPlane, Li,
 						viewOrigin, viewDir, viewX, viewPlane, pathlengthRange,
-						f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight);
+						f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight
+#ifdef SPLINE_RIF
+						, xmin, xmax, N
+#endif
+						);
+
 
 	photon::Renderer<tvec::TVector3> renderer(maxDepth, maxPathlength, useDirect, useAngularSampling);
 

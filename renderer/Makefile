@@ -27,6 +27,7 @@ USE_FILE = 0
 USE_WEIGHT_NORMALIZATION = 0
 USE_SIMPLIFIED_TIMING = 0
 USE_OMEGA_TRACKING = 0
+USE_SPLINE_RIF = 1
 
 # initialize variables
 LIBS =
@@ -114,6 +115,18 @@ endif
 
 ifeq ($(USE_PRINTING), 1)
 	CFLAGS += -DUSE_PRINTING
+endif
+
+ifeq ($(USE_SIMPLIFIED_TIMING), 1)
+    CFLAGS += -DUSE_SIMPLIFIED_TIMING
+endif
+
+ifeq ($(USE_OMEGA_TRACKING), 1)
+    CFLAGS += -DOMEGA_TRACKING
+endif
+
+ifeq ($(USE_SPLINE_RIF), 1)
+    CFLAGS += -DSPLINE_RIF
 endif
 
 ifeq ($(USE_MATLAB), 1)

@@ -285,11 +285,23 @@ struct US {
 
     Float er_stepsize;
 
+#ifdef SPLINE_RIF
+    spline::Spline<3> m_spline;
+#endif
+
 
     US(const Float& f_u, const Float& speed_u,
                  const Float& n_o, const Float& n_max, const int& mode,
                  const VectorType<Float> &axis_uz, const VectorType<Float> &axis_ux, const VectorType<Float> &p_u, const Float &er_stepsize,
-				 const Float &tol, const Float &rrWeight){
+				 const Float &tol, const Float &rrWeight
+#ifdef SPLINE_RIF
+				 , const Float xmin[], const Float xmax[],  const int N[]
+#endif
+				 )
+#ifdef SPLINE_RIF
+					 :m_spline(xmin, xmax, N)
+#endif
+    {
         this->f_u            = f_u;
 		this->speed_u        = speed_u;      
 		this->wavelength_u   = ((double) speed_u)/f_u; 
@@ -308,21 +320,97 @@ struct US {
 		this->rrWeight       = rrWeight;
 		this->invrrWeight    = 1/rrWeight;
 
+#ifdef SPLINE_RIF
+		Float *data = new Float[N[0]*N[1]];
+		Float xres[2];
+		xres[0] = (N[0] - 1)/(xmax[0] - xmin[0]);
+		xres[1] = (N[1] - 1)/(xmax[1] - xmin[1]);
+
+		VectorType<Float> p;
+
+
+		for(int i=0; i < N[0]; i++)
+			for(int j=0; j < N[1]; j++){
+				p[0] = 0;
+				p[1] = xmin[1] + xres[1] * j;
+				p[2] = xmin[0] + xres[0] * i;
+				data[i + j*N[0]] = RIF(p, 1) - n_o; // Only fit the varying RIF. We will add the constant later. This is to include scaling factor easily.
+			}
+
+		m_spline.build(data);
+#endif
+
     }
 
-    double RIF(const VectorType<Float> &p, const Float &scaling) const;
+    inline double RIF(const VectorType<Float> &p, const Float &scaling) const{
+#ifndef SPLINE_RIF
+    	return bessel_RIF(p, scaling);
+#else
+    	return spline_RIF(p, scaling);
+#endif
+    }
 
-    const VectorType<Float> dRIF(const VectorType<Float> &q, const Float &scaling) const;
+    inline const VectorType<Float> dRIF(const VectorType<Float> &q, const Float &scaling) const{
+#ifndef SPLINE_RIF
+    	return bessel_dRIF(q, scaling);
+#else
+    	return spline_dRIF(q, scaling);
+#endif
+    }
 
-    const Matrix3x3 HessianRIF(const VectorType<Float> &p, const Float &scaling) const;
+    inline const Matrix3x3 HessianRIF(const VectorType<Float> &p, const Float &scaling) const{
+#ifndef SPLINE_RIF
+    	return bessel_HessianRIF(p, scaling);
+#else
+    	return spline_HessianRIF(p, scaling);
+#endif
+    }
 
-    const Float getStepSize() const{return er_stepsize;}
+#ifdef SPLINE_RIF
+    inline double spline_RIF(const VectorType<Float> &p, const Float &scaling) const{
+    	Float temp[2];
+    	temp[0] = p.y;
+    	temp[1] = p.z;
+    	return m_spline.value<0, 0>(temp);
+    }
 
-    const Float getTol() const{return tol;}
+    inline const VectorType<Float> spline_dRIF(const VectorType<Float> &q, const Float &scaling) const{
+    	Float temp[2];
+    	temp[0] = q.y;
+    	temp[1] = q.z;
+    	VectorType<Float> dn(0.0,
+				 	 	 	 m_spline.value<0, 1>(temp),
+						 	 m_spline.value<1, 0>(temp)
+    	                     );
+    	return dn;
+    }
 
-    const Float getrrWeight() const{return rrWeight;}
+    inline const Matrix3x3 spline_HessianRIF(const VectorType<Float> &p, const Float &scaling) const{
+    	Float temp[2];
+    	temp[0] = p.y;
+    	temp[1] = p.z;
 
-    const Float getInvrrWeight() const{return invrrWeight;}
+    	Float hxy = m_spline.value<1, 1>(temp);
+        return Matrix3x3(0, 0,   0,
+        				 0, m_spline.value<0, 2>(temp), hxy,
+    					 0, hxy, 						m_spline.value<2, 0>(temp));
+
+    }
+#endif
+
+    inline double bessel_RIF(const VectorType<Float> &p, const Float &scaling) const;
+
+    inline const VectorType<Float> bessel_dRIF(const VectorType<Float> &q, const Float &scaling) const;
+
+    inline const Matrix3x3 bessel_HessianRIF(const VectorType<Float> &p, const Float &scaling) const;
+
+    inline const Float getStepSize() const{return er_stepsize;}
+
+    inline const Float getTol() const{return tol;}
+
+    inline const Float getrrWeight() const{return rrWeight;}
+
+    inline const Float getInvrrWeight() const{return invrrWeight;}
 
 };
 
@@ -426,6 +514,9 @@ public:
 			const VectorType<Float> &p_u,
 			const Float &er_stepsize,
 			const Float &tol, const Float &rrWeight
+#ifdef SPLINE_RIF
+			, const Float xmin[], const Float xmax[],  const int N[]
+#endif
             ) :
 				m_ior(ior),
 				m_fresnelTrans(FPCONST(1.0)),
@@ -438,7 +529,11 @@ public:
 #endif
 				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange),
 				m_bsdf(FPCONST(1.0), ior),
-				m_us(f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight){
+				m_us(f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight
+#ifdef SPLINE_RIF
+						, xmin, xmax, N
+#endif
+						){
 
 		Assert(((std::abs(m_source.getOrigin().x - m_block.getBlockL().x) < M_EPSILON) && (m_source.getDir().x > FPCONST(0.0)))||
 				((std::abs(m_source.getOrigin().x - m_block.getBlockR().x) < M_EPSILON) && (m_source.getDir().x < FPCONST(0.0))));
@@ -513,12 +608,12 @@ public:
 		return (dn - dot(d, dn)*d)/n;
 	}
 
-	void er_step(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize, const Float &scaling) const;
-	void er_derivativestep(VectorType<Float> &p, VectorType<Float> &v, Matrix3x3 &dpdv0, Matrix3x3 &dvdv0, const Float &stepSize, const Float &scaling) const;
+	inline void er_step(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize, const Float &scaling) const;
+	inline void er_derivativestep(VectorType<Float> &p, VectorType<Float> &v, Matrix3x3 &dpdv0, Matrix3x3 &dvdv0, const Float &stepSize, const Float &scaling) const;
 
-	void trace(VectorType<Float> &p, VectorType<Float> &d, const Float &distance, const Float &scaling) const; // Non optical
-	void traceTillBlock(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, Float &disx, Float &disy, Float &totalOpticalDistance, const Float &scaling) const;
-	void trace_optical_distance(VectorType<Float> &p, VectorType<Float> &d, const Float &distance, const Float &scaling) const; // optical
+	inline void trace(VectorType<Float> &p, VectorType<Float> &d, const Float &distance, const Float &scaling) const; // Non optical
+	inline void traceTillBlock(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, Float &disx, Float &disy, Float &totalOpticalDistance, const Float &scaling) const;
+	inline void trace_optical_distance(VectorType<Float> &p, VectorType<Float> &d, const Float &distance, const Float &scaling) const; // optical
 
 	/* makeSurfaceDirectConnection: Makes direct connection by optimizing the direction to the sensor.
 	 * distTravelled is unaffected if we are using simplified timing or, is updated with the total new optical path length.

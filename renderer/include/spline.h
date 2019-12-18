@@ -87,9 +87,9 @@ inline Float kernel<2>(Float x){
 }
 
 template<int DIM>
-class spline{
+class Spline{
 public:
-    spline(const Float xmin[DIM], const Float xmax[DIM],  const int N[DIM]){
+    Spline(const Float xmin[DIM], const Float xmax[DIM],  const int N[DIM]){
         uint datasize = 1;
         for(int i=0; i < DIM; i++){
             this->xmin[i] = xmin[i];
@@ -104,7 +104,7 @@ public:
         z1 = -2 + std::sqrt(3);
         
     }
-    ~spline(){
+    ~Spline(){
         delete[] coeff;
     }
 
