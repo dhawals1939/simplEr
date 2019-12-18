@@ -1,8 +1,8 @@
 /*
  * renderer_sample.cpp
  *
- *  Created on: Nov 20, 2015
- *      Author: igkiou
+ *  Created on: Nov 20, 2019
+ *      Author: apedired
  */
 
 #include "renderer.h"

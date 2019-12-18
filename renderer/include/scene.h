@@ -20,6 +20,7 @@
 #include "matrix.h"
 #include "tvector.h"
 #include "sampler.h"
+#include "spline.h"
 #include "tvector.h"
 #include "medium.h"
 #include "bsdf.h"
