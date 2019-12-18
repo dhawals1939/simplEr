@@ -1,0 +1,12 @@
+*.pfm
+*.pfm3d
+*.png
+*.log
+*.o
+*~
+*.swp
+*.mexa64
+*_bin
+*.sh
+*.txt
+renderings

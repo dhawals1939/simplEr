@@ -464,8 +464,9 @@ public:
 		std::cout << "fresnel " << m_fresnelTrans << std::endl;
 #endif
 
+		//Adithya: Move these to the command line or atleast the important ones
 		m_options.check_gradients = false;
-		m_options.max_num_iterations = 1000;
+		m_options.max_num_iterations = 100;
 		m_options.minimizer_type = ceres::LINE_SEARCH;
 		m_options.line_search_direction_type = ceres::BFGS;
 		m_options.function_tolerance = 1e-18;

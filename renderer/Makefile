@@ -137,6 +137,7 @@ HEADERS = \
 	$(INCLUDEDIR)/phase.h \
 	$(INCLUDEDIR)/renderer.h \
 	$(INCLUDEDIR)/sampler.h \
+	$(INCLUDEDIR)/spline.h \
 	$(INCLUDEDIR)/tvector.h \
 	$(INCLUDEDIR)/matrix.h \
 	$(INCLUDEDIR)/util.h \
