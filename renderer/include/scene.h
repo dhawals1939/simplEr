@@ -370,14 +370,14 @@ struct US {
     inline double spline_RIF(const VectorType<Float> &p, const Float &scaling) const{
     	Float temp[2];
     	temp[0] = p.y;
-    	temp[1] = p.x;
+    	temp[1] = p.z;
     	return (m_spline.value<0, 0>(temp)*scaling + n_o);
     }
 
     inline const VectorType<Float> spline_dRIF(const VectorType<Float> &q, const Float &scaling) const{
     	Float temp[2];
-    	temp[0] = q.y;
-    	temp[1] = q.x;
+    	temp[0] = q.z;
+    	temp[1] = q.y;
 
 //    	return scaling*m_spline.gradient2d(temp);
     	return scaling*VectorType<Float>(0.0, m_spline.value<0, 1>(temp), m_spline.value<1, 0>(temp));
@@ -385,8 +385,8 @@ struct US {
 
     inline const Matrix3x3 spline_HessianRIF(const VectorType<Float> &p, const Float &scaling) const{
     	Float temp[2];
-    	temp[0] = p.y;
-    	temp[1] = p.x;
+    	temp[0] = p.z;
+    	temp[1] = p.y;
 
 //    	return scaling*m_spline.hessian2d(temp);
     	Float hxy = m_spline.value<1, 1>(temp);
@@ -562,6 +562,7 @@ public:
 		m_options.max_num_iterations = 100;
 		m_options.minimizer_type = ceres::LINE_SEARCH;
 		m_options.line_search_direction_type = ceres::BFGS;
+        m_options.logging_type = SILENT;
 		m_options.function_tolerance = 1e-18;
 		m_options.gradient_tolerance = 0.0;
 		m_options.parameter_tolerance = 0.0;
@@ -719,6 +720,7 @@ protected:
 #endif
 	Camera<VectorType> m_camera;
 	bsdf::SmoothDielectric<VectorType> m_bsdf;
+public:
 	US<VectorType> m_us;
 
 	Solver::Options m_options;
