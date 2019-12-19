@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
 #ifdef SPLINE_RIF
 	Float xmin[] = {-0.01, -0.01};
 	Float xmax[] = { 0.01,  0.01};
-	int N[] = {100, 100};
+	int N[] = {21, 21};
 #endif
 	/*
 	 * Projector texture

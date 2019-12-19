@@ -54,6 +54,7 @@ typedef float Float;
 #define INV_SQRT_TWO 0.70710678118654752440
 #define HALF         0.5
 #define ONE_SIXTH    0.16666666666666666667
+#define TWO_THIRD    0.66666666666666666667
 #else
 #define M_PI         3.14159265358979323846f
 #define INV_PI       0.31830988618379067154f
@@ -63,6 +64,7 @@ typedef float Float;
 #define INV_SQRT_TWO 0.70710678118654752440f
 #define HALF         0.5f
 #define ONE_SIXTH    0.16666666666666666667f
+#define TWO_THIRD    0.66666666666666666667f
 #endif
 
 #endif /* CONSTANTS_H_ */

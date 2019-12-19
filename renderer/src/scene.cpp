@@ -9,6 +9,7 @@
 #include "util.h"
 #include <iostream>
 #include "math.h"
+#include <boost/math/special_functions.hpp>
 
 namespace scn {
 
@@ -160,6 +161,7 @@ const VectorType<Float> US<VectorType>::bessel_dRIF(const VectorType<Float> &q, 
 //    Float besselj   = boost::math::cyl_bessel_j(mode, krr);
 //
 //    Float dbesselj  = mode/(krr) * besselj - boost::math::cyl_bessel_j(mode+1, krr);
+//
     Float besselj   = jn(mode, krr);
 
     Float dbesselj  = mode/(krr) * besselj - jn(mode+1, krr);
@@ -934,6 +936,7 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 				* std::exp(- medium.getSigmaT() * distToSensor)
 				* medium.getPhaseFunction()->f(d/d.length(), dirToSensor)
 				* fresnelWeight
+				* weight
 				* foreshortening
 				/ falloff;
 		addEnergyToImage(img, sensorPoint, totalOpticalDistance, totalPhotonValue);
@@ -943,6 +946,7 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
     std::cout << "exp term:" << std::exp(-medium.getSigmaT() * distToSensor) << std::endl;
     std::cout << "phase function term:" << medium.getPhaseFunction()->f(d/d.length(), dirToSensor) << std::endl;
     std::cout << "fresnel weight:" << fresnelWeight << std::endl;
+    std::cout << "weight:" << weight << std::endl;
     std::cout << "foreshortening:" << foreshortening << std::endl;
     std::cout << "falloff:" << falloff << std::endl;
 #endif

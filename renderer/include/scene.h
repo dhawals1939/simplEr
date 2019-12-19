@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <vector>
+#include <chrono>
 
 #include "constants.h"
 #include "image.h"
@@ -286,9 +287,8 @@ struct US {
     Float er_stepsize;
 
 #ifdef SPLINE_RIF
-    spline::Spline<3> m_spline;
+    spline::Spline<2> m_spline;
 #endif
-
 
     US(const Float& f_u, const Float& speed_u,
                  const Float& n_o, const Float& n_max, const int& mode,
@@ -323,8 +323,8 @@ struct US {
 #ifdef SPLINE_RIF
 		Float *data = new Float[N[0]*N[1]];
 		Float xres[2];
-		xres[0] = (N[0] - 1)/(xmax[0] - xmin[0]);
-		xres[1] = (N[1] - 1)/(xmax[1] - xmin[1]);
+		xres[0] = (xmax[0] - xmin[0])/(N[0] - 1);
+		xres[1] = (xmax[1] - xmin[1])/(N[1] - 1);
 
 		VectorType<Float> p;
 
@@ -334,15 +334,15 @@ struct US {
 				p[0] = 0;
 				p[1] = xmin[1] + xres[1] * j;
 				p[2] = xmin[0] + xres[0] * i;
-				data[i + j*N[0]] = RIF(p, 1) - n_o; // Only fit the varying RIF. We will add the constant later. This is to include scaling factor easily.
+				data[i + j*N[0]] = bessel_RIF(p, 1) - n_o; // Only fit the varying RIF. We will add the constant later. This is to include scaling factor easily.
 			}
 
 		m_spline.build(data);
+		auto end = std::chrono::steady_clock::now();
 #endif
-
     }
 
-    inline double RIF(const VectorType<Float> &p, const Float &scaling) const{
+    inline Float RIF(const VectorType<Float> &p, const Float &scaling) const{
 #ifndef SPLINE_RIF
     	return bessel_RIF(p, scaling);
 #else
@@ -370,28 +370,27 @@ struct US {
     inline double spline_RIF(const VectorType<Float> &p, const Float &scaling) const{
     	Float temp[2];
     	temp[0] = p.y;
-    	temp[1] = p.z;
-    	return m_spline.value<0, 0>(temp);
+    	temp[1] = p.x;
+    	return (m_spline.value<0, 0>(temp)*scaling + n_o);
     }
 
     inline const VectorType<Float> spline_dRIF(const VectorType<Float> &q, const Float &scaling) const{
     	Float temp[2];
     	temp[0] = q.y;
-    	temp[1] = q.z;
-    	VectorType<Float> dn(0.0,
-				 	 	 	 m_spline.value<0, 1>(temp),
-						 	 m_spline.value<1, 0>(temp)
-    	                     );
-    	return dn;
+    	temp[1] = q.x;
+
+//    	return scaling*m_spline.gradient2d(temp);
+    	return scaling*VectorType<Float>(0.0, m_spline.value<0, 1>(temp), m_spline.value<1, 0>(temp));
     }
 
     inline const Matrix3x3 spline_HessianRIF(const VectorType<Float> &p, const Float &scaling) const{
     	Float temp[2];
     	temp[0] = p.y;
-    	temp[1] = p.z;
+    	temp[1] = p.x;
 
+//    	return scaling*m_spline.hessian2d(temp);
     	Float hxy = m_spline.value<1, 1>(temp);
-        return Matrix3x3(0, 0,   0,
+        return scaling*Matrix3x3(0, 0,   0,
         				 0, m_spline.value<0, 2>(temp), hxy,
     					 0, hxy, 						m_spline.value<2, 0>(temp));
 
@@ -471,8 +470,6 @@ class NEECostFunction: public SizedCostFunction<3, 3>
 		}
 		return true;
 	}
-
-	void assignScene() {}
 
 	private:
 	const Scene<VectorType> *m_refrScene;

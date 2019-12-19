@@ -28,6 +28,12 @@ inline Float kernel(Float x);
 
 template<>
 inline Float kernel<0>(Float x){
+//	x = std::abs(x);
+//	if(x > 2)
+//		return (Float)(0.0);
+//	if(x > 1)
+//		return (ONE_SIXTH*(2-x)*(2-x)*(2-x));
+//	return (TWO_THIRD - x*x + HALF*x*x*x);
    	Float y = 0;
 	if(x > 2 || x < -2)
 		return y;
@@ -43,7 +49,7 @@ inline Float kernel<0>(Float x){
 			}
 		}
 	}
-	return y/6;
+	return ONE_SIXTH*y;
 }
 template<>
 inline Float kernel<1>(Float x){
@@ -62,7 +68,7 @@ inline Float kernel<1>(Float x){
 			}
 		}
 	}
-	return y/2;
+	return HALF*y;
 }
 template<>
 inline Float kernel<2>(Float x){
@@ -162,6 +168,178 @@ public:
         Float y[DIM]; // make a duplicate
         y[0] = x[0]; y[1] = x[1]; y[2] = x[2]; 
         return value3d<DX, DY, DZ>(y);
+    }
+
+    // special functions that work only inside ERCRDR. comment outside
+    inline Matrix3x3 hessian2d(const Float y[]) const{
+        if(DIM != 2){
+	        std::cerr << "Error: 2D-Value called for " << DIM << "dimensions \n";
+            exit (EXIT_FAILURE);
+        }
+
+        Float x[DIM]; // make a duplicate
+        x[0] = y[0]; x[1] = y[1];
+
+        Float Hxx = 0;
+        Float Hxy = 0;
+        Float Hyy = 0;
+
+        convertToX(x);
+
+        int wrap_index1, wrap_index2;
+        for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
+            wrap_index1 = modulo(index1, 2*N[0]-2);
+            if(wrap_index1 >= N[0]){
+                wrap_index1 = 2*N[0] - 2 - wrap_index1;
+            }
+            for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
+                wrap_index2 = modulo(index2, 2*N[1]-2);
+                if(wrap_index2 >= N[1]){
+                    wrap_index2 = 2*N[1] - 2 - wrap_index2;
+                }
+				Hxx += coeff[wrap_index1+wrap_index2*N[0]] * kernel<2>(x[0]-index1) * kernel<0>(x[1]-index2);
+				Hxy += coeff[wrap_index1+wrap_index2*N[0]] * kernel<1>(x[0]-index1) * kernel<1>(x[1]-index2);
+				Hyy += coeff[wrap_index1+wrap_index2*N[0]] * kernel<0>(x[0]-index1) * kernel<2>(x[1]-index2);
+            }
+        }
+
+        Hxx *= xres2[0];
+        Hyy *= xres2[1];
+        Hxy *= xres[0]*xres[1];
+
+        return Matrix3x3(0, 0,   0,
+        				 0, Hyy, Hxy,
+    					 0, Hxy, Hxx);
+    }
+
+    inline tvec::Vec3f gradient2d(const Float y[]) const{
+        if(DIM != 2){
+	        std::cerr << "Error: 2D-Value called for " << DIM << "dimensions \n";
+            exit (EXIT_FAILURE);
+        }
+
+        Float x[DIM]; // make a duplicate
+        x[0] = y[0]; x[1] = y[1];
+        tvec::Vec3f p(0);
+
+        convertToX(x);
+
+        int wrap_index1, wrap_index2;
+        for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
+            wrap_index1 = modulo(index1, 2*N[0]-2);
+            if(wrap_index1 >= N[0]){
+                wrap_index1 = 2*N[0] - 2 - wrap_index1;
+            }
+            for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
+                wrap_index2 = modulo(index2, 2*N[1]-2);
+                if(wrap_index2 >= N[1]){
+                    wrap_index2 = 2*N[1] - 2 - wrap_index2;
+                }
+				p.y += coeff[wrap_index1+wrap_index2*N[0]] * kernel<0>(x[0]-index1) * kernel<1>(x[1]-index2);
+				p.z += coeff[wrap_index1+wrap_index2*N[0]] * kernel<1>(x[0]-index1) * kernel<0>(x[1]-index2);
+            }
+        }
+		p.y *= xres[1];
+		p.z *= xres[0];
+    }
+
+
+    inline tvec::Vec3f gradient(const Float y[]) const{
+        if(DIM != 3){
+	        std::cerr << "Error: 3D-Value called for " << DIM << "dimensions \n";
+            exit (EXIT_FAILURE);
+        }
+
+        Float x[DIM]; // make a duplicate
+        x[0] = y[0]; x[1] = y[1]; x[2] = y[2];
+        tvec::Vec3f p(0);
+
+        convertToX(x);
+        Float v = 0;
+        int wrap_index1, wrap_index2, wrap_index3;
+        for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
+            wrap_index1 = modulo(index1, 2*N[0]-2);
+            if(wrap_index1 >= N[0]){
+                wrap_index1 = 2*N[0] - 2 - wrap_index1;
+            }
+            for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
+                wrap_index2 = modulo(index2, 2*N[1]-2);
+                if(wrap_index2 >= N[1]){
+                    wrap_index2 = 2*N[1] - 2 - wrap_index2;
+                }
+                for(int index3 = ceil(x[2]-2); index3 <= floor(x[2]+2); index3++){
+                    wrap_index3 = modulo(index3, 2*N[2]-2);
+                    if(wrap_index3 >= N[2]){
+                        wrap_index3 = 2*N[2] - 2 - wrap_index3;
+                    }
+                    p.x += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<1>(x[0]-index1) * kernel<0>(x[1]-index2) * kernel<0>(x[2]-index3);
+                    p.y += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<0>(x[0]-index1) * kernel<1>(x[1]-index2) * kernel<0>(x[2]-index3);
+                    p.z += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<0>(x[0]-index1) * kernel<0>(x[1]-index2) * kernel<1>(x[2]-index3);
+                }
+            }
+        }
+		p.x *= xres[0];
+		p.y *= xres[1];
+		p.z *= xres[2];
+    }
+
+
+    inline Matrix3x3 hessian(const Float y[]) const{
+        if(DIM != 3){
+	        std::cerr << "Error: 3D-Value called for " << DIM << "dimensions \n";
+            exit (EXIT_FAILURE);
+        }
+
+        Float x[DIM]; // make a duplicate
+        x[0] = y[0]; x[1] = y[1]; x[2] = y[2];
+
+        Float Hxx = 0;
+        Float Hyy = 0;
+        Float Hzz = 0;
+        Float Hxy = 0;
+        Float Hyz = 0;
+        Float Hzx = 0;
+
+        convertToX(x);
+
+        int wrap_index1, wrap_index2, wrap_index3;
+        for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
+            wrap_index1 = modulo(index1, 2*N[0]-2);
+            if(wrap_index1 >= N[0]){
+                wrap_index1 = 2*N[0] - 2 - wrap_index1;
+            }
+            for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
+                wrap_index2 = modulo(index2, 2*N[1]-2);
+                if(wrap_index2 >= N[1]){
+                    wrap_index2 = 2*N[1] - 2 - wrap_index2;
+                }
+                for(int index3 = ceil(x[2]-2); index3 <= floor(x[2]+2); index3++){
+                    wrap_index3 = modulo(index3, 2*N[2]-2);
+                    if(wrap_index3 >= N[2]){
+                        wrap_index3 = 2*N[2] - 2 - wrap_index3;
+                    }
+					Hxx += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<2>(x[0]-index1) * kernel<0>(x[1]-index2) * kernel<0>(x[2]-index3);
+					Hyy += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<0>(x[0]-index1) * kernel<2>(x[1]-index2) * kernel<0>(x[2]-index3);
+					Hzz += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<0>(x[0]-index1) * kernel<0>(x[1]-index2) * kernel<2>(x[2]-index3);
+
+					Hxy += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<1>(x[0]-index1) * kernel<1>(x[1]-index2) * kernel<0>(x[2]-index3);
+					Hyz += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<0>(x[0]-index1) * kernel<1>(x[1]-index2) * kernel<1>(x[2]-index3);
+					Hzx += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<1>(x[0]-index1) * kernel<0>(x[1]-index2) * kernel<1>(x[2]-index3);
+                }
+            }
+        }
+
+        Hxx *= xres2[0];
+        Hyy *= xres2[1];
+        Hzz *= xres2[2];
+
+        Hxy *= xres[0]*xres[1];
+        Hyz *= xres[1]*xres[2];
+        Hzx *= xres[2]*xres[0];
+
+        return Matrix3x3(Hxx, Hxy, Hzx,
+        				 Hxy, Hyy, Hyz,
+						 Hzx, Hyz, Hzz);
     }
 
     /*    template<int DX, int DY, int DZ>
