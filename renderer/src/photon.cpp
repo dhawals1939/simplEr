@@ -264,6 +264,8 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 
 #ifdef USE_THREADED
 	int numThreads = omp_get_num_procs();
+	if(m_threads > 0)
+		numThreads = std::min(m_threads, numThreads);
 	omp_set_num_threads(numThreads);
 #else
 	int numThreads = 1;

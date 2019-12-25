@@ -54,6 +54,10 @@ int main(int argc, char **argv) {
 	 */
     std::string outFilePrefix = "USOCTRendering";
 
+    /*
+     * System parameters
+     */
+    int threads = -1; // Default
 	/*
 	 * film parameters 
 	 */
@@ -139,7 +143,9 @@ int main(int argc, char **argv) {
 			std::cerr << "Input argument " << argv[i] << "should be in the format arg=value" << std::endl;
 			return -1;
 		}
-		if(param[0].compare("numPhotons")==0)
+		if(param[0].compare("threads")==0)
+			threads = stoi(param[1]);
+		else if(param[0].compare("numPhotons")==0)
 			numPhotons = stoi(param[1]);
 		else if(param[0].compare("outFilePrefix")==0)
 			outFilePrefix = param[1];
@@ -244,6 +250,7 @@ int main(int argc, char **argv) {
 		else{
 			std::cerr << "Unknown variable in the input argument:" << param[0] << std::endl;
 			std::cerr << "Should be one of "
+					  << "threads, "
 					  << "numPhotons, "
 					  << "outFilePrefix, "
 					  << "sigmaT, "
@@ -356,7 +363,7 @@ int main(int argc, char **argv) {
 						);
 
 
-	photon::Renderer<tvec::TVector3> renderer(maxDepth, maxPathlength, useDirect, useAngularSampling);
+	photon::Renderer<tvec::TVector3> renderer(maxDepth, maxPathlength, useDirect, useAngularSampling, threads);
 
 	image::SmallImage img(viewReso.x, viewReso.y, viewReso.z);
 	renderer.renderImage(img, medium, scene, numPhotons);

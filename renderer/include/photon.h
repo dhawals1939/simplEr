@@ -26,15 +26,18 @@ namespace photon {
 template <template <typename> class VectorType>
 class Renderer {
 public:
-	Renderer(const int maxDepth, const Float maxPathlength, const bool useDirect, const bool useAngularSampling) :
+	Renderer(const int maxDepth, const Float maxPathlength, const bool useDirect, const bool useAngularSampling, const int64_t threads) :
 			m_maxDepth(maxDepth),
 			m_maxPathlength(maxPathlength),
 			m_useDirect(useDirect),
-			m_useAngularSampling(useAngularSampling){
+			m_useAngularSampling(useAngularSampling),
+			m_threads(threads){
 #ifndef NDEBUG
 		std::cout << "maxDepth " << m_maxDepth << std::endl;
 		std::cout << "maxPathlength " << m_maxPathlength << std::endl;
 		std::cout << "useDirect " << m_useDirect << std::endl;
+		std::cout << "useAngularSampling " << m_useAngularSampling << std::endl;
+		std::cout << "threads " << m_threads << std::endl;
 #endif
 	}
 
@@ -111,6 +114,7 @@ protected:
 	Float m_maxPathlength;
 	bool m_useDirect;
 	bool m_useAngularSampling;
+	int m_threads;
 };
 
 }	/* namespace photon */

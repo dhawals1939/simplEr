@@ -562,7 +562,7 @@ public:
 		m_options.max_num_iterations = 100;
 		m_options.minimizer_type = ceres::LINE_SEARCH;
 		m_options.line_search_direction_type = ceres::BFGS;
-        m_options.logging_type = SILENT;
+        m_options.logging_type = ceres::SILENT;
 		m_options.function_tolerance = 1e-18;
 		m_options.gradient_tolerance = 0.0;
 		m_options.parameter_tolerance = 0.0;
