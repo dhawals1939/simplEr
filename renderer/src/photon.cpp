@@ -81,7 +81,8 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 template <template <typename> class VectorType>
 void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<Float> &d,
 					const scn::Scene<VectorType> &scene, const med::Medium &medium,
-					smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling) const {
+					smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling,
+					scn::NEECostFunction<VectorType> &costFunction, Problem &problem, Float *initialization) const {
 
 	Assert(scene.getMediumBlock().inside(p));
 
@@ -107,7 +108,7 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 			if(m_useAngularSampling)
                 scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, weight, medium, sampler, scaling);
 			else
-				scene.addEnergy(img, pos, dir, totalOpticalDistance, weight, medium, sampler, scaling);
+				scene.addEnergy(img, pos, dir, totalOpticalDistance, weight, medium, sampler, scaling, costFunction, problem, initialization);
 			if (!scatterOnce(pos, dir, dist, scene, medium, totalOpticalDistance, sampler, scaling)){
 #ifdef PRINT_DEBUGLOG
 				std::cout << "sampler after failing scatter once:" << sampler() << std::endl;
@@ -270,6 +271,16 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 #else
 	int numThreads = 1;
 #endif
+	Problem *problem = new Problem[numThreads];
+	scn::NEECostFunction<tvec::TVector3> *costFunctions[numThreads];
+	Float *initializations = new Float[numThreads*3];
+
+	for(int i=0; i<numThreads; i++){
+		costFunctions[i] = new scn::NEECostFunction<tvec::TVector3>(&scene);
+		problem[i].AddResidualBlock((CostFunction*)costFunctions[i], NULL, initializations +i*3);
+	}
+
+
 #ifndef NDEBUG
 	std::cout << "numthreads = " << numThreads << std::endl;
 	std::cout << "numphotons = " << numPhotons << std::endl;
@@ -295,7 +306,6 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 #else
 		const int id = 0;
 #endif
-
 #ifdef PRINT_DEBUGLOG
 		std::cout << "id:" << id << "\n";
 		std::cout << "sampler:" << sampler[id]() << "\n";
@@ -324,11 +334,18 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 			Assert(!m_useDirect);
 			if(m_useDirect)
 				directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
-			scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling);
+			scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, *costFunctions[id], problem[id], initializations+id*3);
 		}
 	}
 
 	img.mergeImages(img0);
+
+
+	for(int i=0; i<numThreads; i++){
+		delete costFunctions[i];
+	}
+	delete initializations;
+//	delete[] problem;
 }
 
 //template <template <typename> class VectorType>

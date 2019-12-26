@@ -371,7 +371,8 @@ void Scene<VectorType>::trace_optical_distance(VectorType<Float> &p, VectorType<
 template <template <typename> class VectorType>
 
 bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1, const VectorType<Float> &p2, const Float &scaling, smp::Sampler &sampler,
-														Float &distTravelled, VectorType<Float> &dirToSensor, Float &distToSensor, Float &weight) const{
+														Float &distTravelled, VectorType<Float> &dirToSensor, Float &distToSensor, Float &weight,
+														scn::NEECostFunction<VectorType> &costFunction, Problem &problem, Float *initialization) const{
 
 	Matrix3x3 dpdv0((Float)0);
 	Matrix3x3 dvdv0((Float)1, 0, 0,
@@ -382,18 +383,22 @@ bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1,
 		VectorType<Float> v;
 		sampleRandomDirection(v, sampler);
 
-		CostFunction* cost_function = new NEECostFunction<tvec::TVector3>(this, p1, p2, dpdv0, dvdv0, scaling);
-		Problem problem;
-		double x[] = {v.x, v.y, v.z};
-		problem.AddResidualBlock(cost_function, NULL, x);
+//		CostFunction* cost_function = new NEECostFunction<tvec::TVector3>(this, p1, p2, dpdv0, dvdv0, scaling);
+//		Problem problem;
+//		double x[] = {v.x, v.y, v.z};
+//		problem.AddResidualBlock(cost_function, NULL, x);
+
+		costFunction.updateParameters(p1, p2, dpdv0, dvdv0, scaling);
+
+		initialization[0] = v.x; initialization[1] = v.y; initialization[2] = v.z;
 
 		Solver::Summary summary;
 		Solve(m_options, &problem, &summary);
 
 		if(summary.final_cost < m_us.getTol()){
-			dirToSensor[0] = x[0];
-			dirToSensor[1] = x[1];
-			dirToSensor[2] = x[2];
+			dirToSensor[0] = initialization[0];
+			dirToSensor[1] = initialization[1];
+			dirToSensor[2] = initialization[2];
 			dirToSensor.normalize();
 			break;
 		}
@@ -402,9 +407,10 @@ bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1,
 		if(sampler() < m_us.getrrWeight())
 			weight = weight * m_us.getInvrrWeight();
 		else{
-			dirToSensor[0] = x[0];
-			dirToSensor[1] = x[1];
-			dirToSensor[2] = x[2];
+			dirToSensor[0] = initialization[0];
+			dirToSensor[1] = initialization[1];
+			dirToSensor[2] = initialization[2];
+			dirToSensor.normalize();
 			return false;
 		}
 	}
@@ -868,7 +874,8 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 template <template <typename> class VectorType>
 void Scene<VectorType>::addEnergy(image::SmallImage &img,
 			const VectorType<Float> &p, const VectorType<Float> &d, Float distTravelled,
-			Float val, const med::Medium &medium, smp::Sampler &sampler, const Float& scaling) const {
+			Float val, const med::Medium &medium, smp::Sampler &sampler, const Float& scaling,
+			scn::NEECostFunction<VectorType> &costFunction, Problem &problem, Float *initialization) const {
 
 #ifdef USE_WEIGHT_NORMALIZATION
 	val *=	static_cast<Float>(img.getXRes()) * static_cast<Float>(img.getYRes())
@@ -890,7 +897,7 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 		Float weight = (Float) 1.0;
 		VectorType<Float> dirToSensor;
 		Float distToSensor;
-		if(!makeSurfaceDirectConnection(p, sensorPoint, scaling, sampler, distTravelled, dirToSensor, distToSensor, weight))
+		if(!makeSurfaceDirectConnection(p, sensorPoint, scaling, sampler, distTravelled, dirToSensor, distToSensor, weight, costFunction, problem, initialization))
 			return;
 
 		VectorType<Float> refrDirToSensor = dirToSensor;

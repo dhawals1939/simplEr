@@ -428,7 +428,16 @@ class NEECostFunction: public SizedCostFunction<3, 3>
 		m_dvdv0 = dvdv0;
 		m_scaling = scaling;
 	}
-
+	NEECostFunction(const Scene<VectorType>* refrScene) {
+		m_refrScene = refrScene;
+	}
+	void updateParameters(const VectorType<Float> &p1, const VectorType<Float> &p2, const Matrix3x3 &dpdv0, const Matrix3x3 &dvdv0, const Float &scaling) {
+		m_p1 = p1;
+		m_p2 = p2;
+		m_dpdv0 = dpdv0;
+		m_dvdv0 = dvdv0;
+		m_scaling = scaling;
+	}
 	virtual ~NEECostFunction(){}
 
 	virtual bool Evaluate(double const* const* parameters,
@@ -621,7 +630,8 @@ public:
 	 * Returns if surface connection has succeeded or failed
 	 */
 	bool makeSurfaceDirectConnection(const VectorType<Float> &p1, const VectorType<Float> &p2, const Float &scaling, smp::Sampler &sampler,
-															Float &distTravelled, VectorType<Float> &dirToSensor, Float &distToSensor, Float &weight) const;
+															Float &distTravelled, VectorType<Float> &dirToSensor, Float &distToSensor, Float &weight,
+															scn::NEECostFunction<VectorType> &costFunction, Problem &problem, Float *initialization) const;
 
 	void computePathLengthstillZ(const VectorType<Float> &v, const VectorType<Float> &p1, const VectorType<Float> &p2, Float &opticalPathLength, Float &t_l, const Float &scaling) const;
 
@@ -653,7 +663,8 @@ public:
 
 	void addEnergy(image::SmallImage &img, const VectorType<Float> &p,
 						const VectorType<Float> &d, Float distTravelled, Float val,
-						const med::Medium &medium, smp::Sampler &sampler, const Float& scaling) const;
+						const med::Medium &medium, smp::Sampler &sampler, const Float& scaling,
+						scn::NEECostFunction<VectorType> &costFunction, Problem &problem, Float *initialization) const;
 
 	void addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 						image::SmallImage &dAlbedo, image::SmallImage &dGVal,
