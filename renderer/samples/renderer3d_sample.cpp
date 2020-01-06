@@ -120,6 +120,7 @@ int main(int argc, char **argv) {
 	Float n_max = 1e-3;
 	int mode = 0;
 	Float er_stepsize = 1e-3;
+	int precision = 8; // Number of dec. precision bits till which we accurately make er_step either because the sampled distances are not an integral multiple of the er_stepsize or because the boundary is hit before.
 	Float directTol = 1e-5; // 10 um units
 	Float rrWeight  = 1e-2; // only one in hundred survives second path call
 
@@ -145,6 +146,8 @@ int main(int argc, char **argv) {
 		}
 		if(param[0].compare("threads")==0)
 			threads = stoi(param[1]);
+		else if(param[0].compare("precision")==0)
+			precision = stoi(param[1]);
 		else if(param[0].compare("numPhotons")==0)
 			numPhotons = stoi(param[1]);
 		else if(param[0].compare("outFilePrefix")==0)
@@ -356,7 +359,7 @@ int main(int argc, char **argv) {
 	scn::Scene<tvec::TVector3> scene(ior, mediumL, mediumR,
 						lightOrigin, lightDir, halfThetaLimit, projectorTexture, lightPlane, Li,
 						viewOrigin, viewDir, viewX, viewPlane, pathlengthRange,
-						f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight
+						f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight, precision
 #ifdef SPLINE_RIF
 						, xmin, xmax, N
 #endif

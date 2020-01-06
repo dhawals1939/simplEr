@@ -285,6 +285,7 @@ struct US {
     Float invrrWeight;
 
     Float er_stepsize;
+    int m_precision;
 
 #ifdef SPLINE_RIF
     spline::Spline<2> m_spline;
@@ -293,7 +294,7 @@ struct US {
     US(const Float& f_u, const Float& speed_u,
                  const Float& n_o, const Float& n_max, const int& mode,
                  const VectorType<Float> &axis_uz, const VectorType<Float> &axis_ux, const VectorType<Float> &p_u, const Float &er_stepsize,
-				 const Float &tol, const Float &rrWeight
+				 const Float &tol, const Float &rrWeight, const int &precision
 #ifdef SPLINE_RIF
 				 , const Float xmin[], const Float xmax[],  const int N[]
 #endif
@@ -319,6 +320,7 @@ struct US {
 		this->tol 			 = tol;
 		this->rrWeight       = rrWeight;
 		this->invrrWeight    = 1/rrWeight;
+		this->m_precision    = precision;
 
 #ifdef SPLINE_RIF
 		Float *data = new Float[N[0]*N[1]];
@@ -411,6 +413,8 @@ struct US {
 
     inline const Float getInvrrWeight() const{return invrrWeight;}
 
+    inline const int getPrecision()  const{return m_precision;}
+
 };
 
 template <template <typename> class VectorType>
@@ -468,13 +472,13 @@ class NEECostFunction: public SizedCostFunction<3, 3>
 		residuals[2] = error.z;
 		if (jacobians != NULL && jacobians[0] != NULL){
 			jacobians[0][0] = derror.m[0][0];
-			jacobians[0][1] = derror.m[0][1];
-			jacobians[0][2] = derror.m[0][2];
-			jacobians[0][3] = derror.m[1][0];
+			jacobians[0][1] = derror.m[1][0];
+			jacobians[0][2] = derror.m[2][0];
+			jacobians[0][3] = derror.m[0][1];
 			jacobians[0][4] = derror.m[1][1];
-			jacobians[0][5] = derror.m[1][2];
-			jacobians[0][6] = derror.m[2][0];
-			jacobians[0][7] = derror.m[2][1];
+			jacobians[0][5] = derror.m[2][1];
+			jacobians[0][6] = derror.m[0][2];
+			jacobians[0][7] = derror.m[1][2];
 			jacobians[0][8] = derror.m[2][2];
 		}
 		return true;
@@ -519,7 +523,7 @@ public:
 			const VectorType<Float> &axis_ux,
 			const VectorType<Float> &p_u,
 			const Float &er_stepsize,
-			const Float &tol, const Float &rrWeight
+			const Float &tol, const Float &rrWeight, const int &precision
 #ifdef SPLINE_RIF
 			, const Float xmin[], const Float xmax[],  const int N[]
 #endif
@@ -535,7 +539,7 @@ public:
 #endif
 				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange),
 				m_bsdf(FPCONST(1.0), ior),
-				m_us(f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight
+				m_us(f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision
 #ifdef SPLINE_RIF
 						, xmin, xmax, N
 #endif
@@ -568,6 +572,7 @@ public:
 
 		//Adithya: Move these to the command line or atleast the important ones
 		m_options.check_gradients = false;
+		m_options.gradient_check_relative_precision = 1e-3;
 		m_options.max_num_iterations = 100;
 		m_options.minimizer_type = ceres::LINE_SEARCH;
 		m_options.line_search_direction_type = ceres::BFGS;

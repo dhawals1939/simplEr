@@ -313,7 +313,7 @@ void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &
 	VectorType<Float> oldp, oldd;
 
     Float distance = 0;
-    long int maxsteps = std::ceil(dist/m_us.er_stepsize) + 1, i, precision = 3;
+    long int maxsteps = dist/m_us.er_stepsize + 1, i, precision = m_us.getPrecision();
 
     Float current_stepsize = m_us.er_stepsize;
 
@@ -323,8 +323,8 @@ void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &
 
     	er_step(p, d, current_stepsize, scaling);
 
-    	// check if we are at the intersection, then, estimate the distance and keep going more accurately towards the boundary
-    	if(!m_block.inside(p)){
+    	// check if we are at the intersection or crossing the sampled dist, then, estimate the distance and keep going more accurately towards the boundary or sampled dist
+    	if(!m_block.inside(p) || (distance + current_stepsize) > dist){
     		precision--;
     		if(precision < 0)
     			break;
@@ -340,6 +340,7 @@ void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &
 #endif
     	}
     }
+
     Assert(i < maxsteps);
     disx = 0;
     disy = distance;
@@ -396,6 +397,7 @@ bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1,
 		Solve(m_options, &problem, &summary);
 
 		if(summary.final_cost < m_us.getTol()){
+			std::cout << "converged" << std::endl;
 			dirToSensor[0] = initialization[0];
 			dirToSensor[1] = initialization[1];
 			dirToSensor[2] = initialization[2];
@@ -407,6 +409,7 @@ bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1,
 		if(sampler() < m_us.getrrWeight())
 			weight = weight * m_us.getInvrrWeight();
 		else{
+			std::cout << "Not converged" << std::endl;
 			dirToSensor[0] = initialization[0];
 			dirToSensor[1] = initialization[1];
 			dirToSensor[2] = initialization[2];
@@ -435,15 +438,25 @@ void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, co
 		opticalPathLength = M_MAX;
 	}
 
+#ifdef PRINT_DEBUGLOG
+	std::cout << "Trying to connect: " << std::endl;
+	std::cout << "P1: (" << p1.x  << ", " << p1.y  << ", " << p1.z  << "); " << std::endl;
+	std::cout << "P2: (" << p2.x  << ", " << p2.y  << ", " << p2.z  << "); " << std::endl;
+	std::cout << "Vi: (" << v_i.x << ", " << v_i.y << ", " << v_i.z << "); " << std::endl;
+#endif
+
 	t_l = 0 ; // t_l is geometric length, required for computation of the radiance
 
 	Float currentStepSize = m_us.getStepSize();
-	int maxSteps = 5*floor((p2.x - p1.x)/v_i.x/currentStepSize)+1;
+	int maxSteps = 1e5;
 	opticalPathLength = 0;
-	int dec_precision = 8; //ADI: Move this to parameters
+	int dec_precision = m_us.getPrecision();
 	int nBisectionSearches = ceil(dec_precision/log10(2)); //ADI: Make a log10(2) constant
 
-	VectorType<Float> p = p1, oldp = p1, v = v_i, oldv = v;
+	VectorType<Float> p = p1, oldp = p1, v = v_i, oldv;
+	v.normalize();
+	oldv = v;
+
 	for(int i = 0; i < maxSteps; i++){
 		oldp     = p;
 		oldv     = v;
@@ -468,6 +481,10 @@ void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, co
 			opticalPathLength += currentStepSize*m_us.RIF(HALF * (oldp + p), scaling);
 		}
 	}
+
+#ifdef PRINT_DEBUGLOG
+	std::cout << "Geometric length: " << t_l << std::endl;
+#endif
 }
 
 template <template <typename> class VectorType>
@@ -479,12 +496,23 @@ void Scene<VectorType>::computefdfNEE(const VectorType<Float> &v_i, const Vector
 	}
 
 	Float currentStepSize = m_us.getStepSize();
-	int maxSteps = 5*floor((p2.x - p1.x)/v_i.x/currentStepSize)+1;
-	int dec_precision = 8; //ADI: Move this to parameters
+	int maxSteps = 1e5;
+	int dec_precision = m_us.getPrecision();
 	int nBisectionSearches = ceil(dec_precision/log10(2)); //ADI: Make a log10(2) constant
 
 	VectorType<Float> p = p1, oldp = p1, v = v_i, oldv = v;
 	Matrix3x3 olddpdv0 = dpdv0, olddvdv0 = dvdv0;
+
+
+	// Normalize v_i
+    Float r = m_us.RIF(p, scaling);
+    Float n1 = v.length();
+    Float n2 = n1*n1;
+    Float n3 = n2*n1;
+    dvdv0 = (n2*Matrix3x3(1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0) - Matrix3x3(v, v))/n3*r*dvdv0;
+    v = v/n1 * r;
+
+
 	for(int i = 0; i < maxSteps; i++){
 		oldp     = p;
 		oldv     = v;
