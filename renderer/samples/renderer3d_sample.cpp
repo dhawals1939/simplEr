@@ -105,9 +105,13 @@ int main(int argc, char **argv) {
 	/*
 	 * Initialize lens parameters.
 	 */
-    Float lens_aperture = .015;
-    Float lens_focalLength = .015;
-    bool lens_active = false;
+    Float emitter_lens_aperture = .015;
+    Float emitter_lens_focalLength = .015;
+    bool emitter_lens_active = false;
+
+    Float sensor_lens_aperture = .015;
+    Float sensor_lens_focalLength = .015;
+    bool sensor_lens_active = false;
 
     bool printInputs = true;
 
@@ -170,9 +174,12 @@ int main(int argc, char **argv) {
 	bool bmediumRx=false;
 	bool bdistribution=false;
 	bool bgOrKappa=false;
-	bool blens_aperture=false;
-	bool blens_focalLength=false;
-	bool blens_active=false;
+	bool bemitter_lens_aperture=false;
+	bool bemitter_lens_focalLength=false;
+	bool bemitter_lens_active=false;
+	bool bsensor_lens_aperture=false;
+	bool bsensor_lens_focalLength=false;
+	bool bsensor_lens_active=false;
 	bool bprintInputs=false;
 
 	for(int i = 1; i < argc; i++){
@@ -300,21 +307,38 @@ int main(int argc, char **argv) {
 		}else if(param[0].compare("gOrKappa")==0){
  			bgOrKappa=true;
 			gOrKappa = stof(param[1]);
-		}else if(param[0].compare("lens_aperture")==0){
- 			blens_aperture=true;
-			lens_aperture = stof(param[1]);
-		}else if(param[0].compare("lens_focalLength")==0){
- 			blens_focalLength=true;
-			lens_focalLength = stof(param[1]);
-        }else if(param[0].compare("lens_active")==0){ 
- 			blens_active=true;
+		}else if(param[0].compare("emitter_lens_aperture")==0){
+ 			bemitter_lens_aperture=true;
+ 			emitter_lens_aperture = stof(param[1]);
+		}else if(param[0].compare("emitter_lens_focalLength")==0){
+ 			bemitter_lens_focalLength=true;
+ 			emitter_lens_focalLength = stof(param[1]);
+        }else if(param[0].compare("emitter_lens_active")==0){
+ 			bemitter_lens_active=true;
+			transform(param[1].begin(), param[1].end(), param[1].begin(), ::tolower);
+			if(param[1].compare("true")==0)
+				emitter_lens_active = true;
+			else if(param[1].compare("false")==0)
+				emitter_lens_active = false;
+			else{
+				std::cerr << "emitter_lens_active should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
+				return -1;
+			}
+		}else if(param[0].compare("sensor_lens_aperture")==0){
+ 			bsensor_lens_aperture=true;
+			sensor_lens_aperture = stof(param[1]);
+		}else if(param[0].compare("sensor_lens_focalLength")==0){
+ 			bsensor_lens_focalLength=true;
+			sensor_lens_focalLength = stof(param[1]);
+        }else if(param[0].compare("sensor_lens_active")==0){
+ 			bsensor_lens_active=true;
 			transform(param[1].begin(), param[1].end(), param[1].begin(), ::tolower);
 			if(param[1].compare("true")==0) 
-				lens_active = true;
+				sensor_lens_active = true;
 			else if(param[1].compare("false")==0) 
-				lens_active = false;
+				sensor_lens_active = false;
 			else{
-				std::cerr << "lens_active should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
+				std::cerr << "sensor_lens_active should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
 				return -1;
 			}
         }else if(param[0].compare("printInputs")==0){ 
@@ -363,9 +387,12 @@ int main(int argc, char **argv) {
 					  << "mediumRx, "
 					  << "distribution, "
 					  << "gOrKappa, "
-					  << "lens_aperture, "
-					  << "lens_focalLength, "
-					  << "lens_active, "
+					  << "emitter_lens_aperture, "
+					  << "emitter_lens_focalLength, "
+					  << "emitter_lens_active, "
+					  << "sensor_lens_aperture, "
+					  << "sensor_lens_focalLength, "
+					  << "sensor_lens_active, "
 					  << "printInputs "
                       << std::endl;
             return -1;
@@ -404,12 +431,15 @@ int main(int argc, char **argv) {
 		if(!bmediumRx) {std::cout << "mediumRx is not specified " << std::endl;}
 		if(!bdistribution) {std::cout << "distribution is not specified " << std::endl;}
 		if(!bgOrKappa) {std::cout << "gOrKappa is not specified " << std::endl;}
-		if(!blens_aperture) {std::cout << "lens_aperture is not specified " << std::endl;}
-		if(!blens_focalLength) {std::cout << "lens_focalLength is not specified " << std::endl;}
-		if(!blens_active) {std::cout << "lens_active is not specified " << std::endl;}
+		if(!bemitter_lens_aperture) {std::cout << "sensor_lens_aperture is not specified " << std::endl;}
+		if(!bemitter_lens_focalLength) {std::cout << "sensor_lens_focalLength is not specified " << std::endl;}
+		if(!bemitter_lens_active) {std::cout << "sensor_lens_active is not specified " << std::endl;}
+		if(!bsensor_lens_aperture) {std::cout << "sensor_lens_aperture is not specified " << std::endl;}
+		if(!bsensor_lens_focalLength) {std::cout << "sensor_lens_focalLength is not specified " << std::endl;}
+		if(!bsensor_lens_active) {std::cout << "sensor_lens_active is not specified " << std::endl;}
 		if(!bprintInputs) {std::cout << "printInputs is not specified " << std::endl;}
 
-        if(!(bthreads && bprecision && bnumPhotons && boutFilePrefix && bsigmaT && balbedo && bgVal && bf_u && bspeed_u && bn_o && bn_max && bmode && ber_stepsize && bdirectTol && brrWeight && bprojectorTexture && buseDirect && buseAngularSampling && bmaxDepth && bmaxPathlength && bpathLengthMin && bpathLengthMax && bpathLengthBins && bspatialX && bspatialY && bhalfThetaLimit && bemitter_sensor_size && bmediumLx && bmediumRx && bdistribution && bgOrKappa && blens_aperture && blens_focalLength && blens_active && bprintInputs)){
+        if(!(bthreads && bprecision && bnumPhotons && boutFilePrefix && bsigmaT && balbedo && bgVal && bf_u && bspeed_u && bn_o && bn_max && bmode && ber_stepsize && bdirectTol && brrWeight && bprojectorTexture && buseDirect && buseAngularSampling && bmaxDepth && bmaxPathlength && bpathLengthMin && bpathLengthMax && bpathLengthBins && bspatialX && bspatialY && bhalfThetaLimit && bemitter_sensor_size && bmediumLx && bmediumRx && bdistribution && bgOrKappa && bemitter_lens_aperture && bemitter_lens_focalLength && bemitter_lens_active && bsensor_lens_aperture && bsensor_lens_focalLength && bsensor_lens_active && bprintInputs)){
             std::cout << "crashing as one or more inputs is absent" << std::endl;
             exit (EXIT_FAILURE);
         }
@@ -441,14 +471,18 @@ int main(int argc, char **argv) {
 		std::cout << "emitter_sensor_size = " << emitter_sensor_size << std::endl;
 		std::cout << "distribution = " << distribution << std::endl;
 		std::cout << "gOrKappa = " << gOrKappa << std::endl;
-		std::cout << "lens_aperture = " << lens_aperture << std::endl;
-		std::cout << "lens_focalLength = " << lens_focalLength << std::endl;
-		std::cout << "lens_active = " << lens_active << std::endl;
+		std::cout << "emitter_lens_aperture = " << emitter_lens_aperture << std::endl;
+		std::cout << "emitter_lens_focalLength = " << emitter_lens_focalLength << std::endl;
+		std::cout << "emitter_lens_active = " << emitter_lens_active << std::endl;
+		std::cout << "sensor_lens_aperture = " << sensor_lens_aperture << std::endl;
+		std::cout << "sensor_lens_focalLength = " << sensor_lens_focalLength << std::endl;
+		std::cout << "sensor_lens_active = " << sensor_lens_active << std::endl;
 		std::cout << "printInputs = " << printInputs << std::endl;
     }
 	pfunc::HenyeyGreenstein *phase = new pfunc::HenyeyGreenstein(gVal);
 
-    tvec::Vec3f lens_origin(mediumL[0], FPCONST(0.0), FPCONST(0.0));
+    tvec::Vec3f emitter_lens_origin(mediumR[0], FPCONST(0.0), FPCONST(0.0));
+    tvec::Vec3f sensor_lens_origin(mediumL[0], FPCONST(0.0), FPCONST(0.0));
 
 	/*
 	 * Initialize source parameters.
@@ -482,6 +516,9 @@ int main(int argc, char **argv) {
 	scn::Scene<tvec::TVector3> scene(ior, mediumL, mediumR,
 						lightOrigin, lightDir, halfThetaLimit, projectorTexture, lightPlane, Li,
 						viewOrigin, viewDir, viewX, viewPlane, pathlengthRange,
+						distribution, gOrKappa,
+						emitter_lens_origin, emitter_lens_aperture, emitter_lens_focalLength, emitter_lens_active,
+						sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active,
 						f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight, precision
 #ifdef SPLINE_RIF
 						, xmin, xmax, N
