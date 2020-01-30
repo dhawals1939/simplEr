@@ -86,19 +86,77 @@ protected:
 };
 
 template <template <typename> class VectorType>
+struct Lens {
+    Lens(const VectorType<Float> &origin, const Float &aperture, 
+                    const Float &focalLength, const bool &active)
+                    : m_origin(origin), 
+                      m_squareApertureRadius(aperture*aperture),
+                      m_focalLength(focalLength),
+                      m_active(active){
+    }
+public:
+    inline const Float deflect(const VectorType<Float> &pos, VectorType<Float> &dir) const{
+        /* Deflection computation: 
+         * Point going through the center of lens and parallel to dir is [pos.x, 0, 0]. Ray from this point goes straight
+         * This ray meets focal plane at (pos.x - d[0] * f/d[0], -d[1] * f/d[0], -d[2] * f/d[0]) (assuming -x direction of propagation of light)
+         * Original ray deflects to pass through this point
+         * The negative distance (HACK) travelled by this ray at the lens is -f/d[0] - norm(focalpoint_Pos - original_Pos)
+         */
+    	Float squareDistFromLensOrigin = 0.0f;
+    	for(int i = 1; i < pos.dim; i++)
+    		squareDistFromLensOrigin += pos[i]*pos[i];
+    	if(squareDistFromLensOrigin > m_squareApertureRadius)
+    		return false;
+
+        Assert(pos.x == m_origin.x);
+        Float invd = -1/dir[0];
+        dir[0] = -m_focalLength;
+        dir[1] = dir[1]*invd*m_focalLength - pos[1];
+        dir[2] = dir[2]*invd*m_focalLength - pos[2];
+        Float dist = m_focalLength*invd - dir.length();
+        dir.normalize();
+        return dist; // should return additional path length added by the lens. 
+    }
+
+    inline const bool propagateTillLens(VectorType<Float> &pos, VectorType<Float> &dir, Float &totalDistance) const {
+        Float dist = -(pos[0]-m_origin[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
+        pos += dist*dir;
+        totalDistance += dist + deflect(pos, dir);
+        return true;
+    }
+
+    inline const bool isActive() const {
+        return m_active;
+    }
+
+
+protected:
+    VectorType<Float> m_origin;
+    Float m_squareApertureRadius; //radius of the aperture
+    Float m_focalLength;
+    bool m_active; // Is the lens present or absent
+};
+
+template <template <typename> class VectorType>
 struct Camera {
 
 	Camera(const VectorType<Float> &origin,
 		const VectorType<Float> &dir,
 		const VectorType<Float> &horizontal,
 		const tvec::Vec2f &plane,
-		const tvec::Vec2f &pathlengthRange) :
+		const tvec::Vec2f &pathlengthRange,
+		const VectorType<Float> &lens_origin,
+		const Float &lens_aperture,
+		const Float &lens_focalLength,
+		const bool &lens_active
+		) :
 			m_origin(origin),
 			m_dir(dir),
 			m_horizontal(horizontal),
 			m_vertical(),
 			m_plane(plane),
-			m_pathlengthRange(pathlengthRange) {
+			m_pathlengthRange(pathlengthRange),
+			m_lens(lens_origin, lens_aperture, lens_focalLength, lens_active){
 		Assert(((m_pathlengthRange.x == -FPCONST(1.0)) && (m_pathlengthRange.y == -FPCONST(1.0))) ||
 				((m_pathlengthRange.x >= 0) && (m_pathlengthRange.y >= m_pathlengthRange.x)));
 		m_dir.normalize();
@@ -137,6 +195,26 @@ struct Camera {
 		return m_pathlengthRange;
 	}
 
+	inline const bool propagateTillSensor(VectorType<Float> &pos, VectorType<Float> &dir, Float &totalDistance) const{
+		//propagate till lens
+		if(m_lens.isActive() && !m_lens.propagateTillLens(pos, dir, totalDistance))
+			return false;
+		//propagate from lens to sensor
+		Float dist = (m_origin[0]-pos[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
+		pos += dist*dir;
+
+#ifdef PRINT_DEBUGLOG
+		if(dist < 0){
+			std::cout << "Propagation till sensor failed; dying" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+#endif
+
+		totalDistance += dist;
+		return true;
+
+	}
+
 	virtual ~Camera() { }
 
 protected:
@@ -146,6 +224,7 @@ protected:
 	VectorType<Float> m_vertical;
 	tvec::Vec2f m_plane;
 	tvec::Vec2f m_pathlengthRange;
+	Lens<VectorType> m_lens;
 };
 
 template <template <typename> class VectorType>
@@ -155,13 +234,14 @@ struct AreaTexturedSource {
 	enum EmitterType{directional, diffuse}; //diffuse is still not implemented
 
 	AreaTexturedSource(const VectorType<Float> &origin, const VectorType<Float> &dir, const Float &halfThetaLimit, const std::string& filename,
-			const tvec::Vec2f &plane, Float Li, const EmitterType &emittertype = EmitterType::directional)
+			const tvec::Vec2f &plane, const Float &Li, const VectorType<Float> &lens_origin, const Float &lens_aperture, const Float &lens_focalLength, const bool &lens_active, const EmitterType &emittertype = EmitterType::directional)
 			: m_origin(origin),
 			  m_dir(dir),
 			  m_halfThetaLimit(halfThetaLimit),
 			  m_emittertype(emittertype),
 			  m_plane(plane),
-			  m_Li(Li) { /* m_dir(std::cos(angle), std::sin(angle), FPCONST(0.0)) */
+			  m_Li(Li),
+			  m_lens(lens_origin, lens_aperture, lens_focalLength, lens_active){
 		m_texture.readFile(filename);
 		int _length = m_texture.getXRes()*m_texture.getYRes();
 		m_pixelsize.x = m_plane.x/m_texture.getXRes();
@@ -194,6 +274,14 @@ struct AreaTexturedSource {
 		return m_Li;
 	}
 
+	inline const bool propagateTillMedium(VectorType<Float> &pos, VectorType<Float> &dir, Float &totalDistance) const{
+		//propagate till lens
+		if(m_lens.isActive() && !m_lens.propagateTillLens(pos, dir, totalDistance))
+			return false;
+		return true;
+	}
+
+
 	virtual ~AreaTexturedSource() { }
 
 protected:
@@ -207,6 +295,7 @@ protected:
 	tvec::Vec2f m_plane;
 	Float m_Li;
 	EmitterType m_emittertype;
+	Lens<VectorType> m_lens;
 };
 
 
@@ -522,6 +611,19 @@ public:
 			const VectorType<Float> &viewHorizontal,
 			const tvec::Vec2f &viewPlane,
 			const tvec::Vec2f &pathlengthRange, 
+			// for finalAngle importance sampling
+			const std::string &distribution,
+			const Float &gOrKappa,
+			// for emitter lens
+			const VectorType<Float> &emitter_lens_origin,
+			const Float &emitter_lens_aperture,
+			const Float &emitter_lens_focalLength,
+			const bool &emitter_lens_active,
+			// for sensor lens
+			const VectorType<Float> &sensor_lens_origin,
+			const Float &sensor_lens_aperture,
+			const Float &sensor_lens_focalLength,
+			const bool &sensor_lens_active,
 			//Ultrasound parameters: a lot of them are currently not used
 			const Float& f_u,
 			const Float& speed_u,
@@ -544,9 +646,9 @@ public:
 #ifndef PROJECTOR
 				m_source(lightOrigin, lightDir, lightPlane, Li),
 #else                
-				m_source(lightOrigin, lightDir, halfThetaLimit, lightTextureFile, lightPlane, Li),
+				m_source(lightOrigin, lightDir, halfThetaLimit, lightTextureFile, lightPlane, Li, emitter_lens_origin, emitter_lens_aperture, emitter_lens_focalLength, emitter_lens_active),
 #endif
-				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange),
+				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange, sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active),
 				m_bsdf(FPCONST(1.0), ior),
 				m_us(f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision
 #ifdef SPLINE_RIF

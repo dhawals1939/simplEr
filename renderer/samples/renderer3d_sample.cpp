@@ -72,6 +72,8 @@ int main(int argc, char **argv) {
 	 */
 	Float halfThetaLimit = FPCONST(12.8e-3);
 	Float emitter_sensor_size = FPCONST(0.002); // sizes of sensor and emitter are equal and are square shaped
+	Float emitter_distance = FPCONST(0);
+	Float sensor_distance = FPCONST(0);
 
 	/*
 	 * Initialize scattering parameters.
@@ -174,9 +176,11 @@ int main(int argc, char **argv) {
 	bool bmediumRx=false;
 	bool bdistribution=false;
 	bool bgOrKappa=false;
+	bool bemitter_distance=false;
 	bool bemitter_lens_aperture=false;
 	bool bemitter_lens_focalLength=false;
 	bool bemitter_lens_active=false;
+	bool bsensor_distance=false;
 	bool bsensor_lens_aperture=false;
 	bool bsensor_lens_focalLength=false;
 	bool bsensor_lens_active=false;
@@ -307,6 +311,9 @@ int main(int argc, char **argv) {
 		}else if(param[0].compare("gOrKappa")==0){
  			bgOrKappa=true;
 			gOrKappa = stof(param[1]);
+		}else if(param[0].compare("emitter_distance")==0){
+ 			bemitter_distance=true;
+ 			emitter_distance = stof(param[1]);
 		}else if(param[0].compare("emitter_lens_aperture")==0){
  			bemitter_lens_aperture=true;
  			emitter_lens_aperture = stof(param[1]);
@@ -324,6 +331,9 @@ int main(int argc, char **argv) {
 				std::cerr << "emitter_lens_active should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
 				return -1;
 			}
+		}else if(param[0].compare("sensor_distance")==0){
+ 			bsensor_distance=true;
+ 			sensor_distance = stof(param[1]);
 		}else if(param[0].compare("sensor_lens_aperture")==0){
  			bsensor_lens_aperture=true;
 			sensor_lens_aperture = stof(param[1]);
@@ -387,9 +397,11 @@ int main(int argc, char **argv) {
 					  << "mediumRx, "
 					  << "distribution, "
 					  << "gOrKappa, "
+					  << "emitter_distance, "
 					  << "emitter_lens_aperture, "
 					  << "emitter_lens_focalLength, "
 					  << "emitter_lens_active, "
+					  << "sensor_distance, "
 					  << "sensor_lens_aperture, "
 					  << "sensor_lens_focalLength, "
 					  << "sensor_lens_active, "
@@ -431,15 +443,17 @@ int main(int argc, char **argv) {
 		if(!bmediumRx) {std::cout << "mediumRx is not specified " << std::endl;}
 		if(!bdistribution) {std::cout << "distribution is not specified " << std::endl;}
 		if(!bgOrKappa) {std::cout << "gOrKappa is not specified " << std::endl;}
-		if(!bemitter_lens_aperture) {std::cout << "sensor_lens_aperture is not specified " << std::endl;}
-		if(!bemitter_lens_focalLength) {std::cout << "sensor_lens_focalLength is not specified " << std::endl;}
-		if(!bemitter_lens_active) {std::cout << "sensor_lens_active is not specified " << std::endl;}
+		if(!bemitter_distance) {std::cout << "emitter_distance is not specified " << std::endl;}
+		if(!bemitter_lens_aperture) {std::cout << "emitter_lens_aperture is not specified " << std::endl;}
+		if(!bemitter_lens_focalLength) {std::cout << "emitter_lens_focalLength is not specified " << std::endl;}
+		if(!bemitter_lens_active) {std::cout << "emitter_lens_active is not specified " << std::endl;}
+		if(!bsensor_distance) {std::cout << "sensor_distance is not specified " << std::endl;}
 		if(!bsensor_lens_aperture) {std::cout << "sensor_lens_aperture is not specified " << std::endl;}
 		if(!bsensor_lens_focalLength) {std::cout << "sensor_lens_focalLength is not specified " << std::endl;}
 		if(!bsensor_lens_active) {std::cout << "sensor_lens_active is not specified " << std::endl;}
 		if(!bprintInputs) {std::cout << "printInputs is not specified " << std::endl;}
 
-        if(!(bthreads && bprecision && bnumPhotons && boutFilePrefix && bsigmaT && balbedo && bgVal && bf_u && bspeed_u && bn_o && bn_max && bmode && ber_stepsize && bdirectTol && brrWeight && bprojectorTexture && buseDirect && buseAngularSampling && bmaxDepth && bmaxPathlength && bpathLengthMin && bpathLengthMax && bpathLengthBins && bspatialX && bspatialY && bhalfThetaLimit && bemitter_sensor_size && bmediumLx && bmediumRx && bdistribution && bgOrKappa && bemitter_lens_aperture && bemitter_lens_focalLength && bemitter_lens_active && bsensor_lens_aperture && bsensor_lens_focalLength && bsensor_lens_active && bprintInputs)){
+        if(!(bthreads && bprecision && bnumPhotons && boutFilePrefix && bsigmaT && balbedo && bgVal && bf_u && bspeed_u && bn_o && bn_max && bmode && ber_stepsize && bdirectTol && brrWeight && bprojectorTexture && buseDirect && buseAngularSampling && bmaxDepth && bmaxPathlength && bpathLengthMin && bpathLengthMax && bpathLengthBins && bspatialX && bspatialY && bhalfThetaLimit && bemitter_sensor_size && bmediumLx && bmediumRx && bdistribution && bgOrKappa && bemitter_distance && bemitter_lens_aperture && bemitter_lens_focalLength && bemitter_lens_active && bsensor_distance && bsensor_lens_aperture && bsensor_lens_focalLength && bsensor_lens_active && bprintInputs)){
             std::cout << "crashing as one or more inputs is absent" << std::endl;
             exit (EXIT_FAILURE);
         }
@@ -471,14 +485,26 @@ int main(int argc, char **argv) {
 		std::cout << "emitter_sensor_size = " << emitter_sensor_size << std::endl;
 		std::cout << "distribution = " << distribution << std::endl;
 		std::cout << "gOrKappa = " << gOrKappa << std::endl;
+		std::cout << "emitter_distance = " << emitter_distance << std::endl;
 		std::cout << "emitter_lens_aperture = " << emitter_lens_aperture << std::endl;
 		std::cout << "emitter_lens_focalLength = " << emitter_lens_focalLength << std::endl;
 		std::cout << "emitter_lens_active = " << emitter_lens_active << std::endl;
+		std::cout << "sensor_distance = " << sensor_distance << std::endl;
 		std::cout << "sensor_lens_aperture = " << sensor_lens_aperture << std::endl;
 		std::cout << "sensor_lens_focalLength = " << sensor_lens_focalLength << std::endl;
 		std::cout << "sensor_lens_active = " << sensor_lens_active << std::endl;
 		std::cout << "printInputs = " << printInputs << std::endl;
     }
+
+	// some sanity checks
+	{
+		if(emitter_distance < 0) {std::cout << "emitter_distance = " << emitter_distance << " should be strictly non-zero" << std::endl; exit (EXIT_FAILURE);}
+		if(sensor_distance < 0) {std::cout << "sensor_distance = " << sensor_distance << " should be strictly non-zero" << std::endl; exit (EXIT_FAILURE);}
+		if(emitter_lens_active && emitter_distance < 1e-4){std::cout << "lens_active and emitter_distance = " << emitter_distance << ". emitter_distance should be strictly positive (>1e-4) " << std::endl; exit (EXIT_FAILURE);}
+		if(sensor_lens_active && sensor_distance < 1e-4){std::cout << "lens_active and sensor_distance = " << sensor_distance << ". sensor_distance should be strictly positive (>1e-4) " << std::endl; exit (EXIT_FAILURE);}
+	}
+
+
 	pfunc::HenyeyGreenstein *phase = new pfunc::HenyeyGreenstein(gVal);
 
     tvec::Vec3f emitter_lens_origin(mediumR[0], FPCONST(0.0), FPCONST(0.0));
@@ -487,7 +513,7 @@ int main(int argc, char **argv) {
 	/*
 	 * Initialize source parameters.
 	 */
-	const tvec::Vec3f lightOrigin(mediumR[0], FPCONST(0.0), FPCONST(0.0));
+	const tvec::Vec3f lightOrigin(mediumR[0] + emitter_distance, FPCONST(0.0), FPCONST(0.0));
 	const Float lightAngle = FPCONST(M_PI);
 	const tvec::Vec3f lightDir(std::cos(lightAngle), std::sin(lightAngle),
 							FPCONST(0.0));
@@ -497,7 +523,7 @@ int main(int argc, char **argv) {
 	/*
 	 * Initialize camera parameters.
 	 */
-	const tvec::Vec3f viewOrigin(mediumL[0], FPCONST(0.0), FPCONST(0.0));
+	const tvec::Vec3f viewOrigin(mediumL[0] - sensor_distance, FPCONST(0.0), FPCONST(0.0));
 	const tvec::Vec3f viewDir(-FPCONST(1.0), FPCONST(0.0), FPCONST(0.0));
 	const tvec::Vec3f viewX(FPCONST(0.0), -FPCONST(1.0), FPCONST(0.0));
 	const tvec::Vec2f viewPlane(FPCONST(emitter_sensor_size), FPCONST(emitter_sensor_size));
