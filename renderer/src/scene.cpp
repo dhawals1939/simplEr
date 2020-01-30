@@ -396,8 +396,7 @@ bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1,
 		Solver::Summary summary;
 		Solve(m_options, &problem, &summary);
 
-		if(summary.final_cost < m_us.getTol()){
-			std::cout << "converged" << std::endl;
+		if(summary.final_cost < m_us.getTol2()){
 			dirToSensor[0] = initialization[0];
 			dirToSensor[1] = initialization[1];
 			dirToSensor[2] = initialization[2];
@@ -409,7 +408,6 @@ bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1,
 		if(sampler() < m_us.getrrWeight())
 			weight = weight * m_us.getInvrrWeight();
 		else{
-			std::cout << "Not converged" << std::endl;
 			dirToSensor[0] = initialization[0];
 			dirToSensor[1] = initialization[1];
 			dirToSensor[2] = initialization[2];
@@ -455,6 +453,7 @@ void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, co
 
 	VectorType<Float> p = p1, oldp = p1, v = v_i, oldv;
 	v.normalize();
+	v = v*m_us.RIF(p, scaling);
 	oldv = v;
 
 	for(int i = 0; i < maxSteps; i++){
@@ -481,6 +480,11 @@ void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, co
 			opticalPathLength += currentStepSize*m_us.RIF(HALF * (oldp + p), scaling);
 		}
 	}
+
+//	if( (p2 - p).lengthSquared() > m_us.getTol2()){
+//		std::cout << "Gradient descent converged but the direct is diverging";
+//		exit(-1);
+//	}
 
 #ifdef PRINT_DEBUGLOG
 	std::cout << "Geometric length: " << t_l << std::endl;
