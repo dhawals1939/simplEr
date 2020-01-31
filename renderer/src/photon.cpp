@@ -36,9 +36,8 @@ bool Renderer<VectorType>::scatterOnce(VectorType<Float> &p, VectorType<Float> &
 template <template <typename> class VectorType>
 void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const VectorType<Float> &d,
 					const scn::Scene<VectorType> &scene, const med::Medium &medium,
-					smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling) const { // Adithya: Should this be in scene.cpp
+					smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance) const { // Adithya: Should this be in scene.cpp
 
-	Float totalOpticalDistance = 0;
 	VectorType<Float> p1 = p;
 	VectorType<Float> d1 = d;
 
@@ -81,12 +80,10 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 template <template <typename> class VectorType>
 void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<Float> &d,
 					const scn::Scene<VectorType> &scene, const med::Medium &medium,
-					smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling,
+					smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance,
 					scn::NEECostFunction<VectorType> &costFunction, Problem &problem, Float *initialization) const {
 
 	Assert(scene.getMediumBlock().inside(p));
-
-	Float totalOpticalDistance = 0;
 
 	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
 		VectorType<Float> pos(p), dir(d);
@@ -311,7 +308,8 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 		std::cout << "sampler:" << sampler[id]() << "\n";
 #endif
 		VectorType<Float> pos, dir;
-		if (scene.genRay(pos, dir, sampler[id])) {
+		Float totalDistance = 0;
+		if (scene.genRay(pos, dir, sampler[id], totalDistance)) {
 
 			/*
 			 * TODO: Direct energy computation is not implemented.
@@ -333,8 +331,8 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 #endif
 			Assert(!m_useDirect);
 			if(m_useDirect)
-				directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
-			scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, *costFunctions[id], problem[id], initializations+id*3);
+				directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
+			scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance, *costFunctions[id], problem[id], initializations+id*3);
 		}
 	}
 

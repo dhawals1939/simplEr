@@ -47,11 +47,11 @@ public:
 
 	void directTracing(const VectorType<Float> &pos, const VectorType<Float> &dir,
 					   const scn::Scene<VectorType> &scene, const med::Medium &medium,
-					   smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling) const; // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
+					   smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance) const; // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
 
 	void scatter(const VectorType<Float> &p, const VectorType<Float> &d,
 				const scn::Scene<VectorType> &scene, const med::Medium &medium,
-				smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling,
+				smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance,
 				scn::NEECostFunction<VectorType> &costFunction, Problem &problem, Float *initialization) const;
 
 	void scatterDeriv(const VectorType<Float> &p, const VectorType<Float> &d,

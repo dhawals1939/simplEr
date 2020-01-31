@@ -92,7 +92,7 @@ bool AreaSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorType<Float>
 }
 
 template <template <typename> class VectorType>
-bool AreaTexturedSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler) const {
+bool AreaTexturedSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler, Float &totalDistance) const {
 	pos = m_origin;
 
 	// sample pixel position first
@@ -114,6 +114,8 @@ bool AreaTexturedSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorTyp
 	dir[0] = -z;
 	dir[1] = zt*std::cos(phi);
 	dir[2] = zt*std::sin(phi);
+
+	propagateTillMedium(pos, dir, totalDistance);
 
 //	std::cout << dir[0] << ", " << dir[1] << ", " << dir[2] << std::endl;
 
@@ -557,9 +559,9 @@ void Scene<VectorType>::computefdfNEE(const VectorType<Float> &v_i, const Vector
 
 template <template <typename> class VectorType>
 bool Scene<VectorType>::genRay(VectorType<Float> &pos, VectorType<Float> &dir,
-						smp::Sampler &sampler) const {
+						smp::Sampler &sampler, Float &totalDistance) const {
 
-	if (m_source.sampleRay(pos, dir, sampler)) {
+	if (m_source.sampleRay(pos, dir, sampler, totalDistance)) {
 //		Float dist = FPCONST(0.0);
 //		Assert(std::abs(dir.x) >= M_EPSILON);
 //		if (dir.x >= M_EPSILON) {
@@ -579,9 +581,10 @@ bool Scene<VectorType>::genRay(VectorType<Float> &pos, VectorType<Float> &dir,
 template <template <typename> class VectorType>
 bool Scene<VectorType>::genRay(VectorType<Float> &pos, VectorType<Float> &dir,
 						smp::Sampler &sampler,
-						VectorType<Float> &possrc, VectorType<Float> &dirsrc) const {
+						VectorType<Float> &possrc, VectorType<Float> &dirsrc,
+						Float &totalDistance) const {
 
-	if (m_source.sampleRay(pos, dir, sampler)) {
+	if (m_source.sampleRay(pos, dir, sampler, totalDistance)) {
 		possrc = pos;
 		dirsrc = dir;
 //		Float dist = FPCONST(0.0);
@@ -887,6 +890,11 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 #else
 	Float totalOpticalDistance = distTravelled;
 #endif
+
+	Float distanceToSensor = 0;
+	if(!m_camera.propagateTillSensor(p1, refrDirToSensor, distanceToSensor))
+		return;
+	totalOpticalDistance += distanceToSensor;
 
 	Float totalPhotonValue = val*(2*M_PI)
 			* std::exp(-medium.getSigmaT() * distToSensor)

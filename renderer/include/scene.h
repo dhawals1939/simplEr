@@ -256,7 +256,7 @@ struct AreaTexturedSource {
 		m_textureSampler.normalize();
 	}
 
-	bool sampleRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler) const;
+	bool sampleRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler, Float &totalDistance) const;
 
 	inline const VectorType<Float>& getOrigin() const {
 		return m_origin;
@@ -760,9 +760,9 @@ public:
 					smp::Sampler &sampler, const Float &scaling) const;
 	bool movePhoton(VectorType<Float> &p, VectorType<Float> &d, Float dist, Float &totalOpticalDistance,
 					smp::Sampler &sampler, const Float &scaling) const;
-	bool genRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler) const;
+	bool genRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler, Float &totalDistance) const;
 	bool genRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler,
-				VectorType<Float> &possrc, VectorType<Float> &dirsrc) const;
+				VectorType<Float> &possrc, VectorType<Float> &dirsrc, Float &totalDistance) const;
 	void addEnergyToImage(image::SmallImage &img, const VectorType<Float> &p,
 						Float pathlength, Float val) const;
 
