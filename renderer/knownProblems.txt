@@ -1,0 +1,1 @@
+Lens distance algorithm is inaccurate. Basically, light starting from same focalpoint is having different lengths.
