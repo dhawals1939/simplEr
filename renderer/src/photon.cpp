@@ -44,18 +44,16 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 	Float distToSensor;
 	if(!scene.movePhotonTillSensor(p1, d1, distToSensor, totalOpticalDistance, sampler, scaling))
 		return;
-	VectorType<Float> refrDirToSensor = d1;
 	Float fresnelWeight = FPCONST(1.0);
-
-	Float ior = scene.getMediumIor();
 
 #ifndef OMEGA_TRACKING
 	d1.normalize();
 #endif
+	Float ior = scene.getMediumIor(p1, scaling);
+	VectorType<Float> refrDirToSensor = d1;
 
 	if (ior > FPCONST(1.0)) {
-		for (int iter = 1; iter < d1.dim; ++iter)
-			refrDirToSensor[iter] = d1[iter] * ior;
+		refrDirToSensor.x = refrDirToSensor.x/ior;
 		refrDirToSensor.normalize();
 #ifndef USE_NO_FRESNEL
 		fresnelWeight = (FPCONST(1.0) -
@@ -64,16 +62,24 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 			/ ior / ior;
 #endif
 	}
+
 	Float foreshortening = dot(refrDirToSensor, scene.getCamera().getDir())/dot(d1, scene.getCamera().getDir());
 	Assert(foreshortening >= FPCONST(0.0));
-
 
 #if USE_SIMPLIFIED_TIMING
 	totalDistance = (distToSensor) * ior;
 #endif
+
+	Float distanceToSensor = 0;
+	if(!scene.getCamera().propagateTillSensor(p1, refrDirToSensor, distanceToSensor))
+		return;
+	totalOpticalDistance += distanceToSensor;
+
+
 	Float totalPhotonValue = weight
 			* std::exp(-medium.getSigmaT() * distToSensor)
 			* fresnelWeight;
+
 	scene.addEnergyToImage(img, p1, totalOpticalDistance, totalPhotonValue);
 }
 

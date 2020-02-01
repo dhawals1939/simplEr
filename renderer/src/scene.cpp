@@ -115,14 +115,12 @@ bool AreaTexturedSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorTyp
 	dir[1] = zt*std::cos(phi);
 	dir[2] = zt*std::sin(phi);
 
-	propagateTillMedium(pos, dir, totalDistance);
+	return propagateTillMedium(pos, dir, totalDistance);
 
 //	std::cout << dir[0] << ", " << dir[1] << ", " << dir[2] << std::endl;
 
 //	if(m_emittertype != EmitterType::directional)
 //		std::cout << "Diffuse source not implemented; only directional source is implemented";
-
-	return true;
 }
 
 template <template <typename> class VectorType>
@@ -867,10 +865,10 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 
 	VectorType<Float> refrDirToSensor = dirToSensor;
 	Float fresnelWeight = FPCONST(1.0);
+	Float ior = getMediumIor(p1, scaling);
 
-	if (m_ior > FPCONST(1.0)) {
-		for (int iter = 1; iter < dirToSensor.dim; ++iter)
-			refrDirToSensor[iter] = dirToSensor[iter] * m_ior;
+	if (ior > FPCONST(1.0)) {
+		refrDirToSensor.x = refrDirToSensor.x/ior;
 		refrDirToSensor.normalize(); 
 #ifdef PRINT_DEBUGLOG
         std::cout << "refrDir: (" << refrDirToSensor[0] << ", " <<  refrDirToSensor[1] << ", " << refrDirToSensor[2] << ");" << std::endl;
@@ -878,8 +876,8 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 #ifndef USE_NO_FRESNEL
 		fresnelWeight = (FPCONST(1.0) -
 		util::fresnelDielectric(dirToSensor.x, refrDirToSensor.x,
-			FPCONST(1.0) / m_ior))
-			/ m_ior / m_ior;
+			FPCONST(1.0) / ior))
+			/ ior / ior;
 #endif
 	}
 	Float foreshortening = dot(refrDirToSensor, m_camera.getDir())/dot(dirToSensor, m_camera.getDir());

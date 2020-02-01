@@ -94,8 +94,8 @@ struct Lens {
                       m_focalLength(focalLength),
                       m_active(active){
     }
-public:
-    inline const Float deflect(const VectorType<Float> &pos, VectorType<Float> &dir) const{
+
+    inline const bool deflect(const VectorType<Float> &pos, VectorType<Float> &dir, Float &totalDistance) const{
         /* Deflection computation: 
          * Point going through the center of lens and parallel to dir is [pos.x, 0, 0]. Ray from this point goes straight
          * This ray meets focal plane at (pos.x - d[0] * f/d[0], -d[1] * f/d[0], -d[2] * f/d[0]) (assuming -x direction of propagation of light)
@@ -113,16 +113,20 @@ public:
         dir[0] = -m_focalLength;
         dir[1] = dir[1]*invd*m_focalLength - pos[1];
         dir[2] = dir[2]*invd*m_focalLength - pos[2];
-        Float dist = m_focalLength*invd - dir.length();
+        totalDistance += m_focalLength*invd - dir.length();
         dir.normalize();
-        return dist; // should return additional path length added by the lens. 
+        return true; // should return additional path length added by the lens.
     }
 
+public:
     inline const bool propagateTillLens(VectorType<Float> &pos, VectorType<Float> &dir, Float &totalDistance) const {
         Float dist = -(pos[0]-m_origin[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
         pos += dist*dir;
-        totalDistance += dist + deflect(pos, dir);
-        return true;
+        totalDistance += dist;
+        if(m_active)
+        	return deflect(pos, dir, totalDistance);
+        else
+        	return true;
     }
 
     inline const bool isActive() const {
@@ -197,12 +201,11 @@ struct Camera {
 
 	inline const bool propagateTillSensor(VectorType<Float> &pos, VectorType<Float> &dir, Float &totalDistance) const{
 		//propagate till lens
-		if(m_lens.isActive() && !m_lens.propagateTillLens(pos, dir, totalDistance))
+		if(m_lens.isActive() && !m_lens.deflect(pos, dir, totalDistance))
 			return false;
 		//propagate from lens to sensor
 		Float dist = (m_origin[0]-pos[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
 		pos += dist*dir;
-
 #ifdef PRINT_DEBUGLOG
 		if(dist < 0){
 			std::cout << "Propagation till sensor failed; dying" << std::endl;
@@ -276,7 +279,7 @@ struct AreaTexturedSource {
 
 	inline const bool propagateTillMedium(VectorType<Float> &pos, VectorType<Float> &dir, Float &totalDistance) const{
 		//propagate till lens
-		if(m_lens.isActive() && !m_lens.propagateTillLens(pos, dir, totalDistance))
+		if(!m_lens.propagateTillLens(pos, dir, totalDistance))
 			return false;
 		return true;
 	}
