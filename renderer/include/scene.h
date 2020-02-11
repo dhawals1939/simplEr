@@ -378,6 +378,7 @@ struct US {
 
     Float er_stepsize;
     int m_precision;
+    Float m_gapEndLocX;
 
 #ifdef SPLINE_RIF
     spline::Spline<2> m_spline;
@@ -386,7 +387,7 @@ struct US {
     US(const Float& f_u, const Float& speed_u,
                  const Float& n_o, const Float& n_max, const int& mode,
                  const VectorType<Float> &axis_uz, const VectorType<Float> &axis_ux, const VectorType<Float> &p_u, const Float &er_stepsize,
-				 const Float &tol, const Float &rrWeight, const int &precision
+				 const Float &tol, const Float &rrWeight, const int &precision, const Float &gapEndLocX
 #ifdef SPLINE_RIF
 				 , const Float xmin[], const Float xmax[],  const int N[]
 #endif
@@ -413,6 +414,7 @@ struct US {
 		this->rrWeight       = rrWeight;
 		this->invrrWeight    = 1/rrWeight;
 		this->m_precision    = precision;
+        this->m_gapEndLocX   = gapEndLocX;
 
 #ifdef SPLINE_RIF
 		Float *data = new Float[N[0]*N[1]];
@@ -437,6 +439,8 @@ struct US {
     }
 
     inline Float RIF(const VectorType<Float> &p, const Float &scaling) const{
+        if(p.x > m_gapEndLocX)
+            return n_o;
 #ifndef SPLINE_RIF
     	return bessel_RIF(p, scaling);
 #else
@@ -445,6 +449,8 @@ struct US {
     }
 
     inline const VectorType<Float> dRIF(const VectorType<Float> &q, const Float &scaling) const{
+        if(q.x > m_gapEndLocX)
+            return VectorType<Float>(0.0);
 #ifndef SPLINE_RIF
     	return bessel_dRIF(q, scaling);
 #else
@@ -453,6 +459,8 @@ struct US {
     }
 
     inline const Matrix3x3 HessianRIF(const VectorType<Float> &p, const Float &scaling) const{
+        if(p.x > m_gapEndLocX)
+            return Matrix3x3(0.0);
 #ifndef SPLINE_RIF
     	return bessel_HessianRIF(p, scaling);
 #else
@@ -637,7 +645,7 @@ public:
 			const VectorType<Float> &axis_ux,
 			const VectorType<Float> &p_u,
 			const Float &er_stepsize,
-			const Float &tol, const Float &rrWeight, const int &precision
+			const Float &tol, const Float &rrWeight, const int &precision, const Float &gapEndLocX
 #ifdef SPLINE_RIF
 			, const Float xmin[], const Float xmax[],  const int N[]
 #endif
@@ -653,7 +661,7 @@ public:
 #endif
 				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange, sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active),
 				m_bsdf(FPCONST(1.0), ior),
-				m_us(f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision
+				m_us(f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, gapEndLocX
 #ifdef SPLINE_RIF
 						, xmin, xmax, N
 #endif

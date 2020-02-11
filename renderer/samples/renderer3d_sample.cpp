@@ -125,6 +125,7 @@ int main(int argc, char **argv) {
 	Float speed_u = 1500;
 	Float n_o = 1.3333;
 	Float n_max = 1e-3;
+    Float gap = .0; // Gap is the distance till which US is not ON and only scattering medium is present. Building this feature for Matteo
 	int mode = 0;
 	Float er_stepsize = 1e-3;
 	int precision = 8; // Number of dec. precision bits till which we accurately make er_step either because the sampled distances are not an integral multiple of the er_stepsize or because the boundary is hit before.
@@ -157,6 +158,7 @@ int main(int argc, char **argv) {
 	bool bspeed_u=false;
 	bool bn_o=false;
 	bool bn_max=false;
+	bool bgap=false;
 	bool bmode=false;
 	bool ber_stepsize=false;
 	bool bdirectTol=false;
@@ -237,6 +239,9 @@ int main(int argc, char **argv) {
 		}else if(param[0].compare("n_max")==0){
  			bn_max=true;
 			n_max = stof(param[1]);
+		}else if(param[0].compare("gap")==0){
+ 			bgap=true;
+			gap = stof(param[1]);
 		}else if(param[0].compare("mode")==0){
  			bmode=true;
 			mode = stoi(param[1]);
@@ -382,6 +387,7 @@ int main(int argc, char **argv) {
 					  << "speed_u, "
 					  << "n_o, "
 					  << "n_max, "
+					  << "gap, "
 					  << "mode, "
 					  << "er_stepsize, "
 					  << "directTol, "
@@ -429,6 +435,7 @@ int main(int argc, char **argv) {
 		if(!bspeed_u) {std::cout << "speed_u is not specified " << std::endl;}
 		if(!bn_o) {std::cout << "n_o is not specified " << std::endl;}
 		if(!bn_max) {std::cout << "n_max is not specified " << std::endl;}
+		if(!bgap) {std::cout << "gap is not specified " << std::endl;}
 		if(!bmode) {std::cout << "mode is not specified " << std::endl;}
 		if(!ber_stepsize) {std::cout << "er_stepsize is not specified " << std::endl;}
 		if(!bdirectTol) {std::cout << "directTol is not specified " << std::endl;}
@@ -460,7 +467,7 @@ int main(int argc, char **argv) {
 		if(!bsensor_lens_active) {std::cout << "sensor_lens_active is not specified " << std::endl;}
 		if(!bprintInputs) {std::cout << "printInputs is not specified " << std::endl;}
 
-        if(!(bthreads && bprecision && bnumPhotons && boutFilePrefix && bsigmaT && balbedo && bgVal && bf_u && bspeed_u && bn_o && bn_max && bmode && ber_stepsize && bdirectTol && brrWeight && bprojectorTexture && buseDirect && buseAngularSampling && bmaxDepth && bmaxPathlength && bpathLengthMin && bpathLengthMax && bpathLengthBins && bspatialX && bspatialY && bhalfThetaLimit && bemitter_size && bsensor_size && bmediumLx && bmediumRx && bdistribution && bgOrKappa && bemitter_distance && bemitter_lens_aperture && bemitter_lens_focalLength && bemitter_lens_active && bsensor_distance && bsensor_lens_aperture && bsensor_lens_focalLength && bsensor_lens_active && bprintInputs)){
+        if(!(bthreads && bprecision && bnumPhotons && boutFilePrefix && bsigmaT && balbedo && bgVal && bf_u && bspeed_u && bn_o && bn_max && bgap && bmode && ber_stepsize && bdirectTol && brrWeight && bprojectorTexture && buseDirect && buseAngularSampling && bmaxDepth && bmaxPathlength && bpathLengthMin && bpathLengthMax && bpathLengthBins && bspatialX && bspatialY && bhalfThetaLimit && bemitter_size && bsensor_size && bmediumLx && bmediumRx && bdistribution && bgOrKappa && bemitter_distance && bemitter_lens_aperture && bemitter_lens_focalLength && bemitter_lens_active && bsensor_distance && bsensor_lens_aperture && bsensor_lens_focalLength && bsensor_lens_active && bprintInputs)){
             std::cout << "crashing as one or more inputs is absent" << std::endl;
             exit (EXIT_FAILURE);
         }
@@ -476,6 +483,7 @@ int main(int argc, char **argv) {
 		std::cout << "speed_u = " 	<< speed_u 		<< std::endl;
 		std::cout << "n_o = " 		<< n_o 			<< std::endl;
 		std::cout << "n_max  = " 	<< n_max  		<< std::endl;
+		std::cout << "gap = " 	<< gap  		<< std::endl;
 		std::cout << "mode = " 		<< mode 		<< std::endl;
 		std::cout << "projectorTexture = "<< projectorTexture << std::endl;
 		std::cout << "useDirect = " << useDirect << std::endl;
@@ -510,12 +518,14 @@ int main(int argc, char **argv) {
 		if(sensor_distance < 0) {std::cout << "sensor_distance = " << sensor_distance << " should be strictly non-zero" << std::endl; exit (EXIT_FAILURE);}
 		if(emitter_lens_active && emitter_distance < 1e-4){std::cout << "lens_active and emitter_distance = " << emitter_distance << ". emitter_distance should be strictly positive (>1e-4) " << std::endl; exit (EXIT_FAILURE);}
 		if(sensor_lens_active && sensor_distance < 1e-4){std::cout << "lens_active and sensor_distance = " << sensor_distance << ". sensor_distance should be strictly positive (>1e-4) " << std::endl; exit (EXIT_FAILURE);}
+        if(bgap && (gap < 0 || gap > (mediumR[0] - mediumL[0]))){std::cout << "invalid gap between the emitter and the US" << gap << std::endl;}
 	}
 
 
 	pfunc::HenyeyGreenstein *phase = new pfunc::HenyeyGreenstein(gVal);
 
     tvec::Vec3f emitter_lens_origin(mediumR[0], FPCONST(0.0), FPCONST(0.0));
+    Float gapEndLocX = emitter_lens_origin.x - gap;
     tvec::Vec3f sensor_lens_origin(mediumL[0], FPCONST(0.0), FPCONST(0.0));
 
 	/*
@@ -553,7 +563,7 @@ int main(int argc, char **argv) {
 						distribution, gOrKappa,
 						emitter_lens_origin, emitter_lens_aperture, emitter_lens_focalLength, emitter_lens_active,
 						sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active,
-						f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight, precision
+						f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight, precision, gapEndLocX
 #ifdef SPLINE_RIF
 						, xmin, xmax, N
 #endif

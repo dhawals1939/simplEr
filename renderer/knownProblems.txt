@@ -1,2 +1,3 @@
-Lens distance algorithm is inaccurate. Basically, light starting from same focalpoint is having different lengths.
+Lens distance algorithm is slightly inaccurate. Basically, light starting from same focalpoint is having slightly different path lengths.
 The final importance step to angle is not incorporated. To be copy pasted from crdr_angletracing code
+gapEndLocX functionality is not very accurate. The little fresnel factor and the snell's law after the gap distance is not incorporated. This is a non-trivial feature to add.
