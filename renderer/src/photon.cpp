@@ -325,13 +325,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 			std::cout << "Intial dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ") \n";
 #endif
 
-#ifndef UNMODULATED
-			Float scaling = 1;
-			//			Float scaling = -1; % Negative modulated
-#else
-			scaling = std::sin(scene.getUSFrequency()*sampler[id]());
-#endif
-//			std::cout << "scaling:" << scaling <<std::endl;
+		Float scaling = std::sin(scene.getUSPhi_min() + scene.getUSPhi_range()*sampler[id]());
 #ifndef OMEGA_TRACKING
 			dir *= scene.getMediumIor(pos, scaling);
 #endif
