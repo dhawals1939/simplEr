@@ -1,11 +1,14 @@
 import os
 
-globalcmd = "samples/renderer3d_sample_bin threads=-1 \
+baseFolder = "/home/ubuntu/AOOCT_V1/"
+#baseFolder = "/home/igkiou/ercrdr_angletracingNEE/"
+#baseFolder = "/mnt/da64b98f-9fd9-4b2c-994e-ca7276846901/Dropbox/AccoustoOptics+InvRendering/CodeEtc/SkeletalRenderer/ercrdr_angletracingNEE/"
+globalcmd = baseFolder + "renderer/samples/renderer3d_sample_bin threads=-1 \
 stricts=true \
 threads=-1 \
 precision=4 \
 numPhotons=10000000 \
-outFilePrefix=delete \
+outFilePrefix=" + baseFolder + "delete \
 sigmaT=166.6667 \
 albedo=.99 \
 gVal=.9 \
@@ -19,7 +22,7 @@ mode=0 \
 er_stepsize=1e-3 \
 directTol=1e-6 \
 rrWeight=.001 \
-projectorTexture=/home/ubuntu/AOOCT_V1/renderer/images/Disk_501.pfm \
+projectorTexture=" + baseFolder + "renderer/images/Disk_501.pfm \
 useDirect=true \
 useAngularSampling=True \
 maxDepth=-1 \
@@ -49,13 +52,10 @@ printInputs=true "
 #projectorTexture=/home/ubuntu/AOOCT_V1/renderer/images/Disk_501.pfm \
 
 printCMDs = True 
-executeCMDs = True 
+executeCMDs = False 
 AWS = True 
 
 
-baseFolder = "/home/ubuntu/AOOCT_V1/"
-#baseFolder = "/home/igkiou/ercrdr_angletracingNEE/"
-#baseFolder = "/mnt/da64b98f-9fd9-4b2c-994e-ca7276846901/Dropbox/AccoustoOptics+InvRendering/CodeEtc/SkeletalRenderer/ercrdr_angletracingNEE/"
 
 outFilePrefix= baseFolder + "renderings/characterization/1M/ER_"
 
@@ -75,9 +75,9 @@ for r in range(startIndex, startIndex + runs):
         variablecmd = " mediumLx=-" + str(float(transducerlengths[s])/2) + \
                       " mediumRx=" + str(float(transducerlengths[s])/2) + \
                       " n_max=" + n_maxs[s] + \
-                      " sigmaT=" + str(5/float(transducerlengths[s]) + \
+                      " sigmaT=" + str(5/float(transducerlengths[s])) + \
                       " outFilePrefix=" + outFilePrefix + "transducerlengths_" + transducerlengths[s] 
-        cmd = baseFolder + "/renderer/" + globalcmd + variablecmd
+        cmd = globalcmd + variablecmd
         if printCMDs:
             print(cmd)
         if executeCMDs:
@@ -98,7 +98,7 @@ del n_maxs
 #    for s in range(len(MFPs)):
 #        variablecmd = " sigmaT=" + str(float(MFPs[s])/0.030) + \
 #                      " outFilePrefix=" + outFilePrefix + "MFPs_" + MFPs[s] 
-#        cmd = baseFolder + "/renderer/" + globalcmd + variablecmd
+#        cmd = globalcmd + variablecmd
 #        if printCMDs:
 #            print(cmd)
 #        if executeCMDs:
@@ -117,7 +117,7 @@ del n_maxs
 #    for s in range(len(albedos)):
 #        variablecmd = " albedo=" + albedos[s] + \
 #                      " outFilePrefix=" + outFilePrefix + "albedo_" + albedos[s] 
-#        cmd = baseFolder + "/renderer/" + globalcmd + variablecmd
+#        cmd = globalcmd + variablecmd
 #        if printCMDs:
 #            print(cmd)
 #        if executeCMDs:
@@ -136,7 +136,7 @@ del n_maxs
 #    for s in range(len(gs)):
 #        variablecmd = " gVal=" + gs[s] + \
 #                      " outFilePrefix=" + outFilePrefix + "g_" + gs[s] 
-#        cmd = baseFolder + "/renderer/" + globalcmd + variablecmd
+#        cmd = globalcmd + variablecmd
 #        if printCMDs:
 #            print(cmd)
 #        if executeCMDs:
@@ -158,7 +158,7 @@ del n_maxs
 #        variablecmd = " f_u=" + freqs[s] + \
 #                      " n_max=" + n_maxs[s] + \
 #                      " outFilePrefix=" + outFilePrefix + "freq_" + freqs[s] 
-#        cmd = baseFolder + "/renderer/" + globalcmd + variablecmd
+#        cmd = globalcmd + variablecmd
 #        if printCMDs:
 #            print(cmd)
 #        if executeCMDs:
@@ -181,7 +181,7 @@ del n_maxs
 #    for s in range(len(n_maxs)):
 #        variablecmd = " n_max=" + n_maxs[s] + \
 #                      " outFilePrefix=" + outFilePrefix + "n_max_" + n_maxs[s] 
-#        cmd = baseFolder + "/renderer/" + globalcmd + variablecmd
+#        cmd = globalcmd + variablecmd
 #        if printCMDs:
 #            print(cmd)
 #        if executeCMDs:
@@ -200,7 +200,7 @@ del n_maxs
 #    for s in range(len(emitter_sizes)):
 #        variablecmd = " emitter_size=" + emitter_sizes[s] + \
 #                      " outFilePrefix=" + outFilePrefix + "ratio_" + str(float(emitter_sizes[s])/.002)
-#        cmd = baseFolder + "/renderer/" + globalcmd + variablecmd
+#        cmd = globalcmd + variablecmd
 #        if printCMDs:
 #            print(cmd)
 #        if executeCMDs:
@@ -223,7 +223,7 @@ for r in range(startIndex, startIndex + runs):
         variablecmd = " phi_min=" + str(phi_min) + \
                       " phi_max=" + str(phi_max) + \
                       " outFilePrefix=" + outFilePrefix + "pulsed_" + pulsewidths[s]
-        cmd = baseFolder + "/renderer/" + globalcmd + variablecmd
+        cmd = globalcmd + variablecmd
         if printCMDs:
             print(cmd)
         if executeCMDs:
