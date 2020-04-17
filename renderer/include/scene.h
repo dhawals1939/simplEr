@@ -382,6 +382,8 @@ struct US {
     int m_precision;
     Float m_gapEndLocX;
 
+    bool m_useInitializationHack;
+
 #ifdef SPLINE_RIF
     spline::Spline<2> m_spline;
 #endif
@@ -389,7 +391,7 @@ struct US {
     US(const Float& f_u, const Float& speed_u,
                  const Float& n_o, const Float& n_max, const Float& phi_min, const Float& phi_max, const int& mode,
                  const VectorType<Float> &axis_uz, const VectorType<Float> &axis_ux, const VectorType<Float> &p_u, const Float &er_stepsize,
-				 const Float &tol, const Float &rrWeight, const int &precision, const Float &gapEndLocX
+				 const Float &tol, const Float &rrWeight, const int &precision, const Float &gapEndLocX, const bool &useInitializationHack
 #ifdef SPLINE_RIF
 				 , const Float xmin[], const Float xmax[],  const int N[]
 #endif
@@ -419,6 +421,8 @@ struct US {
 		this->invrrWeight    = 1/rrWeight;
 		this->m_precision    = precision;
         this->m_gapEndLocX   = gapEndLocX;
+
+        this->m_useInitializationHack = useInitializationHack;
 
 #ifdef SPLINE_RIF
 		Float *data = new Float[N[0]*N[1]];
@@ -651,7 +655,7 @@ public:
 			const VectorType<Float> &axis_ux,
 			const VectorType<Float> &p_u,
 			const Float &er_stepsize,
-			const Float &tol, const Float &rrWeight, const int &precision, const Float &gapEndLocX
+			const Float &tol, const Float &rrWeight, const int &precision, const Float &gapEndLocX, const bool &useInitializationHack
 #ifdef SPLINE_RIF
 			, const Float xmin[], const Float xmax[],  const int N[]
 #endif
@@ -667,7 +671,7 @@ public:
 #endif
 				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange, sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active),
 				m_bsdf(FPCONST(1.0), ior),
-				m_us(f_u, speed_u, n_o, n_max, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, gapEndLocX
+				m_us(f_u, speed_u, n_o, n_max, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, gapEndLocX, useInitializationHack
 #ifdef SPLINE_RIF
 						, xmin, xmax, N
 #endif

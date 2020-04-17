@@ -132,6 +132,7 @@ int main(int argc, char **argv) {
 	Float er_stepsize = 1e-3;
 	int precision = 8; // Number of dec. precision bits till which we accurately make er_step either because the sampled distances are not an integral multiple of the er_stepsize or because the boundary is hit before.
 	Float directTol = 1e-5; // 10 um units
+	bool useInitializationHack = true; // initializationHack forces the direction connections to start from the line connecting both the end points
 	Float rrWeight  = 1e-2; // only one in hundred survives second path call
 
 
@@ -166,10 +167,11 @@ int main(int argc, char **argv) {
 	bool bmode=false;
 	bool ber_stepsize=false;
 	bool bdirectTol=false;
+    bool buseInitializationHack=false;
 	bool brrWeight=false;
 	bool bprojectorTexture=false;
 	bool buseDirect=false;
-	bool buseAngularSampling=false;
+    bool buseAngularSampling=false;
 	bool bmaxDepth=false;
 	bool bmaxPathlength=false;
 	bool bpathLengthMin=false;
@@ -261,6 +263,17 @@ int main(int argc, char **argv) {
 		}else if(param[0].compare("directTol")==0){
  			bdirectTol=true;
 			directTol = stof(param[1]);
+        }else if(param[0].compare("useInitializationHack")==0){ 
+ 			buseInitializationHack=true;
+			transform(param[1].begin(), param[1].end(), param[1].begin(), ::tolower);
+			if(param[1].compare("true")==0) 
+				useInitializationHack = true;
+			else if(param[1].compare("false")==0) 
+				useInitializationHack = false;
+			else{
+				std::cerr << "useInitializationHack should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
+				return -1;
+			}
 		}else if(param[0].compare("rrWeight")==0){
  			brrWeight=true;
 			rrWeight = stof(param[1]);
@@ -580,7 +593,7 @@ int main(int argc, char **argv) {
 						distribution, gOrKappa,
 						emitter_lens_origin, emitter_lens_aperture, emitter_lens_focalLength, emitter_lens_active,
 						sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active,
-						f_u, speed_u, n_o, n_max, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight, precision, gapEndLocX
+						f_u, speed_u, n_o, n_max, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight, precision, gapEndLocX, useInitializationHack
 #ifdef SPLINE_RIF
 						, xmin, xmax, N
 #endif

@@ -388,7 +388,12 @@ bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1,
 		v = p2 - p1; // Hack to make direct connections match the crdr.
 		v.normalize();
 #else
-		sampleRandomDirection(v, sampler);
+		if(m_us.m_useInitializationHack){
+			v = p2 - p1; // Hack to make direct connections match the crdr.
+			v.normalize();
+		}
+		else
+			sampleRandomDirection(v, sampler);
 #endif
 
 //		CostFunction* cost_function = new NEECostFunction<tvec::TVector3>(this, p1, p2, dpdv0, dvdv0, scaling);
