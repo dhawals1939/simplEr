@@ -382,7 +382,14 @@ bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1,
 
 	while(true){
 		VectorType<Float> v;
+
+
+#ifdef PRINT_DEBUGLOG
+		v = p2 - p1; // Hack to make direct connections match the crdr.
+		v.normalize();
+#else
 		sampleRandomDirection(v, sampler);
+#endif
 
 //		CostFunction* cost_function = new NEECostFunction<tvec::TVector3>(this, p1, p2, dpdv0, dvdv0, scaling);
 //		Problem problem;
@@ -435,13 +442,13 @@ void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, co
 		t_l = M_MAX;
 		opticalPathLength = M_MAX;
 	}
-
-#ifdef PRINT_DEBUGLOG
-	std::cout << "Trying to connect: " << std::endl;
-	std::cout << "P1: (" << p1.x  << ", " << p1.y  << ", " << p1.z  << "); " << std::endl;
-	std::cout << "P2: (" << p2.x  << ", " << p2.y  << ", " << p2.z  << "); " << std::endl;
-	std::cout << "Vi: (" << v_i.x << ", " << v_i.y << ", " << v_i.z << "); " << std::endl;
-#endif
+//
+//#ifdef PRINT_DEBUGLOG
+//	std::cout << "Trying to connect: " << std::endl;
+//	std::cout << "P1: (" << p1.x  << ", " << p1.y  << ", " << p1.z  << "); " << std::endl;
+//	std::cout << "P2: (" << p2.x  << ", " << p2.y  << ", " << p2.z  << "); " << std::endl;
+//	std::cout << "Vi: (" << v_i.x << ", " << v_i.y << ", " << v_i.z << "); " << std::endl;
+//#endif
 
 	t_l = 0 ; // t_l is geometric length, required for computation of the radiance
 
@@ -486,9 +493,9 @@ void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, co
 //		exit(-1);
 //	}
 
-#ifdef PRINT_DEBUGLOG
-	std::cout << "Geometric length: " << t_l << std::endl;
-#endif
+//#ifdef PRINT_DEBUGLOG
+//	std::cout << "Geometric length: " << t_l << std::endl;
+//#endif
 }
 
 template <template <typename> class VectorType>
@@ -991,7 +998,7 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
     std::cout << "exp term:" << std::exp(-medium.getSigmaT() * distToSensor) << std::endl;
     std::cout << "phase function term:" << medium.getPhaseFunction()->f(d/d.length(), dirToSensor) << std::endl;
     std::cout << "fresnel weight:" << fresnelWeight << std::endl;
-    std::cout << "weight:" << weight << std::endl;
+//    std::cout << "weight:" << weight << std::endl;
     std::cout << "foreshortening:" << foreshortening << std::endl;
     std::cout << "falloff:" << falloff << std::endl;
 #endif

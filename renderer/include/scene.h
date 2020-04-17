@@ -207,7 +207,7 @@ struct Camera {
 		Float dist = (m_origin[0]-pos[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
 		pos += dist*dir;
 #ifdef PRINT_DEBUGLOG
-		if(dist < 0){
+		if(dist < -1e-4){
 			std::cout << "Propagation till sensor failed; dying" << std::endl;
 			exit(EXIT_FAILURE);
 		}

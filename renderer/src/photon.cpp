@@ -325,7 +325,12 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 			std::cout << "Intial dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ") \n";
 #endif
 
+#ifdef PRINT_DEBUGLOG
+		Float scaling = 1; //Hack to match the logs.
+#else
 		Float scaling = std::sin(scene.getUSPhi_min() + scene.getUSPhi_range()*sampler[id]());
+#endif
+
 #ifndef OMEGA_TRACKING
 			dir *= scene.getMediumIor(pos, scaling);
 #endif
