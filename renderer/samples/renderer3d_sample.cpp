@@ -465,6 +465,7 @@ int main(int argc, char **argv) {
 		if(!bgap) {std::cout << "gap is not specified " << std::endl;}
 		if(!bmode) {std::cout << "mode is not specified " << std::endl;}
 		if(!ber_stepsize) {std::cout << "er_stepsize is not specified " << std::endl;}
+		if(!buseInitializationHack) {std::cout << "buseInitializationHack is not specified " << std::endl;}
 		if(!bdirectTol) {std::cout << "directTol is not specified " << std::endl;}
 		if(!brrWeight) {std::cout << "rrWeight is not specified " << std::endl;}
 		if(!bprojectorTexture) {std::cout << "projectorTexture is not specified " << std::endl;}
@@ -494,7 +495,7 @@ int main(int argc, char **argv) {
 		if(!bsensor_lens_active) {std::cout << "sensor_lens_active is not specified " << std::endl;}
 		if(!bprintInputs) {std::cout << "printInputs is not specified " << std::endl;}
 
-        if(!(bthreads && bprecision && bnumPhotons && boutFilePrefix && bsigmaT && balbedo && bgVal && bf_u && bspeed_u && bn_o && bn_max && bphi_min && bphi_max && bgap && bmode && ber_stepsize && bdirectTol && brrWeight && bprojectorTexture && buseDirect && buseAngularSampling && bmaxDepth && bmaxPathlength && bpathLengthMin && bpathLengthMax && bpathLengthBins && bspatialX && bspatialY && bhalfThetaLimit && bemitter_size && bsensor_size && bmediumLx && bmediumRx && bdistribution && bgOrKappa && bemitter_distance && bemitter_lens_aperture && bemitter_lens_focalLength && bemitter_lens_active && bsensor_distance && bsensor_lens_aperture && bsensor_lens_focalLength && bsensor_lens_active && bprintInputs)){
+        if(!(bthreads && bprecision && bnumPhotons && boutFilePrefix && bsigmaT && balbedo && bgVal && bf_u && bspeed_u && bn_o && bn_max && bphi_min && bphi_max && bgap && bmode && ber_stepsize && bdirectTol && buseInitializationHack && brrWeight && bprojectorTexture && buseDirect && buseAngularSampling && bmaxDepth && bmaxPathlength && bpathLengthMin && bpathLengthMax && bpathLengthBins && bspatialX && bspatialY && bhalfThetaLimit && bemitter_size && bsensor_size && bmediumLx && bmediumRx && bdistribution && bgOrKappa && bemitter_distance && bemitter_lens_aperture && bemitter_lens_focalLength && bemitter_lens_active && bsensor_distance && bsensor_lens_aperture && bsensor_lens_focalLength && bsensor_lens_active && bprintInputs)){
             std::cout << "crashing as one or more inputs is absent" << std::endl;
             exit (EXIT_FAILURE);
         }
