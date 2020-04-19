@@ -11,6 +11,9 @@
 #include "math.h"
 #include <boost/math/special_functions.hpp>
 
+#include <bits/stdc++.h>
+#include <chrono>
+
 namespace scn {
 
 
@@ -947,7 +950,26 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 		Float weight = (Float) 1.0;
 		VectorType<Float> dirToSensor;
 		Float distToSensor;
-		if(!makeSurfaceDirectConnection(p, sensorPoint, scaling, sampler, distTravelled, dirToSensor, distToSensor, weight, costFunction, problem, initialization))
+
+#ifdef RUNTIME_DEBUGLOG
+		auto start = std::chrono::high_resolution_clock::now();
+		std::ios_base::sync_with_stdio(false);
+#endif
+	    bool b = makeSurfaceDirectConnection(p, sensorPoint, scaling, sampler, distTravelled, dirToSensor, distToSensor, weight, costFunction, problem, initialization);
+#ifdef RUNTIME_DEBUGLOG
+	    auto end = std::chrono::high_resolution_clock::now();
+	    double time_taken =
+	    		std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+	    if(time_taken > 1e8){
+	    	std::cout << "Direct connection took:" <<    time_taken * 1e-9 << " sec" << std::endl;
+	    	std::cout << "Status: " << (b ?"Success":"Failed") << std::endl;
+			std::cout << "While trying to connect: " << std::endl;
+			std::cout << "P1: (" << p.x  << ", " << p.y  << ", " << p.z  << "); " << std::endl;
+			std::cout << "P2: (" << sensorPoint.x  << ", " << sensorPoint.y  << ", " << sensorPoint.z  << "); " << std::endl;
+	    }
+#endif
+
+		if(!b)
 			return;
 
 		VectorType<Float> refrDirToSensor = dirToSensor;
@@ -1006,6 +1028,19 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 //    std::cout << "weight:" << weight << std::endl;
     std::cout << "foreshortening:" << foreshortening << std::endl;
     std::cout << "falloff:" << falloff << std::endl;
+#endif
+
+#ifdef RUNTIME_DEBUGLOG
+    if(totalPhotonValue > 1e2){
+		std::cout << "Added Energy:" << totalPhotonValue << " to (" << sensorPoint.x << ", " << sensorPoint.y << ", " << sensorPoint.z << ") at time:" << totalOpticalDistance << std::endl;
+		std::cout << "val term:" << val << std::endl;
+		std::cout << "exp term:" << std::exp(-medium.getSigmaT() * distToSensor) << std::endl;
+		std::cout << "phase function term:" << medium.getPhaseFunction()->f(d/d.length(), dirToSensor) << std::endl;
+		std::cout << "fresnel weight:" << fresnelWeight << std::endl;
+		std::cout << "weight:" << weight << std::endl;
+		std::cout << "foreshortening:" << foreshortening << std::endl;
+		std::cout << "falloff:" << falloff << std::endl;
+	}
 #endif
 
 	}
