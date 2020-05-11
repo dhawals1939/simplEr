@@ -328,7 +328,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 #ifdef PRINT_DEBUGLOG
 		Float scaling = 1; //Hack to match the logs.
 #else
-		Float scaling = std::sin(scene.getUSPhi_min() + scene.getUSPhi_range()*sampler[id]());
+		Float scaling = std::max(std::min(std::sin(scene.getUSPhi_min() + scene.getUSPhi_range()*sampler[id]()), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
 #endif
 
 #ifndef OMEGA_TRACKING

@@ -125,6 +125,7 @@ int main(int argc, char **argv) {
 	Float speed_u = 1500;
 	Float n_o = 1.3333;
 	Float n_max = 1e-3;
+	Float n_clip= 1e-3;
 	Float phi_min = M_PI/2;
 	Float phi_max = M_PI/2;
     Float gap = .0; // Gap is the distance till which US is not ON and only scattering medium is present. Building this feature for Matteo
@@ -161,6 +162,7 @@ int main(int argc, char **argv) {
 	bool bspeed_u=false;
 	bool bn_o=false;
 	bool bn_max=false;
+	bool bn_clip=false;
 	bool bphi_min=false;
 	bool bphi_max=false;
 	bool bgap=false;
@@ -245,6 +247,9 @@ int main(int argc, char **argv) {
 		}else if(param[0].compare("n_max")==0){
  			bn_max=true;
 			n_max = stof(param[1]);
+		}else if(param[0].compare("n_clip")==0){
+ 			bn_clip=true;
+			n_clip = stof(param[1]);
 		}else if(param[0].compare("phi_min")==0){
  			bphi_min=true;
  			phi_min = stof(param[1]);
@@ -410,6 +415,7 @@ int main(int argc, char **argv) {
 					  << "speed_u, "
 					  << "n_o, "
 					  << "n_max, "
+					  << "n_clip, "
 					  << "phi_min, "
 					  << "phi_max, "
 					  << "gap, "
@@ -460,6 +466,7 @@ int main(int argc, char **argv) {
 		if(!bspeed_u) {std::cout << "speed_u is not specified " << std::endl;}
 		if(!bn_o) {std::cout << "n_o is not specified " << std::endl;}
 		if(!bn_max) {std::cout << "n_max is not specified " << std::endl;}
+		if(!bn_clip) {std::cout << "n_clip is not specified " << std::endl;}
 		if(!bphi_min) {std::cout << "phi_min is not specified " << std::endl;}
 		if(!bphi_max) {std::cout << "phi_max is not specified " << std::endl;}
 		if(!bgap) {std::cout << "gap is not specified " << std::endl;}
@@ -495,7 +502,7 @@ int main(int argc, char **argv) {
 		if(!bsensor_lens_active) {std::cout << "sensor_lens_active is not specified " << std::endl;}
 		if(!bprintInputs) {std::cout << "printInputs is not specified " << std::endl;}
 
-        if(!(bthreads && bprecision && bnumPhotons && boutFilePrefix && bsigmaT && balbedo && bgVal && bf_u && bspeed_u && bn_o && bn_max && bphi_min && bphi_max && bgap && bmode && ber_stepsize && bdirectTol && buseInitializationHack && brrWeight && bprojectorTexture && buseDirect && buseAngularSampling && bmaxDepth && bmaxPathlength && bpathLengthMin && bpathLengthMax && bpathLengthBins && bspatialX && bspatialY && bhalfThetaLimit && bemitter_size && bsensor_size && bmediumLx && bmediumRx && bdistribution && bgOrKappa && bemitter_distance && bemitter_lens_aperture && bemitter_lens_focalLength && bemitter_lens_active && bsensor_distance && bsensor_lens_aperture && bsensor_lens_focalLength && bsensor_lens_active && bprintInputs)){
+        if(!(bthreads && bprecision && bnumPhotons && boutFilePrefix && bsigmaT && balbedo && bgVal && bf_u && bspeed_u && bn_o && bn_max && bn_clip && bphi_min && bphi_max && bgap && bmode && ber_stepsize && bdirectTol && buseInitializationHack && brrWeight && bprojectorTexture && buseDirect && buseAngularSampling && bmaxDepth && bmaxPathlength && bpathLengthMin && bpathLengthMax && bpathLengthBins && bspatialX && bspatialY && bhalfThetaLimit && bemitter_size && bsensor_size && bmediumLx && bmediumRx && bdistribution && bgOrKappa && bemitter_distance && bemitter_lens_aperture && bemitter_lens_focalLength && bemitter_lens_active && bsensor_distance && bsensor_lens_aperture && bsensor_lens_focalLength && bsensor_lens_active && bprintInputs)){
             std::cout << "crashing as one or more inputs is absent" << std::endl;
             exit (EXIT_FAILURE);
         }
@@ -511,6 +518,7 @@ int main(int argc, char **argv) {
 		std::cout << "speed_u = " 	<< speed_u 		<< std::endl;
 		std::cout << "n_o = " 		<< n_o 			<< std::endl;
 		std::cout << "n_max  = " 	<< n_max  		<< std::endl;
+		std::cout << "n_clip = " 	<< n_clip  		<< std::endl;
 		std::cout << "phi_min  = " 	<< phi_min  	<< std::endl;
 		std::cout << "phi_max  = " 	<< phi_max  	<< std::endl;
 		std::cout << "gap = " 	<< gap  		<< std::endl;
@@ -594,7 +602,7 @@ int main(int argc, char **argv) {
 						distribution, gOrKappa,
 						emitter_lens_origin, emitter_lens_aperture, emitter_lens_focalLength, emitter_lens_active,
 						sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active,
-						f_u, speed_u, n_o, n_max, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight, precision, gapEndLocX, useInitializationHack
+						f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight, precision, gapEndLocX, useInitializationHack
 #ifdef SPLINE_RIF
 						, xmin, xmax, N
 #endif

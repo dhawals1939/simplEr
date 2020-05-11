@@ -364,8 +364,10 @@ struct US {
 
 	Float n_o;          // Baseline refractive index
 	Float n_max;        // Max refractive index variation
-	Float phi_min;        // Max refractive index variation
-	Float phi_max;        // Max refractive index variation
+	Float n_clip;        // Clipped refractive index variation
+	Float n_maxScaling;  // =n_clip/n_max
+	Float phi_min;        // Min Phase 
+	Float phi_max;        // Max Phase 
 	Float k_r;
     int    mode;         // Order of the bessel function or mode of the ultrasound
 
@@ -389,7 +391,7 @@ struct US {
 #endif
 
     US(const Float& f_u, const Float& speed_u,
-                 const Float& n_o, const Float& n_max, const Float& phi_min, const Float& phi_max, const int& mode,
+                 const Float& n_o, const Float& n_max, const Float& n_clip, const Float& phi_min, const Float& phi_max, const int& mode,
                  const VectorType<Float> &axis_uz, const VectorType<Float> &axis_ux, const VectorType<Float> &p_u, const Float &er_stepsize,
 				 const Float &tol, const Float &rrWeight, const int &precision, const Float &gapEndLocX, const bool &useInitializationHack
 #ifdef SPLINE_RIF
@@ -405,6 +407,8 @@ struct US {
 		this->wavelength_u   = ((double) speed_u)/f_u; 
 		this->n_o            = n_o;         
 		this->n_max          = n_max;      
+		this->n_clip         = n_clip;      
+		this->n_maxScaling   = n_clip/n_max;      
 		this->phi_min        = phi_min;
 		this->phi_max        = phi_max;
 		this->k_r            = (2*M_PI)/wavelength_u;
@@ -648,6 +652,7 @@ public:
 			const Float& speed_u,
 			const Float& n_o,
 			const Float& n_max,
+			const Float& n_clip,
 			const Float& phi_min,
 			const Float& phi_max,
 			const int& mode,
@@ -671,7 +676,7 @@ public:
 #endif
 				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange, sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active),
 				m_bsdf(FPCONST(1.0), ior),
-				m_us(f_u, speed_u, n_o, n_max, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, gapEndLocX, useInitializationHack
+				m_us(f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, gapEndLocX, useInitializationHack
 #ifdef SPLINE_RIF
 						, xmin, xmax, N
 #endif
@@ -730,6 +735,10 @@ public:
 
     inline const Float getUSPhi_range() const{
     	return (m_us.phi_max - m_us.phi_min);
+    }
+
+    inline const Float getUSMaxScaling() const{
+    	return m_us.n_maxScaling;
     }
 
 	inline VectorType<Float> dP(const VectorType<Float> d) const{ // assuming omega tracking
