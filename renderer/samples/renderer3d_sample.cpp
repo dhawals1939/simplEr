@@ -465,7 +465,7 @@ int main(int argc, char **argv) {
 		if(!bgap) {std::cout << "gap is not specified " << std::endl;}
 		if(!bmode) {std::cout << "mode is not specified " << std::endl;}
 		if(!ber_stepsize) {std::cout << "er_stepsize is not specified " << std::endl;}
-		if(!buseInitializationHack) {std::cout << "buseInitializationHack is not specified " << std::endl;}
+		if(!buseInitializationHack) {std::cout << "useInitializationHack is not specified " << std::endl;}
 		if(!bdirectTol) {std::cout << "directTol is not specified " << std::endl;}
 		if(!brrWeight) {std::cout << "rrWeight is not specified " << std::endl;}
 		if(!bprojectorTexture) {std::cout << "projectorTexture is not specified " << std::endl;}

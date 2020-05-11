@@ -430,6 +430,8 @@ bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1,
 			return false;
 		}
 	}
+
+
 	// success, the algorithm found a solution.
 	VectorType<Float> error;
 	Matrix3x3 derror;
@@ -856,6 +858,9 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 
 	VectorType<Float> dirToSensor;
 
+	if( (p.x-m_camera.getOrigin().x) < 1e-4) // Hack to get rid of inf problems for direct connection
+		return;
+
 	sampleRandomDirection(dirToSensor, sampler); // Samples by assuming that the sensor is in +x direction.
 
 //	if(m_camera.getOrigin().x < m_source.getOrigin().x) // Direction to sensor is flipped. Compensate
@@ -937,6 +942,9 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 		std::cout << "using weight normalization " << std::endl;
 #endif
 #endif
+	if( (p.x-m_camera.getOrigin().x) < 1e-4) // Hack to get rid of inf problems for direct connection
+		return;
+
 
 	VectorType<Float> sensorPoint;
 	if(m_camera.samplePosition(sensorPoint, sampler)) {
@@ -955,12 +963,12 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 		auto start = std::chrono::high_resolution_clock::now();
 		std::ios_base::sync_with_stdio(false);
 #endif
-	    bool b = makeSurfaceDirectConnection(p, sensorPoint, scaling, sampler, distTravelled, dirToSensor, distToSensor, weight, costFunction, problem, initialization);
+        bool b = makeSurfaceDirectConnection(p, sensorPoint, scaling, sampler, distTravelled, dirToSensor, distToSensor, weight, costFunction, problem, initialization);
 #ifdef RUNTIME_DEBUGLOG
 	    auto end = std::chrono::high_resolution_clock::now();
 	    double time_taken =
 	    		std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-	    if(time_taken > 1e8){
+	    if(time_taken > 1e10){
 	    	std::cout << "Direct connection took:" <<    time_taken * 1e-9 << " sec" << std::endl;
 	    	std::cout << "Status: " << (b ?"Success":"Failed") << std::endl;
 			std::cout << "While trying to connect: " << std::endl;
@@ -1031,7 +1039,7 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 #endif
 
 #ifdef RUNTIME_DEBUGLOG
-    if(totalPhotonValue > 1e2){
+    if(totalPhotonValue > 1e2 || totalPhotonValue < 0){
 		std::cout << "Added Energy:" << totalPhotonValue << " to (" << sensorPoint.x << ", " << sensorPoint.y << ", " << sensorPoint.z << ") at time:" << totalOpticalDistance << std::endl;
 		std::cout << "val term:" << val << std::endl;
 		std::cout << "exp term:" << std::exp(-medium.getSigmaT() * distToSensor) << std::endl;
@@ -1040,6 +1048,13 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 		std::cout << "weight:" << weight << std::endl;
 		std::cout << "foreshortening:" << foreshortening << std::endl;
 		std::cout << "falloff:" << falloff << std::endl;
+
+	    	std::cout << "For this bad point, Direct connection took:" <<    time_taken * 1e-9 << " sec" << std::endl;
+	    	std::cout << "Status: " << (b ?"Success":"Failed") << std::endl;
+			std::cout << "While trying to connect: " << std::endl;
+			std::cout << "P1: (" << p.x  << ", " << p.y  << ", " << p.z  << "); " << std::endl;
+			std::cout << "P2: (" << sensorPoint.x  << ", " << sensorPoint.y  << ", " << sensorPoint.z  << "); " << std::endl;
+
 	}
 #endif
 

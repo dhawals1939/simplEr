@@ -706,7 +706,7 @@ public:
 		m_options.check_gradients = false;
 		m_options.gradient_check_relative_precision = 1e-3;
 		m_options.gradient_check_numeric_derivative_relative_step_size = 1e-3;
-		m_options.max_num_iterations = 100;
+		m_options.max_num_iterations = 10;
 		m_options.minimizer_type = ceres::LINE_SEARCH;
 		m_options.line_search_direction_type = ceres::BFGS;
         m_options.logging_type = ceres::SILENT;
