@@ -386,6 +386,84 @@ public:
 	}
 
 	void writePFM3D(const std::string& fileName) const;
+	void readPFM3D(const std::string& filename){
+		FILE * pFile;
+		pFile = fopen(filename.c_str(), "rb");
+		char c[100];
+		if (pFile != NULL) {
+			fscanf(pFile, "%s", c);
+			// strcmp() returns 0 if they are equal.
+			if (!strcmp(c, "Pf")) {
+				fscanf(pFile, "%s", c);
+				// atoi: ASCII to integer.
+				// itoa: integer to ASCII.
+				this->m_xRes = atoi(c);
+				fscanf(pFile, "%s", c);
+				this->m_yRes = atoi(c);
+				fscanf(pFile, "%s", c);
+				this->m_zRes = atoi(c);
+				int length_ = this->m_xRes * this->m_yRes * this->m_zRes;
+				fscanf(pFile, "%s", c);
+				Float endianess = atof(c);
+
+				fseek(pFile, 0, SEEK_END);
+				long lSize = ftell(pFile);
+				long pos = lSize - this->m_xRes*this->m_yRes*this->m_zRes * sizeof(T);
+				fseek(pFile, pos, SEEK_SET);
+
+				T* img = new T[length_];
+				//cout << "sizeof(T) = " << sizeof(T);
+				fread(img, sizeof(T), length_, pFile);
+				fclose(pFile);
+
+				/* The raster is a sequence of pixels, packed one after another,
+				 * with no delimiters of any kind. They are grouped by row,
+				 * with the pixels in each row ordered left to right and
+				 * the rows ordered bottom to top.
+				 */
+				m_pixels = (T *)malloc(length_ * sizeof(T));// top-to-bottom.
+                //Adi: Did not test exhaustively
+//                for (int z = 0; z < this->m_zRes; z++) {
+	    				memcpy(m_pixels,
+		    				img,
+			    			length_ * sizeof(T));
+  //              }
+
+
+	//			if (this->is_little_big_endianness_swap()){
+	//				std::cout << "little-big endianness transformation is needed.\n";
+	//				// little-big endianness transformation is needed.
+	//				union {
+	//					T f;
+	//					unsigned char u8[sizeof(T)];
+	//				} source, dest;
+	//
+	//				for (int i = 0; i < length_; ++i) {
+	//					source.f = m_pixels[i];
+	//					for (unsigned int k = 0, s_T = sizeof(T); k < s_T; k++)
+	//						dest.u8[k] = source.u8[s_T - k - 1];
+	//					m_pixels[i] = dest.f;
+	//					//cout << dest.f << ", ";
+	//				}
+	//			}
+				delete[] img;
+
+			}
+			else {
+				std::cout << "Invalid magic number!"
+					<< " No Pf (meaning grayscale pfm) is missing!!\n";
+				fclose(pFile);
+				exit(0);
+			}
+
+		}
+		else {
+			std::cout << "Cannot open file " << filename
+				<< ", or it does not exist!\n";
+			fclose(pFile);
+			exit(0);
+		}
+	}
 private:
 	void writePFM(const std::string& fileNamePrefix) const;
 #ifdef USE_OPENEXR
