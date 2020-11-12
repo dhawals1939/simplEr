@@ -149,6 +149,7 @@ struct Camera {
 		const VectorType<Float> &horizontal,
 		const tvec::Vec2f &plane,
 		const tvec::Vec2f &pathlengthRange,
+		const bool &useBounceDecomposition,
 		const VectorType<Float> &lens_origin,
 		const Float &lens_aperture,
 		const Float &lens_focalLength,
@@ -160,6 +161,7 @@ struct Camera {
 			m_vertical(),
 			m_plane(plane),
 			m_pathlengthRange(pathlengthRange),
+			m_useBounceDecomposition(useBounceDecomposition),
 			m_lens(lens_origin, lens_aperture, lens_focalLength, lens_active){
 		Assert(((m_pathlengthRange.x == -FPCONST(1.0)) && (m_pathlengthRange.y == -FPCONST(1.0))) ||
 				((m_pathlengthRange.x >= 0) && (m_pathlengthRange.y >= m_pathlengthRange.x)));
@@ -199,6 +201,10 @@ struct Camera {
 		return m_pathlengthRange;
 	}
 
+	inline const bool& isBounceDecomposition() const {
+		return m_useBounceDecomposition;
+	}
+
 	inline const bool propagateTillSensor(VectorType<Float> &pos, VectorType<Float> &dir, Float &totalDistance) const{
 		//propagate till lens
 		if(m_lens.isActive() && !m_lens.deflect(pos, dir, totalDistance))
@@ -227,6 +233,7 @@ protected:
 	VectorType<Float> m_vertical;
 	tvec::Vec2f m_plane;
 	tvec::Vec2f m_pathlengthRange;
+	bool m_useBounceDecomposition;
 	Lens<VectorType> m_lens;
 };
 
@@ -634,6 +641,7 @@ public:
 			const VectorType<Float> &viewHorizontal,
 			const tvec::Vec2f &viewPlane,
 			const tvec::Vec2f &pathlengthRange, 
+			const bool &useBounceDecomposition,
 			// for finalAngle importance sampling
 			const std::string &distribution,
 			const Float &gOrKappa,
@@ -674,7 +682,7 @@ public:
 #else                
 				m_source(lightOrigin, lightDir, halfThetaLimit, lightTextureFile, lightPlane, Li, emitter_lens_origin, emitter_lens_aperture, emitter_lens_focalLength, emitter_lens_active),
 #endif
-				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange, sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active),
+				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange, useBounceDecomposition, sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active),
 				m_bsdf(FPCONST(1.0), ior),
 				m_us(f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, gapEndLocX, useInitializationHack
 #ifdef SPLINE_RIF
@@ -802,7 +810,7 @@ public:
 	bool genRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler,
 				VectorType<Float> &possrc, VectorType<Float> &dirsrc, Float &totalDistance) const;
 	void addEnergyToImage(image::SmallImage &img, const VectorType<Float> &p,
-						Float pathlength, Float val) const;
+						Float pathlength, int &depth, Float val) const;
 
 	inline void addPixel(image::SmallImage &img, int x, int y, int z, Float val) const {
 		if (x >= 0 && x < img.getXRes() && y >= 0 && y < img.getYRes() &&
@@ -813,11 +821,11 @@ public:
 
 	//distTravelled is optical distance if USE_SIMPLIFIED_TIMING is not set and geometric distance if not
 	void addEnergyInParticle(image::SmallImage &img, const VectorType<Float> &p,
-						const VectorType<Float> &d, Float distTravelled, Float val,
+						const VectorType<Float> &d, Float distTravelled, int &depth, Float val,
 						const med::Medium &medium, smp::Sampler &sampler, const Float &scaling) const;
 
 	void addEnergy(image::SmallImage &img, const VectorType<Float> &p,
-						const VectorType<Float> &d, Float distTravelled, Float val,
+						const VectorType<Float> &d, Float distTravelled, int &depth, Float val,
 						const med::Medium &medium, smp::Sampler &sampler, const Float& scaling,
 						scn::NEECostFunction<VectorType> &costFunction, Problem &problem, Float *initialization) const;
 

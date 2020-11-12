@@ -774,7 +774,7 @@ bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
 
 template <>
 void Scene<tvec::TVector3>::addEnergyToImage(image::SmallImage &img, const tvec::Vec3f &p,
-							Float pathlength, Float val) const {
+							Float pathlength, int &depth, Float val) const {
 
 	Float x = tvec::dot(m_camera.getHorizontal(), p) - m_camera.getOrigin().y;
 	Float y = tvec::dot(m_camera.getVertical(), p) - m_camera.getOrigin().z;
@@ -792,13 +792,18 @@ void Scene<tvec::TVector3>::addEnergyToImage(image::SmallImage &img, const tvec:
 		int iy = static_cast<int>(std::floor(y));
 
 		int iz;
-		if ((m_camera.getPathlengthRange().x == -1) && (m_camera.getPathlengthRange().y == -1)) {
-			iz = 0;
-		} else {
-			Float z = pathlength - m_camera.getPathlengthRange().x;
-			Float range = m_camera.getPathlengthRange().y - m_camera.getPathlengthRange().x;
-			z = (z / range) * static_cast<Float>(img.getZRes());
-			iz = static_cast<int>(std::floor(z));
+		if(m_camera.isBounceDecomposition()){
+			iz = depth;
+		}
+		else{
+			if ((m_camera.getPathlengthRange().x == -1) && (m_camera.getPathlengthRange().y == -1)) {
+				iz = 0;
+			} else {
+				Float z = pathlength - m_camera.getPathlengthRange().x;
+				Float range = m_camera.getPathlengthRange().y - m_camera.getPathlengthRange().x;
+				z = (z / range) * static_cast<Float>(img.getZRes());
+				iz = static_cast<int>(std::floor(z));
+			}
 		}
 #ifdef USE_PIXEL_SHARING
 		Float fx = x - std::floor(x);
@@ -816,7 +821,7 @@ void Scene<tvec::TVector3>::addEnergyToImage(image::SmallImage &img, const tvec:
 
 template <>
 void Scene<tvec::TVector2>::addEnergyToImage(image::SmallImage &img, const tvec::Vec2f &p,
-							Float pathlength, Float val) const {
+							Float pathlength, int &depth, Float val) const {
 
 	Float x = tvec::dot(m_camera.getHorizontal(), p) - m_camera.getOrigin().y;
 
@@ -851,7 +856,7 @@ void Scene<tvec::TVector2>::addEnergyToImage(image::SmallImage &img, const tvec:
 
 template <template <typename> class VectorType>
 void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
-			const VectorType<Float> &p, const VectorType<Float> &d, Float distTravelled,
+			const VectorType<Float> &p, const VectorType<Float> &d, Float distTravelled, int &depth,
 			Float val, const med::Medium &medium, smp::Sampler &sampler, const Float &scaling) const {
 
 	VectorType<Float> p1 = p;
@@ -919,7 +924,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 			* medium.getPhaseFunction()->f(d/d.length(), dirToSensor) // FIXME: Should be refractive index
 			* foreshortening
 			* fresnelWeight;
-	addEnergyToImage(img, p1, totalOpticalDistance, totalPhotonValue);
+	addEnergyToImage(img, p1, totalOpticalDistance, depth, totalPhotonValue);
 #ifdef PRINT_DEBUGLOG
     std::cout << "Added Energy:" << totalPhotonValue << " to (" << p1.x << ", " << p1.y << ", " << p1.z << ") at time:" << totalOpticalDistance << std::endl;
     std::cout << "val term:" << val << std::endl;
@@ -931,7 +936,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 
 template <template <typename> class VectorType>
 void Scene<VectorType>::addEnergy(image::SmallImage &img,
-			const VectorType<Float> &p, const VectorType<Float> &d, Float distTravelled,
+			const VectorType<Float> &p, const VectorType<Float> &d, Float distTravelled, int &depth,
 			Float val, const med::Medium &medium, smp::Sampler &sampler, const Float& scaling,
 			scn::NEECostFunction<VectorType> &costFunction, Problem &problem, Float *initialization) const {
 
@@ -1026,7 +1031,7 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 				* weight
 				* foreshortening
 				/ falloff;
-		addEnergyToImage(img, sensorPoint, totalOpticalDistance, totalPhotonValue);
+		addEnergyToImage(img, sensorPoint, totalOpticalDistance, depth, totalPhotonValue);
 #ifdef PRINT_DEBUGLOG
     std::cout << "Added Energy:" << totalPhotonValue << " to (" << sensorPoint.x << ", " << sensorPoint.y << ", " << sensorPoint.z << ") at time:" << totalOpticalDistance << std::endl;
     std::cout << "val term:" << val << std::endl;
@@ -1061,89 +1066,89 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 	}
 }
 
-template <template <typename> class VectorType>
-void Scene<VectorType>::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
-						image::SmallImage &dAlbedo, image::SmallImage &dGVal,
-						const VectorType<Float> &p, const VectorType<Float> &d,
-						Float distTravelled, Float val, Float sumScoreSigmaT,
-						Float sumScoreAlbedo, Float sumScoreGVal,
-						const med::Medium &medium, smp::Sampler &sampler) const {
-
-#ifdef USE_WEIGHT_NORMALIZATION
-	val *=	static_cast<Float>(img.getXRes()) * static_cast<Float>(img.getYRes())
-		/ (m_camera.getPlane().x * m_camera.getPlane().y);
-#ifdef USE_PRINTING
-		std::cout << "using weight normalization " << std::endl;
-#endif
-#endif
-#ifdef USE_PRINTING
-	std::cout << "total = " << distTravelled << std::endl;
-#endif
-
-	VectorType<Float> sensorPoint;
-	if(m_camera.samplePosition(sensorPoint, sampler)) {
-		/*
-		 * TODO: Not sure why this check is here, but it was in the original code.
-		 */
-		Assert(m_block.inside(sensorPoint));
-
-		VectorType<Float> distVec = sensorPoint - p;
-		Float distToSensor = distVec.length();
-
-		VectorType<Float> dirToSensor = distVec;
-		dirToSensor.normalize();
-
-		VectorType<Float> refrDirToSensor = dirToSensor;
-		Float fresnelWeight = FPCONST(1.0);
-
-		if (m_ior > FPCONST(1.0)) {
-			Float sqrSum = FPCONST(0.0);
-			for (int iter = 1; iter < dirToSensor.dim; ++iter) {
-				refrDirToSensor[iter] = dirToSensor[iter] * m_ior;
-				sqrSum += refrDirToSensor[iter] * refrDirToSensor[iter];
-			}
-			refrDirToSensor.x = std::sqrt(FPCONST(1.0) - sqrSum);
-			if (dirToSensor.x < FPCONST(0.0)) {
-				refrDirToSensor.x *= -FPCONST(1.0);
-			}
-#ifndef USE_NO_FRESNEL
-			fresnelWeight = (FPCONST(1.0) -
-			util::fresnelDielectric(dirToSensor.x, refrDirToSensor.x,
-				FPCONST(1.0) / m_ior))
-				/ m_ior / m_ior;
-#endif
-		}
-
-		/*
-		 * TODO: Double-check that the foreshortening term is needed, and that
-		 * it is applied after refraction.
-		 */
-		Float foreshortening = dot(refrDirToSensor, m_camera.getDir());
-		Assert(foreshortening >= FPCONST(0.0));
-
-		Float totalDistance = (distTravelled + distToSensor) * m_ior;
-		Float falloff = FPCONST(1.0);
-		if (p.dim == 2) {
-			falloff = distToSensor;
-		} else if (p.dim == 3) {
-			falloff = distToSensor * distToSensor;
-		}
-		Float totalPhotonValue = val
-				* std::exp(- medium.getSigmaT() * distToSensor)
-				* medium.getPhaseFunction()->f(d, dirToSensor)
-				* fresnelWeight
-				* foreshortening
-				/ falloff;
-		addEnergyToImage(img, sensorPoint, totalDistance, totalPhotonValue);
-		Float valDSigmaT = totalPhotonValue * (sumScoreSigmaT - distToSensor);
-		addEnergyToImage(dSigmaT, sensorPoint, totalDistance, valDSigmaT);
-		Float valDAlbedo = totalPhotonValue * sumScoreAlbedo;
-		addEnergyToImage(dAlbedo, sensorPoint, totalDistance, valDAlbedo);
-		Float valDGVal = totalPhotonValue *
-				(sumScoreGVal + medium.getPhaseFunction()->score(d, dirToSensor));
-		addEnergyToImage(dGVal, sensorPoint, totalDistance, valDGVal);
-	}
-}
+//template <template <typename> class VectorType>
+//void Scene<VectorType>::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
+//						image::SmallImage &dAlbedo, image::SmallImage &dGVal,
+//						const VectorType<Float> &p, const VectorType<Float> &d,
+//						Float distTravelled, Float val, Float sumScoreSigmaT,
+//						Float sumScoreAlbedo, Float sumScoreGVal,
+//						const med::Medium &medium, smp::Sampler &sampler) const {
+//
+//#ifdef USE_WEIGHT_NORMALIZATION
+//	val *=	static_cast<Float>(img.getXRes()) * static_cast<Float>(img.getYRes())
+//		/ (m_camera.getPlane().x * m_camera.getPlane().y);
+//#ifdef USE_PRINTING
+//		std::cout << "using weight normalization " << std::endl;
+//#endif
+//#endif
+//#ifdef USE_PRINTING
+//	std::cout << "total = " << distTravelled << std::endl;
+//#endif
+//
+//	VectorType<Float> sensorPoint;
+//	if(m_camera.samplePosition(sensorPoint, sampler)) {
+//		/*
+//		 * TODO: Not sure why this check is here, but it was in the original code.
+//		 */
+//		Assert(m_block.inside(sensorPoint));
+//
+//		VectorType<Float> distVec = sensorPoint - p;
+//		Float distToSensor = distVec.length();
+//
+//		VectorType<Float> dirToSensor = distVec;
+//		dirToSensor.normalize();
+//
+//		VectorType<Float> refrDirToSensor = dirToSensor;
+//		Float fresnelWeight = FPCONST(1.0);
+//
+//		if (m_ior > FPCONST(1.0)) {
+//			Float sqrSum = FPCONST(0.0);
+//			for (int iter = 1; iter < dirToSensor.dim; ++iter) {
+//				refrDirToSensor[iter] = dirToSensor[iter] * m_ior;
+//				sqrSum += refrDirToSensor[iter] * refrDirToSensor[iter];
+//			}
+//			refrDirToSensor.x = std::sqrt(FPCONST(1.0) - sqrSum);
+//			if (dirToSensor.x < FPCONST(0.0)) {
+//				refrDirToSensor.x *= -FPCONST(1.0);
+//			}
+//#ifndef USE_NO_FRESNEL
+//			fresnelWeight = (FPCONST(1.0) -
+//			util::fresnelDielectric(dirToSensor.x, refrDirToSensor.x,
+//				FPCONST(1.0) / m_ior))
+//				/ m_ior / m_ior;
+//#endif
+//		}
+//
+//		/*
+//		 * TODO: Double-check that the foreshortening term is needed, and that
+//		 * it is applied after refraction.
+//		 */
+//		Float foreshortening = dot(refrDirToSensor, m_camera.getDir());
+//		Assert(foreshortening >= FPCONST(0.0));
+//
+//		Float totalDistance = (distTravelled + distToSensor) * m_ior;
+//		Float falloff = FPCONST(1.0);
+//		if (p.dim == 2) {
+//			falloff = distToSensor;
+//		} else if (p.dim == 3) {
+//			falloff = distToSensor * distToSensor;
+//		}
+//		Float totalPhotonValue = val
+//				* std::exp(- medium.getSigmaT() * distToSensor)
+//				* medium.getPhaseFunction()->f(d, dirToSensor)
+//				* fresnelWeight
+//				* foreshortening
+//				/ falloff;
+//		addEnergyToImage(img, sensorPoint, totalDistance, totalPhotonValue);
+//		Float valDSigmaT = totalPhotonValue * (sumScoreSigmaT - distToSensor);
+//		addEnergyToImage(dSigmaT, sensorPoint, totalDistance, valDSigmaT);
+//		Float valDAlbedo = totalPhotonValue * sumScoreAlbedo;
+//		addEnergyToImage(dAlbedo, sensorPoint, totalDistance, valDAlbedo);
+//		Float valDGVal = totalPhotonValue *
+//				(sumScoreGVal + medium.getPhaseFunction()->score(d, dirToSensor));
+//		addEnergyToImage(dGVal, sensorPoint, totalDistance, valDGVal);
+//	}
+//}
 
 //template class Block<tvec::TVector2>;
 template class Block<tvec::TVector3>;

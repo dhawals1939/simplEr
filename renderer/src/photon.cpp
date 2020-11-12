@@ -79,8 +79,8 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 	Float totalPhotonValue = weight
 			* std::exp(-medium.getSigmaT() * distToSensor)
 			* fresnelWeight;
-
-	scene.addEnergyToImage(img, p1, totalOpticalDistance, totalPhotonValue);
+	int depth = 0;
+	scene.addEnergyToImage(img, p1, totalOpticalDistance, depth, totalPhotonValue);
 }
 
 template <template <typename> class VectorType>
@@ -109,9 +109,9 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
 				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
 			if(m_useAngularSampling)
-                scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, weight, medium, sampler, scaling);
+                scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, depth, weight, medium, sampler, scaling);
 			else
-				scene.addEnergy(img, pos, dir, totalOpticalDistance, weight, medium, sampler, scaling, costFunction, problem, initialization);
+				scene.addEnergy(img, pos, dir, totalOpticalDistance, depth, weight, medium, sampler, scaling, costFunction, problem, initialization);
 			if (!scatterOnce(pos, dir, dist, scene, medium, totalOpticalDistance, sampler, scaling)){
 #ifdef PRINT_DEBUGLOG
 				std::cout << "sampler after failing scatter once:" << sampler() << std::endl;

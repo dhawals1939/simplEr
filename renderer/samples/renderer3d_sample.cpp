@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
 	bool useInitializationHack = true; // initializationHack forces the direction connections to start from the line connecting both the end points
 	Float rrWeight  = 1e-2; // only one in hundred survives second path call
 
-
+	bool useBounceDecomposition = true; // true is bounce decomposition and false is transient.
 	/*
 	 * Spline approximation, spline parameters
 	 */
@@ -174,6 +174,7 @@ int main(int argc, char **argv) {
 	bool bprojectorTexture=false;
 	bool buseDirect=false;
     bool buseAngularSampling=false;
+    bool buseBounceDecomposition=false;
 	bool bmaxDepth=false;
 	bool bmaxPathlength=false;
 	bool bpathLengthMin=false;
@@ -307,6 +308,17 @@ int main(int argc, char **argv) {
 				std::cerr << "useAngularSampling should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
 				return -1;
 			}
+		}else if(param[0].compare("useBounceDecomposition")==0){
+			buseBounceDecomposition=true;
+			transform(param[1].begin(), param[1].end(), param[1].begin(), ::tolower);
+			if(param[1].compare("true")==0)
+				useBounceDecomposition = true;
+			else if(param[1].compare("false")==0)
+				useBounceDecomposition = false;
+			else{
+				std::cerr << "useBounceDecompostion should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
+				return -1;
+			}
 		}else if(param[0].compare("maxDepth")==0){
  			bmaxDepth=true;
 			maxDepth = stoi(param[1]);
@@ -426,6 +438,7 @@ int main(int argc, char **argv) {
 					  << "projectorTexture, "
 					  << "useDirect, "
 					  << "useAngularSampling, "
+					  << "useBounceDecompostion, "
 					  << "maxDepth, "
 					  << "maxPathlength, "
 					  << "pathLengthMin, "
@@ -478,6 +491,7 @@ int main(int argc, char **argv) {
 		if(!bprojectorTexture) {std::cout << "projectorTexture is not specified " << std::endl;}
 		if(!buseDirect) {std::cout << "useDirect is not specified " << std::endl;}
 		if(!buseAngularSampling) {std::cout << "useAngularSampling is not specified " << std::endl;}
+		if(!buseBounceDecomposition) {std::cout << "useBounceDecomposition is not specified " << std::endl;}
 		if(!bmaxDepth) {std::cout << "maxDepth is not specified " << std::endl;}
 		if(!bmaxPathlength) {std::cout << "maxPathlength is not specified " << std::endl;}
 		if(!bpathLengthMin) {std::cout << "pathLengthMin is not specified " << std::endl;}
@@ -502,7 +516,7 @@ int main(int argc, char **argv) {
 		if(!bsensor_lens_active) {std::cout << "sensor_lens_active is not specified " << std::endl;}
 		if(!bprintInputs) {std::cout << "printInputs is not specified " << std::endl;}
 
-        if(!(bthreads && bprecision && bnumPhotons && boutFilePrefix && bsigmaT && balbedo && bgVal && bf_u && bspeed_u && bn_o && bn_max && bn_clip && bphi_min && bphi_max && bgap && bmode && ber_stepsize && bdirectTol && buseInitializationHack && brrWeight && bprojectorTexture && buseDirect && buseAngularSampling && bmaxDepth && bmaxPathlength && bpathLengthMin && bpathLengthMax && bpathLengthBins && bspatialX && bspatialY && bhalfThetaLimit && bemitter_size && bsensor_size && bmediumLx && bmediumRx && bdistribution && bgOrKappa && bemitter_distance && bemitter_lens_aperture && bemitter_lens_focalLength && bemitter_lens_active && bsensor_distance && bsensor_lens_aperture && bsensor_lens_focalLength && bsensor_lens_active && bprintInputs)){
+        if(!(bthreads && bprecision && bnumPhotons && boutFilePrefix && bsigmaT && balbedo && bgVal && bf_u && bspeed_u && bn_o && bn_max && bn_clip && bphi_min && bphi_max && bgap && bmode && ber_stepsize && bdirectTol && buseInitializationHack && brrWeight && bprojectorTexture && buseDirect && buseAngularSampling && buseBounceDecomposition && bmaxDepth && bmaxPathlength && bpathLengthMin && bpathLengthMax && bpathLengthBins && bspatialX && bspatialY && bhalfThetaLimit && bemitter_size && bsensor_size && bmediumLx && bmediumRx && bdistribution && bgOrKappa && bemitter_distance && bemitter_lens_aperture && bemitter_lens_focalLength && bemitter_lens_active && bsensor_distance && bsensor_lens_aperture && bsensor_lens_focalLength && bsensor_lens_active && bprintInputs)){
             std::cout << "crashing as one or more inputs is absent" << std::endl;
             exit (EXIT_FAILURE);
         }
@@ -526,6 +540,7 @@ int main(int argc, char **argv) {
 		std::cout << "projectorTexture = "<< projectorTexture << std::endl;
 		std::cout << "useDirect = " << useDirect << std::endl;
 		std::cout << "useAngularSampling= " << useAngularSampling << std::endl;
+		std::cout << "useBounceDecomposition= " << useBounceDecomposition << std::endl;
 		std::cout << "maxDepth = " << maxDepth << std::endl;
 		std::cout << "maxPathlength = " << maxPathlength << std::endl;
         std::cout << "Total medium length = " << mediumR[0] - mediumL[0] << std::endl;
@@ -585,6 +600,7 @@ int main(int argc, char **argv) {
 	const tvec::Vec3f viewX(FPCONST(0.0), -FPCONST(1.0), FPCONST(0.0));
 	const tvec::Vec2f viewPlane(FPCONST(sensor_size), FPCONST(sensor_size));
 	const tvec::Vec2f pathlengthRange(FPCONST(pathLengthMin), FPCONST(pathLengthMax));
+
 	const tvec::Vec3i viewReso(spatialX, spatialY, pathLengthBins);
 
 	/*
@@ -598,7 +614,7 @@ int main(int argc, char **argv) {
 
 	scn::Scene<tvec::TVector3> scene(ior, mediumL, mediumR,
 						lightOrigin, lightDir, halfThetaLimit, projectorTexture, lightPlane, Li,
-						viewOrigin, viewDir, viewX, viewPlane, pathlengthRange,
+						viewOrigin, viewDir, viewX, viewPlane, pathlengthRange, useBounceDecomposition,
 						distribution, gOrKappa,
 						emitter_lens_origin, emitter_lens_aperture, emitter_lens_focalLength, emitter_lens_active,
 						sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active,
