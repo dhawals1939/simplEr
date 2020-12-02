@@ -389,7 +389,8 @@ struct US {
 
     Float er_stepsize;
     int m_precision;
-    Float m_gapEndLocX;
+    Float m_EgapEndLocX;
+    Float m_SgapBeginLocX;
 
     bool m_useInitializationHack;
 
@@ -400,7 +401,7 @@ struct US {
     US(const Float& f_u, const Float& speed_u,
                  const Float& n_o, const Float& n_max, const Float& n_clip, const Float& phi_min, const Float& phi_max, const int& mode,
                  const VectorType<Float> &axis_uz, const VectorType<Float> &axis_ux, const VectorType<Float> &p_u, const Float &er_stepsize,
-				 const Float &tol, const Float &rrWeight, const int &precision, const Float &gapEndLocX, const bool &useInitializationHack
+				 const Float &tol, const Float &rrWeight, const int &precision, const Float &EgapEndLocX, const Float &SgapBeginLocX, const bool &useInitializationHack
 #ifdef SPLINE_RIF
 				 , const Float xmin[], const Float xmax[],  const int N[]
 #endif
@@ -431,7 +432,8 @@ struct US {
 		this->rrWeight       = rrWeight;
 		this->invrrWeight    = 1/rrWeight;
 		this->m_precision    = precision;
-        this->m_gapEndLocX   = gapEndLocX;
+        this->m_EgapEndLocX  = EgapEndLocX;
+        this->m_SgapBeginLocX= SgapBeginLocX;
 
         this->m_useInitializationHack = useInitializationHack;
 
@@ -458,7 +460,7 @@ struct US {
     }
 
     inline Float RIF(const VectorType<Float> &p, const Float &scaling) const{
-        if(p.x > m_gapEndLocX)
+        if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
             return n_o;
 #ifndef SPLINE_RIF
     	return bessel_RIF(p, scaling);
@@ -468,7 +470,7 @@ struct US {
     }
 
     inline const VectorType<Float> dRIF(const VectorType<Float> &q, const Float &scaling) const{
-        if(q.x > m_gapEndLocX)
+        if(q.x > m_EgapEndLocX || q.x < m_SgapBeginLocX)
             return VectorType<Float>(0.0);
 #ifndef SPLINE_RIF
     	return bessel_dRIF(q, scaling);
@@ -478,7 +480,7 @@ struct US {
     }
 
     inline const Matrix3x3 HessianRIF(const VectorType<Float> &p, const Float &scaling) const{
-        if(p.x > m_gapEndLocX)
+        if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
             return Matrix3x3(0.0);
 #ifndef SPLINE_RIF
     	return bessel_HessianRIF(p, scaling);
@@ -668,7 +670,7 @@ public:
 			const VectorType<Float> &axis_ux,
 			const VectorType<Float> &p_u,
 			const Float &er_stepsize,
-			const Float &tol, const Float &rrWeight, const int &precision, const Float &gapEndLocX, const bool &useInitializationHack
+			const Float &tol, const Float &rrWeight, const int &precision, const Float &EgapEndLocX, const Float &SgapBeginLocX, const bool &useInitializationHack
 #ifdef SPLINE_RIF
 			, const Float xmin[], const Float xmax[],  const int N[]
 #endif
@@ -684,7 +686,7 @@ public:
 #endif
 				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange, useBounceDecomposition, sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active),
 				m_bsdf(FPCONST(1.0), ior),
-				m_us(f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, gapEndLocX, useInitializationHack
+				m_us(f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, EgapEndLocX, SgapBeginLocX, useInitializationHack
 #ifdef SPLINE_RIF
 						, xmin, xmax, N
 #endif
