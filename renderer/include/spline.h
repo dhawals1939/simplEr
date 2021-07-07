@@ -10,6 +10,8 @@
 #ifndef SPLINE_H_
 #define SPLINE_H_
 
+#include<string>
+#include<fstream>
 #include <iostream>
 #include <constants.h>
 #include <math.h>
@@ -21,6 +23,10 @@ inline int modulo(int a, int b) {
     return (r < 0) ? r+b : r;
 }
 
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
 namespace detail{
 
 template<int D>
@@ -28,66 +34,79 @@ inline Float kernel(Float x);
 
 template<>
 inline Float kernel<0>(Float x){
-//	x = std::abs(x);
-//	if(x > 2)
-//		return (Float)(0.0);
-//	if(x > 1)
-//		return (ONE_SIXTH*(2-x)*(2-x)*(2-x));
-//	return (TWO_THIRD - x*x + HALF*x*x*x);
-   	Float y = 0;
-	if(x > 2 || x < -2)
-		return y;
-	if(x > -2){
-		y += (x+2)*(x+2)*(x+2);
-		if(x > -1){
-			y += -4*(x+1)*(x+1)*(x+1);
-			if(x > 0){
-				y += 6*x*x*x;
-				if(x > 1){
-					y += -4*(x-1)*(x-1)*(x-1);
-				}
-			}
-		}
-	}
-	return ONE_SIXTH*y;
+    x = std::abs(x);
+    if(x > 2)
+        return (Float)(0.0);
+    if(x > 1)
+        return (ONE_SIXTH*(2-x)*(2-x)*(2-x));
+    return (TWO_THIRD - x*x + HALF*x*x*x);
+//      Float y = 0;
+//  if(x > 2 || x < -2)
+//      return y;
+//  if(x > -2){
+//      y += (x+2)*(x+2)*(x+2);
+//      if(x > -1){
+//          y += -4*(x+1)*(x+1)*(x+1);
+//          if(x > 0){
+//              y += 6*x*x*x;
+//              if(x > 1){
+//                  y += -4*(x-1)*(x-1)*(x-1);
+//              }
+//          }
+//      }
+//  }
+//  return ONE_SIXTH*y;
 }
 template<>
 inline Float kernel<1>(Float x){
-   	Float y = 0;
-	if(x > 2 || x < -2)
-		return y;
-	if(x > -2){
-		y += (x+2)*(x+2);
-		if(x > -1){
-			y += -4*(x+1)*(x+1);
-			if(x > 0){
-				y += 6*x*x;
-				if(x > 1){
-					y += -4*(x-1)*(x-1);
-				}
-			}
-		}
-	}
-	return HALF*y;
+    int s = sgn(x);
+    x = std::abs(x);
+    if(x > 2)
+        return (Float)(0.0);
+    if(x > 1)
+        return s*(-HALF*(2-x)*(2-x));
+    return s*((1.5*x - 2)*x);
+//      Float y = 0;
+//  if(x > 2 || x < -2)
+//      return y;
+//  if(x > -2){
+//      y += (x+2)*(x+2);
+//      if(x > -1){
+//          y += -4*(x+1)*(x+1);
+//          if(x > 0){
+//              y += 6*x*x;
+//              if(x > 1){
+//                  y += -4*(x-1)*(x-1);
+//              }
+//          }
+//      }
+//  }
+//  return HALF*y;
 }
 template<>
 inline Float kernel<2>(Float x){
-   	Float y = 0;
-	if(x > 2 || x < -2)
-		return y;
-	if(x > -2){
-		y += (x+2);
-		if(x > -1){
-			y += -4*(x+1);
-			if(x > 0){
-				y += 6*x;
-				if(x > 1){
-					y += -4*(x-1);
-				}
-			}
-		}
-	}
-	return y;
+    x = std::abs(x);
+    if(x > 2)
+        return (Float)(0.0);
+    if(x > 1)
+        return 2-x;
+    return 3*x-2;
+//      Float y = 0;
+//  if(x > 2 || x < -2)
+//      return y;
+//  if(x > -2){
+//      y += (x+2);
+//      if(x > -1){
+//          y += -4*(x+1);
+//          if(x > 0){
+//              y += 6*x;
+//              if(x > 1){
+//                  y += -4*(x-1);
+//              }
+//          }
+//      }
+//  }
+//  return y;
 }
 
 }
@@ -95,14 +114,39 @@ inline Float kernel<2>(Float x){
 template<int DIM>
 class Spline{
 public:
-    Spline(const Float xmin[DIM], const Float xmax[DIM],  const int N[DIM]){
+
+    Spline(){ // empty constructor, which waits for a proper initialization. HACK: FIXME
+    }
+    inline void initialize(const Float xmin[DIM], const Float xmax[DIM],  const int N[DIM]){ // to compensate for above HACK. FIXME;
         uint datasize = 1;
         for(int i=0; i < DIM; i++){
             this->xmin[i] = xmin[i];
             this->xmax[i] = xmax[i];
             this->N[i] = N[i];
             xres[i] = (N[i]-1)/(xmax[i] - xmin[i]);
-            xres2[i] = xres[i]*xres[i];
+            dxres[i] = xres[i];
+            dxres2[i] = dxres[i] * dxres[i];
+            datasize= datasize*N[i];
+        }
+        coeff = new Float[datasize];
+        built = false; // Note: currently not testing when the value is asked as that would make code slow
+        z1 = -2 + std::sqrt(3);
+    }
+
+    Spline(const std::string &rifgridFile){ // currently hardcoded for 3D and doesn't work for 1D, 2D
+        Float *data;
+        readVolAndBuild(rifgridFile);
+    }
+
+    Spline(const Float xmin[DIM], const Float xmax[DIM], const int N[DIM]){
+        uint datasize = 1;
+        for(int i=0; i < DIM; i++){
+            this->xmin[i] = xmin[i];
+            this->xmax[i] = xmax[i];
+            this->N[i] = N[i];
+            xres[i] = (N[i]-1)/(xmax[i] - xmin[i]);
+            dxres[i] = xres[i];
+            dxres2[i] = dxres[i] * dxres[i];
             datasize= datasize*N[i];
         }
         coeff = new Float[datasize];
@@ -113,6 +157,70 @@ public:
     ~Spline(){
         delete[] coeff;
     }
+
+
+
+    inline void readVolAndBuild(const std::string &filename){ // currently hardcoded for 3D and doesn't work for 1D, 2D
+        float f;
+        char c;
+        int32_t i;
+        std::ifstream fin;
+        fin.open(filename, std::ios::binary);
+
+        // Header should be VOL3
+        fin.read(reinterpret_cast<char *>(&c), sizeof(c));if(c != 'V') {std::cerr << "file " << filename << " is not a VOL file. The prologue is not VOL" << std::endl; exit(-1);}
+        fin.read(reinterpret_cast<char *>(&c), sizeof(c));if(c != 'O') {std::cerr << "file " << filename << " is not a VOL file. The prologue is not VOL" << std::endl; exit(-1);}
+        fin.read(reinterpret_cast<char *>(&c), sizeof(c));if(c != 'L') {std::cerr << "file " << filename << " is not a VOL file. The prologue is not VOL" << std::endl; exit(-1);}
+        fin.read(reinterpret_cast<char *>(&c), sizeof(c));if((int)c != 3) {std::cerr << "file " << filename << " is not of proper version (3). Instead it is " << int(c) << std::endl; exit(-1);}
+        fin.read(reinterpret_cast<char *>(&i), sizeof(i));if(i != 1) {std::cerr << "type should be 1 (single-bit precision). Instead it is reported as " << i << std::endl; exit(-1);}
+
+        // read the resolution.
+        fin.read(reinterpret_cast<char *>(&i), sizeof(i)); N[0] = i;
+        fin.read(reinterpret_cast<char *>(&i), sizeof(i)); N[1] = i;
+        fin.read(reinterpret_cast<char *>(&i), sizeof(i)); N[2] = i;
+        Float *data = new Float[N[0]*N[1]*N[2]];
+
+        fin.read(reinterpret_cast<char *>(&i), sizeof(i));if(i != 1) {std::cerr << "should only be single channel. Currently reported as " << i << std::endl; exit(-1);}
+
+        fin.read(reinterpret_cast<char *>(&f), sizeof(f)); xmin[0] = (Float) f;
+        fin.read(reinterpret_cast<char *>(&f), sizeof(f)); xmin[1] = (Float) f;
+        fin.read(reinterpret_cast<char *>(&f), sizeof(f)); xmin[2] = (Float) f;
+
+        fin.read(reinterpret_cast<char *>(&f), sizeof(f)); xmax[0] = (Float) f;
+        fin.read(reinterpret_cast<char *>(&f), sizeof(f)); xmax[1] = (Float) f;
+        fin.read(reinterpret_cast<char *>(&f), sizeof(f)); xmax[2] = (Float) f;
+
+        for(int z=0; z<N[2]; z++)
+            for(int y=0; y<N[1]; y++)
+                for(int x=0; x<N[0]; x++){
+                    fin.read(reinterpret_cast<char *>(&f), sizeof(f));
+                    data[x + N[0]*(y + z*N[1])] = (Float) f;
+                }
+
+
+        for(int i=0; i < DIM; i++){
+            xres[i] = (N[i]-1)/(xmax[i] - xmin[i]);
+            dxres[i] = xres[i];
+            dxres2[i] = dxres[i] * dxres[i];
+        }
+        coeff = new Float[N[0]*N[1]*N[2]];
+        built = false;
+        z1 = -2 + std::sqrt(3);
+        build3d(data);
+    }
+
+    inline void printcoeff3d() const{
+        for(int k=0; k<N[2]; k++){
+            for(int j=0; j<N[1]; j++){
+                for(int i=0; i<N[0]; i++){
+                    std::cout << coeff[i + j*N[0] + k*N[0]*N[1]] << ", ";
+                }
+                std::cout << std::endl;
+            }
+            std::cout << std::endl;
+        }
+    }
+
 
     inline void build(const Float data[]){
         if(DIM == 1){
@@ -130,14 +238,14 @@ public:
             built = true;
             return;
         }
-	    std::cerr << "Error: Current implementation of spline interpolation works only upto 3 dimensions \n";
+        std::cerr << "Error: Current implementation of spline interpolation works only upto 3 dimensions \n";
         exit (EXIT_FAILURE);
     }
 
     template<int DX>
     inline Float value(const Float x[]) const{
         if(DIM != 1){
-	        std::cerr << "Error: 1D-Value called for " << DIM << "dimensions \n";
+            std::cerr << "Error: 1D-Value called for " << DIM << "dimensions \n";
             exit (EXIT_FAILURE);
         }
 
@@ -149,7 +257,7 @@ public:
     template<int DX, int DY>
     inline Float value(const Float x[]) const{
         if(DIM != 2){
-	        std::cerr << "Error: 2D-Value called for " << DIM << "dimensions \n";
+            std::cerr << "Error: 2D-Value called for " << DIM << "dimensions \n";
             exit (EXIT_FAILURE);
         }
 
@@ -161,7 +269,7 @@ public:
     template<int DX, int DY, int DZ>
     inline Float value(const Float x[]) const{
         if(DIM != 3){
-	        std::cerr << "Error: 3D-Value called for " << DIM << "dimensions \n";
+            std::cerr << "Error: 3D-Value called for " << DIM << "dimensions \n";
             exit (EXIT_FAILURE);
         }
 
@@ -173,7 +281,7 @@ public:
     // special functions that work only inside ERCRDR. comment outside
     inline Matrix3x3 hessian2d(const Float y[]) const{
         if(DIM != 2){
-	        std::cerr << "Error: 2D-Value called for " << DIM << "dimensions \n";
+            std::cerr << "Error: 2D-Value called for " << DIM << "dimensions \n";
             exit (EXIT_FAILURE);
         }
 
@@ -197,30 +305,30 @@ public:
                 if(wrap_index2 >= N[1]){
                     wrap_index2 = 2*N[1] - 2 - wrap_index2;
                 }
-				Hxx += coeff[wrap_index1+wrap_index2*N[0]] * kernel<2>(x[0]-index1) * kernel<0>(x[1]-index2);
-				Hxy += coeff[wrap_index1+wrap_index2*N[0]] * kernel<1>(x[0]-index1) * kernel<1>(x[1]-index2);
-				Hyy += coeff[wrap_index1+wrap_index2*N[0]] * kernel<0>(x[0]-index1) * kernel<2>(x[1]-index2);
+                Hxx += coeff[wrap_index1+wrap_index2*N[0]] * kernel<2>(x[0]-index1) * kernel<0>(x[1]-index2);
+                Hxy += coeff[wrap_index1+wrap_index2*N[0]] * kernel<1>(x[0]-index1) * kernel<1>(x[1]-index2);
+                Hyy += coeff[wrap_index1+wrap_index2*N[0]] * kernel<0>(x[0]-index1) * kernel<2>(x[1]-index2);
             }
         }
 
-        Hxx *= xres2[0];
-        Hyy *= xres2[1];
-        Hxy *= xres[0]*xres[1];
+        Hxx *= dxres2[0];
+        Hyy *= dxres2[1];
+        Hxy *= dxres[0]*dxres[1];
 
         return Matrix3x3(0, 0,   0,
-        				 0, Hyy, Hxy,
-    					 0, Hxy, Hxx);
+                         0, Hyy, Hxy,
+                         0, Hxy, Hxx);
     }
 
     inline tvec::Vec3f gradient2d(const Float y[]) const{
         if(DIM != 2){
-	        std::cerr << "Error: 2D-Value called for " << DIM << "dimensions \n";
+            std::cerr << "Error: 2D-Value called for " << DIM << "dimensions \n";
             exit (EXIT_FAILURE);
         }
 
         Float x[DIM]; // make a duplicate
         x[0] = y[0]; x[1] = y[1];
-        tvec::Vec3f p(0);
+        tvec::Vec3f v(0);
 
         convertToX(x);
 
@@ -235,63 +343,82 @@ public:
                 if(wrap_index2 >= N[1]){
                     wrap_index2 = 2*N[1] - 2 - wrap_index2;
                 }
-				p.y += coeff[wrap_index1+wrap_index2*N[0]] * kernel<0>(x[0]-index1) * kernel<1>(x[1]-index2);
-				p.z += coeff[wrap_index1+wrap_index2*N[0]] * kernel<1>(x[0]-index1) * kernel<0>(x[1]-index2);
+                v.y += coeff[wrap_index1+wrap_index2*N[0]] * kernel<0>(x[0]-index1) * kernel<1>(x[1]-index2);
+                v.z += coeff[wrap_index1+wrap_index2*N[0]] * kernel<1>(x[0]-index1) * kernel<0>(x[1]-index2);
             }
         }
-		p.y *= xres[1];
-		p.z *= xres[0];
+        v.y *= dxres[1];
+        v.z *= dxres[0];
+        return v;
     }
 
 
-    inline tvec::Vec3f gradient(const Float y[]) const{
-        if(DIM != 3){
-	        std::cerr << "Error: 3D-Value called for " << DIM << "dimensions \n";
-            exit (EXIT_FAILURE);
-        }
-
+    inline Float value(const Float x1[]) const{
         Float x[DIM]; // make a duplicate
-        x[0] = y[0]; x[1] = y[1]; x[2] = y[2];
-        tvec::Vec3f p(0);
-
+        x[0] = x1[0]; x[1] = x1[1]; x[2] = x1[2];
         convertToX(x);
         Float v = 0;
-        int wrap_index1, wrap_index2, wrap_index3;
         for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
-            wrap_index1 = modulo(index1, 2*N[0]-2);
-            if(wrap_index1 >= N[0]){
-                wrap_index1 = 2*N[0] - 2 - wrap_index1;
-            }
             for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
-                wrap_index2 = modulo(index2, 2*N[1]-2);
-                if(wrap_index2 >= N[1]){
-                    wrap_index2 = 2*N[1] - 2 - wrap_index2;
-                }
                 for(int index3 = ceil(x[2]-2); index3 <= floor(x[2]+2); index3++){
-                    wrap_index3 = modulo(index3, 2*N[2]-2);
-                    if(wrap_index3 >= N[2]){
-                        wrap_index3 = 2*N[2] - 2 - wrap_index3;
-                    }
-                    p.x += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<1>(x[0]-index1) * kernel<0>(x[1]-index2) * kernel<0>(x[2]-index3);
-                    p.y += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<0>(x[0]-index1) * kernel<1>(x[1]-index2) * kernel<0>(x[2]-index3);
-                    p.z += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<0>(x[0]-index1) * kernel<0>(x[1]-index2) * kernel<1>(x[2]-index3);
+                    v += coeff[index1+index2*N[0]+index3*N[0]*N[1]] * kernel<0>(x[0]-index1) * kernel<0>(x[1]-index2) * kernel<0>(x[2]-index3);
                 }
             }
         }
-		p.x *= xres[0];
-		p.y *= xres[1];
-		p.z *= xres[2];
+        return v;
     }
 
 
-    inline Matrix3x3 hessian(const Float y[]) const{
+    inline tvec::Vec3f gradient(Float x[]) const{
         if(DIM != 3){
-	        std::cerr << "Error: 3D-Value called for " << DIM << "dimensions \n";
+            std::cerr << "Error: 3D-Value called for " << DIM << "dimensions \n";
             exit (EXIT_FAILURE);
         }
 
-        Float x[DIM]; // make a duplicate
-        x[0] = y[0]; x[1] = y[1]; x[2] = y[2];
+        tvec::Vec3f v(0.0);
+
+        convertToX(x);
+
+        Float precomputeK0x;
+        Float precomputeK0y;
+        Float precomputeK0z;
+        Float precomputeCoeff;
+
+//        int wrap_index1, wrap_index2, wrap_index3; // hack as usage never warrants this case
+        for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
+//            wrap_index1 = modulo(index1, 2*N[0]-2);
+//            if(wrap_index1 >= N[0]){
+//                wrap_index1 = 2*N[0] - 2 - wrap_index1;
+//            }
+            for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
+//                wrap_index2 = modulo(index2, 2*N[1]-2);
+//                if(wrap_index2 >= N[1]){
+//                    wrap_index2 = 2*N[1] - 2 - wrap_index2;
+//                }
+                for(int index3 = ceil(x[2]-2); index3 <= floor(x[2]+2); index3++){
+//                    wrap_index3 = modulo(index3, 2*N[2]-2);
+//                    if(wrap_index3 >= N[2]){
+//                        wrap_index3 = 2*N[2] - 2 - wrap_index3;
+//                    }
+//                  precomputeCoeff = coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]];
+                    precomputeCoeff = coeff[index1+index2*N[0]+index3*N[0]*N[1]];
+                    precomputeK0x   = kernel<0>(x[0]-index1);
+                    precomputeK0y   = kernel<0>(x[1]-index2);
+                    precomputeK0z   = kernel<0>(x[2]-index3);
+                    v.x += precomputeCoeff * kernel<1>(x[0]-index1) * precomputeK0y * precomputeK0z;
+                    v.y += precomputeCoeff * precomputeK0x * kernel<1>(x[1]-index2) * precomputeK0z;
+                    v.z += precomputeCoeff * precomputeK0x * precomputeK0y * kernel<1>(x[2]-index3);
+                }
+            }
+        }
+        v.x *= dxres[0];
+        v.y *= dxres[1];
+        v.z *= dxres[2];
+        return v;
+    }
+
+
+    inline Matrix3x3 hessian(Float x[]) const{
 
         Float Hxx = 0;
         Float Hyy = 0;
@@ -302,44 +429,252 @@ public:
 
         convertToX(x);
 
-        int wrap_index1, wrap_index2, wrap_index3;
-        for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
-            wrap_index1 = modulo(index1, 2*N[0]-2);
-            if(wrap_index1 >= N[0]){
-                wrap_index1 = 2*N[0] - 2 - wrap_index1;
-            }
-            for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
-                wrap_index2 = modulo(index2, 2*N[1]-2);
-                if(wrap_index2 >= N[1]){
-                    wrap_index2 = 2*N[1] - 2 - wrap_index2;
-                }
-                for(int index3 = ceil(x[2]-2); index3 <= floor(x[2]+2); index3++){
-                    wrap_index3 = modulo(index3, 2*N[2]-2);
-                    if(wrap_index3 >= N[2]){
-                        wrap_index3 = 2*N[2] - 2 - wrap_index3;
-                    }
-					Hxx += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<2>(x[0]-index1) * kernel<0>(x[1]-index2) * kernel<0>(x[2]-index3);
-					Hyy += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<0>(x[0]-index1) * kernel<2>(x[1]-index2) * kernel<0>(x[2]-index3);
-					Hzz += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<0>(x[0]-index1) * kernel<0>(x[1]-index2) * kernel<2>(x[2]-index3);
+        Float precomputeK0x;
+        Float precomputeK0y;
+        Float precomputeK0z;
+        Float precomputeK1x;
+        Float precomputeK1y;
+        Float precomputeK1z;
+        Float precomputeCoeff;
 
-					Hxy += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<1>(x[0]-index1) * kernel<1>(x[1]-index2) * kernel<0>(x[2]-index3);
-					Hyz += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<0>(x[0]-index1) * kernel<1>(x[1]-index2) * kernel<1>(x[2]-index3);
-					Hzx += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<1>(x[0]-index1) * kernel<0>(x[1]-index2) * kernel<1>(x[2]-index3);
+
+//        int wrap_index1, wrap_index2, wrap_index3; // hack as usage never warrants this case
+        for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
+//            wrap_index1 = modulo(index1, 2*N[0]-2);
+//            if(wrap_index1 >= N[0]){
+//                wrap_index1 = 2*N[0] - 2 - wrap_index1;
+//            }
+            for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
+//                wrap_index2 = modulo(index2, 2*N[1]-2);
+//                if(wrap_index2 >= N[1]){
+//                    wrap_index2 = 2*N[1] - 2 - wrap_index2;
+//                }
+                for(int index3 = ceil(x[2]-2); index3 <= floor(x[2]+2); index3++){
+//                    wrap_index3 = modulo(index3, 2*N[2]-2);
+//                    if(wrap_index3 >= N[2]){
+//                        wrap_index3 = 2*N[2] - 2 - wrap_index3;
+//                    }
+
+//                    precomputeCoeff = coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]];
+                    precomputeCoeff = coeff[index1+index2*N[0]+index3*N[0]*N[1]];
+                    precomputeK0x   = kernel<0>(x[0]-index1);
+                    precomputeK0y   = kernel<0>(x[1]-index2);
+                    precomputeK0z   = kernel<0>(x[2]-index3);
+
+                    precomputeK1x   = kernel<1>(x[0]-index1);
+                    precomputeK1y   = kernel<1>(x[1]-index2);
+                    precomputeK1z   = kernel<1>(x[2]-index3);
+
+                    Hxx += precomputeCoeff * kernel<2>(x[0]-index1) * precomputeK0y * precomputeK0z;
+                    Hyy += precomputeCoeff * precomputeK0x * kernel<2>(x[1]-index2) * precomputeK0z;
+                    Hzz += precomputeCoeff * precomputeK0x * precomputeK0y * kernel<2>(x[2]-index3);
+
+                    Hxy += precomputeCoeff * precomputeK1x * precomputeK1y * precomputeK0z;
+                    Hyz += precomputeCoeff * precomputeK0x * precomputeK1y * precomputeK1z;
+                    Hzx += precomputeCoeff * precomputeK1x * precomputeK0y * precomputeK1z;
                 }
             }
         }
 
-        Hxx *= xres2[0];
-        Hyy *= xres2[1];
-        Hzz *= xres2[2];
+        Hxx *= dxres2[0];
+        Hyy *= dxres2[1];
+        Hzz *= dxres2[2];
 
-        Hxy *= xres[0]*xres[1];
-        Hyz *= xres[1]*xres[2];
-        Hzx *= xres[2]*xres[0];
+        Hxy *= dxres[0]*dxres[1];
+        Hyz *= dxres[1]*dxres[2];
+        Hzx *= dxres[2]*dxres[0];
 
         return Matrix3x3(Hxx, Hxy, Hzx,
-        				 Hxy, Hyy, Hyz,
-						 Hzx, Hyz, Hzz);
+                         Hxy, Hyy, Hyz,
+                         Hzx, Hyz, Hzz);
+    }
+
+    inline void valueAndGradient(Float x[], Float &f, tvec::Vec3f &v) const{
+
+        v.x = v.y = v.z = 0;
+        f = 0;
+
+        convertToX(x);
+
+        Float precomputeK0x;
+        Float precomputeK0y;
+        Float precomputeK0z;
+        Float precomputeCoeff;
+
+
+        for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
+            for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
+                for(int index3 = ceil(x[2]-2); index3 <= floor(x[2]+2); index3++){
+                    precomputeCoeff = coeff[index1+index2*N[0]+index3*N[0]*N[1]];
+                    precomputeK0x   = kernel<0>(x[0]-index1);
+                    precomputeK0y   = kernel<0>(x[1]-index2);
+                    precomputeK0z   = kernel<0>(x[2]-index3);
+
+                    f   += precomputeCoeff * precomputeK0x * precomputeK0y * precomputeK0z;
+
+                    v.x += precomputeCoeff * kernel<1>(x[0]-index1) * precomputeK0y * precomputeK0z;
+                    v.y += precomputeCoeff * precomputeK0x * kernel<1>(x[1]-index2) * precomputeK0z;
+                    v.z += precomputeCoeff * precomputeK0x * precomputeK0y * kernel<1>(x[2]-index3);
+                }
+            }
+        }
+
+        v.x *= dxres[0];
+        v.y *= dxres[1];
+        v.z *= dxres[2];
+    }
+
+    inline void gradientAndHessian(Float x[], tvec::Vec3f &v, Matrix3x3 &H) const{
+
+        v.x = v.y = v.z = 0;
+
+        Float Hxx = 0;
+        Float Hyy = 0;
+        Float Hzz = 0;
+        Float Hxy = 0;
+        Float Hyz = 0;
+        Float Hzx = 0;
+
+        convertToX(x);
+
+        Float precomputeK0x;
+        Float precomputeK0y;
+        Float precomputeK0z;
+        Float precomputeK1x;
+        Float precomputeK1y;
+        Float precomputeK1z;
+        Float precomputeCoeff;
+
+
+        for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
+            for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
+                for(int index3 = ceil(x[2]-2); index3 <= floor(x[2]+2); index3++){
+                    precomputeCoeff = coeff[index1+index2*N[0]+index3*N[0]*N[1]];
+                    precomputeK0x   = kernel<0>(x[0]-index1);
+                    precomputeK0y   = kernel<0>(x[1]-index2);
+                    precomputeK0z   = kernel<0>(x[2]-index3);
+
+                    precomputeK1x   = kernel<1>(x[0]-index1);
+                    precomputeK1y   = kernel<1>(x[1]-index2);
+                    precomputeK1z   = kernel<1>(x[2]-index3);
+
+                    Hxx += precomputeCoeff * kernel<2>(x[0]-index1) * precomputeK0y * precomputeK0z;
+                    Hyy += precomputeCoeff * precomputeK0x * kernel<2>(x[1]-index2) * precomputeK0z;
+                    Hzz += precomputeCoeff * precomputeK0x * precomputeK0y * kernel<2>(x[2]-index3);
+
+                    Hxy += precomputeCoeff * precomputeK1x * precomputeK1y * precomputeK0z;
+                    Hyz += precomputeCoeff * precomputeK0x * precomputeK1y * precomputeK1z;
+                    Hzx += precomputeCoeff * precomputeK1x * precomputeK0y * precomputeK1z;
+
+                    v.x += precomputeCoeff * precomputeK1x * precomputeK0y * precomputeK0z;
+                    v.y += precomputeCoeff * precomputeK0x * precomputeK1y * precomputeK0z;
+                    v.z += precomputeCoeff * precomputeK0x * precomputeK0y * precomputeK1z;
+                }
+            }
+        }
+
+        v.x *= dxres[0];
+        v.y *= dxres[1];
+        v.z *= dxres[2];
+
+        Hxx *= dxres2[0];
+        Hyy *= dxres2[1];
+        Hzz *= dxres2[2];
+
+        Hxy *= dxres[0]*dxres[1];
+        Hyz *= dxres[1]*dxres[2];
+        Hzx *= dxres[2]*dxres[0];
+
+        H = Matrix3x3(Hxx, Hxy, Hzx,
+                       Hxy, Hyy, Hyz,
+                       Hzx, Hyz, Hzz);
+    }
+
+    inline void valueGradientAndHessian(Float x[], Float &f, tvec::Vec3f &v, Matrix3x3 &H) const{
+
+        v.x = v.y = v.z = 0;
+        f = 0;
+
+        Float Hxx = 0;
+        Float Hyy = 0;
+        Float Hzz = 0;
+        Float Hxy = 0;
+        Float Hyz = 0;
+        Float Hzx = 0;
+
+        convertToX(x);
+
+        Float precomputeK0x;
+        Float precomputeK0y;
+        Float precomputeK0z;
+        Float precomputeK1x;
+        Float precomputeK1y;
+        Float precomputeK1z;
+        Float precomputeCoeff;
+
+
+        for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
+            for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
+                for(int index3 = ceil(x[2]-2); index3 <= floor(x[2]+2); index3++){
+                    precomputeCoeff = coeff[index1+index2*N[0]+index3*N[0]*N[1]];
+                    precomputeK0x   = kernel<0>(x[0]-index1);
+                    precomputeK0y   = kernel<0>(x[1]-index2);
+                    precomputeK0z   = kernel<0>(x[2]-index3);
+
+                    precomputeK1x   = kernel<1>(x[0]-index1);
+                    precomputeK1y   = kernel<1>(x[1]-index2);
+                    precomputeK1z   = kernel<1>(x[2]-index3);
+
+                    f += precomputeCoeff * precomputeK0x * precomputeK0y * precomputeK0z;
+
+                    Hxx += precomputeCoeff * kernel<2>(x[0]-index1) * precomputeK0y * precomputeK0z;
+                    Hyy += precomputeCoeff * precomputeK0x * kernel<2>(x[1]-index2) * precomputeK0z;
+                    Hzz += precomputeCoeff * precomputeK0x * precomputeK0y * kernel<2>(x[2]-index3);
+
+                    Hxy += precomputeCoeff * precomputeK1x * precomputeK1y * precomputeK0z;
+                    Hyz += precomputeCoeff * precomputeK0x * precomputeK1y * precomputeK1z;
+                    Hzx += precomputeCoeff * precomputeK1x * precomputeK0y * precomputeK1z;
+
+                    v.x += precomputeCoeff * precomputeK1x * precomputeK0y * precomputeK0z;
+                    v.y += precomputeCoeff * precomputeK0x * precomputeK1y * precomputeK0z;
+                    v.z += precomputeCoeff * precomputeK0x * precomputeK0y * precomputeK1z;
+                }
+            }
+        }
+
+        v.x *= dxres[0];
+        v.y *= dxres[1];
+        v.z *= dxres[2];
+
+        Hxx *= dxres2[0];
+        Hyy *= dxres2[1];
+        Hzz *= dxres2[2];
+
+        Hxy *= dxres[0]*dxres[1];
+        Hyz *= dxres[1]*dxres[2];
+        Hzx *= dxres[2]*dxres[0];
+
+        H = Matrix3x3(Hxx, Hxy, Hzx,
+                       Hxy, Hyy, Hyz,
+                       Hzx, Hyz, Hzz);
+    }
+
+//  inline void transform(const Transform &worldToVolume){
+//        if(DIM != 3){
+//          std::cerr << "Error: transform is defined only for " << DIM << "dimensions \n";
+//            exit (EXIT_FAILURE);
+//        }
+//        PointF p(xres[0], xres[1], xres[2]);
+//        p = worldToVolume(p);
+////        volumeToWorld(p);
+//        for(int i=0; i<DIM; i++){
+//          dxres[i] = p[i];
+//          dxres2[i] = dxres[i]*dxres[i];
+//        }
+//  }
+
+    inline Float getStride(int dim) const{
+        return 1.0/xres[dim];
     }
 
     /*    template<int DX, int DY, int DZ>
@@ -354,7 +689,7 @@ public:
             return value2d<DX, DY>(y);
         if(DIM == 3)
             return value3d<DX, DY, DZ>(y);
-	    std::cerr << "Error: Current implementation of spline interpolation works only upto 3 dimensions \n";
+        std::cerr << "Error: Current implementation of spline interpolation works only upto 3 dimensions \n";
         exit (EXIT_FAILURE);
     }
 */
@@ -363,7 +698,8 @@ private:
     Float xmin[DIM];
     Float xmax[DIM];
     Float xres[DIM];
-    Float xres2[DIM];
+    Float dxres[DIM];
+    Float dxres2[DIM];
     Float *coeff;
     int N[DIM];
     bool  built;
@@ -378,64 +714,64 @@ private:
 
     template<int D>
     inline Float kernel(Float x) const{
-    	return detail::kernel<D>(x);
+        return detail::kernel<D>(x);
     }
 
 //
 //    template<int D>
 //    inline Float kernel(Float x) const{
-//    	Float y = 0;
-//	    if(D == 0){
-//	        if(x > 2 || x < -2)
-//	            return y;
-//	        if(x > -2){
-//	            y += (x+2)*(x+2)*(x+2);
-//	            if(x > -1){
-//	                y += -4*(x+1)*(x+1)*(x+1);
-//	                if(x > 0){
-//	                    y += 6*x*x*x;
-//	                    if(x > 1){
-//	                        y += -4*(x-1)*(x-1)*(x-1);
-//	                    }
-//	                }
-//	            }
-//	        }
-//	        return y/6;
-//	    }else if(D == 1){
-//	        if(x > 2 || x < -2)
-//	            return y;
-//	        if(x > -2){
-//	            y += (x+2)*(x+2);
-//	            if(x > -1){
-//	                y += -4*(x+1)*(x+1);
-//	                if(x > 0){
-//	                    y += 6*x*x;
-//	                    if(x > 1){
-//	                        y += -4*(x-1)*(x-1);
-//	                    }
-//	                }
-//	            }
-//	        }
-//	        return y/2;
-//	    }else if(D == 2){
-//	        if(x > 2 || x < -2)
-//	            return y;
-//	        if(x > -2){
-//	            y += (x+2);
-//	            if(x > -1){
-//	                y += -4*(x+1);
-//	                if(x > 0){
-//	                    y += 6*x;
-//	                    if(x > 1){
-//	                        y += -4*(x-1);
-//	                    }
-//	                }
-//	            }
-//	        }
-//	        return y;
-//	    }else{
-//	        std::cerr << "Error: More than double derivative is not defined \n";
-//	    }
+//      Float y = 0;
+//      if(D == 0){
+//          if(x > 2 || x < -2)
+//              return y;
+//          if(x > -2){
+//              y += (x+2)*(x+2)*(x+2);
+//              if(x > -1){
+//                  y += -4*(x+1)*(x+1)*(x+1);
+//                  if(x > 0){
+//                      y += 6*x*x*x;
+//                      if(x > 1){
+//                          y += -4*(x-1)*(x-1)*(x-1);
+//                      }
+//                  }
+//              }
+//          }
+//          return y/6;
+//      }else if(D == 1){
+//          if(x > 2 || x < -2)
+//              return y;
+//          if(x > -2){
+//              y += (x+2)*(x+2);
+//              if(x > -1){
+//                  y += -4*(x+1)*(x+1);
+//                  if(x > 0){
+//                      y += 6*x*x;
+//                      if(x > 1){
+//                          y += -4*(x-1)*(x-1);
+//                      }
+//                  }
+//              }
+//          }
+//          return y/2;
+//      }else if(D == 2){
+//          if(x > 2 || x < -2)
+//              return y;
+//          if(x > -2){
+//              y += (x+2);
+//              if(x > -1){
+//                  y += -4*(x+1);
+//                  if(x > 0){
+//                      y += 6*x;
+//                      if(x > 1){
+//                          y += -4*(x-1);
+//                      }
+//                  }
+//              }
+//          }
+//          return y;
+//      }else{
+//          std::cerr << "Error: More than double derivative is not defined \n";
+//      }
 //    }
 
     template<int DX>
@@ -451,9 +787,9 @@ private:
             v += coeff[wrap_index] * kernel<DX>(x[0]-index);
         }
         if(DX == 1)
-            v *= xres[0];
+            v *= dxres[0];
         if(DX == 2)
-            v *= xres2[0];
+            v *= dxres2[0];
         return v;
     }
 
@@ -476,13 +812,13 @@ private:
             }
         }
         if(DX == 1)
-            v *= xres[0];
+            v *= dxres[0];
         if(DX == 2)
-            v *= xres2[0];
+            v *= dxres2[0];
         if(DY == 1)
-            v *= xres[1];
+            v *= dxres[1];
         if(DY == 2)
-            v *= xres2[1];
+            v *= dxres2[1];
         return v;
     }
 
@@ -490,38 +826,39 @@ private:
     inline Float value3d(Float x[]) const{
         convertToX(x);
         Float v = 0;
-        int wrap_index1, wrap_index2, wrap_index3;
+//        int wrap_index1, wrap_index2, wrap_index3;
         for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
-            wrap_index1 = modulo(index1, 2*N[0]-2);
-            if(wrap_index1 >= N[0]){
-                wrap_index1 = 2*N[0] - 2 - wrap_index1;
-            }
+//            wrap_index1 = modulo(index1, 2*N[0]-2);
+//            if(wrap_index1 >= N[0]){
+//                wrap_index1 = 2*N[0] - 2 - wrap_index1;
+//            }
             for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
-                wrap_index2 = modulo(index2, 2*N[1]-2);
-                if(wrap_index2 >= N[1]){
-                    wrap_index2 = 2*N[1] - 2 - wrap_index2;
-                }
+//                wrap_index2 = modulo(index2, 2*N[1]-2);
+//                if(wrap_index2 >= N[1]){
+//                    wrap_index2 = 2*N[1] - 2 - wrap_index2;
+//                }
                 for(int index3 = ceil(x[2]-2); index3 <= floor(x[2]+2); index3++){
-                    wrap_index3 = modulo(index3, 2*N[2]-2);
-                    if(wrap_index3 >= N[2]){
-                        wrap_index3 = 2*N[2] - 2 - wrap_index3;
-                    }
-                    v += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<DX>(x[0]-index1) * kernel<DY>(x[1]-index2) * kernel<DZ>(x[2]-index3);
+//                    wrap_index3 = modulo(index3, 2*N[2]-2);
+//                    if(wrap_index3 >= N[2]){
+//                        wrap_index3 = 2*N[2] - 2 - wrap_index3;
+//                    }
+//                    v += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<DX>(x[0]-index1) * kernel<DY>(x[1]-index2) * kernel<DZ>(x[2]-index3);
+                    v += coeff[index1+index2*N[0]+index3*N[0]*N[1]] * kernel<DX>(x[0]-index1) * kernel<DY>(x[1]-index2) * kernel<DZ>(x[2]-index3);
                 }
             }
         }
         if(DX == 1)
-            v *= xres[0];
+            v *= dxres[0];
         if(DX == 2)
-            v *= xres2[0];
+            v *= dxres2[0];
         if(DY == 1)
-            v *= xres[1];
+            v *= dxres[1];
         if(DY == 2)
-            v *= xres2[1];
+            v *= dxres2[1];
         if(DZ == 1)
-            v *= xres[2];
+            v *= dxres[2];
         if(DZ == 2)
-            v *= xres2[2];
+            v *= dxres2[2];
         return v;
     }
 
@@ -584,14 +921,14 @@ private:
 
         for(int k=0; k<N[2]; k++)
             for(int i=0; i<N[0]; i++){
-                build1d(data, k*N[0]*N[1] + i, N[0], N[0], temp);
+                build1d(data, k*N[0]*N[1] + i, N[0], N[1], temp);
                 for(int t=0; t < N[1]; t++)
                     coeff[i+t*N[0]+k*N[0]*N[1]] = temp[t];
             }
 
         for(int k=0; k<N[2]; k++)
             for(int j=0; j<N[1]; j++){
-                build1d(coeff, k*N[0]*N[1] + j*N[0], 1, N[1], temp);
+                build1d(coeff, k*N[0]*N[1] + j*N[0], 1, N[0], temp);
                 for(int t=0; t < N[0]; t++)
                     coeff[t+j*N[0]+k*N[0]*N[1]] = temp[t];
             }
@@ -607,7 +944,7 @@ private:
     }
 };
 
-}	/* namespace spline */
+}   /* namespace spline */
 
 #endif /* SPLINE_H_ */
 

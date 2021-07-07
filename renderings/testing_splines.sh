@@ -46,4 +46,5 @@ sensor_lens_aperture=.3 \
 sensor_lens_focalLength=.3 \
 sensor_lens_active=false \
 useInitializationHack=false \
+rifgridFile=besselriffile.vol \
 printInputs=true 

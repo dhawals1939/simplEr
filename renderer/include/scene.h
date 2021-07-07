@@ -376,7 +376,7 @@ struct US {
 	Float phi_min;        // Min Phase 
 	Float phi_max;        // Max Phase 
 	Float k_r;
-    int    mode;         // Order of the bessel function or mode of the ultrasound
+    int   mode;         // Order of the bessel function or mode of the ultrasound
 
     VectorType<Float>    axis_uz;          // Ultrasound axis
     VectorType<Float>    axis_ux;          // Ultrasound x-axis. Need to compute angle as mode > 0 is a function of phi
@@ -395,7 +395,8 @@ struct US {
     bool m_useInitializationHack;
 
 #ifdef SPLINE_RIF
-    spline::Spline<2> m_spline;
+//    spline::Spline<2> m_spline;
+    spline::Spline<3> m_spline;
 #endif
 
     US(const Float& f_u, const Float& speed_u,
@@ -403,11 +404,13 @@ struct US {
                  const VectorType<Float> &axis_uz, const VectorType<Float> &axis_ux, const VectorType<Float> &p_u, const Float &er_stepsize,
 				 const Float &tol, const Float &rrWeight, const int &precision, const Float &EgapEndLocX, const Float &SgapBeginLocX, const bool &useInitializationHack
 #ifdef SPLINE_RIF
-				 , const Float xmin[], const Float xmax[],  const int N[]
+//				 , const Float xmin[], const Float xmax[],  const int N[]
+				 , const std::string &rifgridFile
 #endif
 				 )
 #ifdef SPLINE_RIF
-					 :m_spline(xmin, xmax, N)
+//					 :m_spline(xmin, xmax, N)
+					 :m_spline(rifgridFile)
 #endif
     {
         this->f_u            = f_u;
@@ -438,24 +441,36 @@ struct US {
         this->m_useInitializationHack = useInitializationHack;
 
 #ifdef SPLINE_RIF
-		Float *data = new Float[N[0]*N[1]];
-		Float xres[2];
-		xres[0] = (xmax[0] - xmin[0])/(N[0] - 1);
-		xres[1] = (xmax[1] - xmin[1])/(N[1] - 1);
-
-		VectorType<Float> p;
 
 
-		for(int i=0; i < N[0]; i++)
-			for(int j=0; j < N[1]; j++){
-				p[0] = 0;
-				p[1] = xmin[1] + xres[1] * j;
-				p[2] = xmin[0] + xres[0] * i;
-				data[i + j*N[0]] = bessel_RIF(p, 1) - n_o; // Only fit the varying RIF. We will add the constant later. This is to include scaling factor easily.
-			}
+        // some fake values before reading the file. For compilation and testing
+//		Float xmin[] = {-0.01, -0.01};
+//		Float xmax[] = { 0.01,  0.01};
+//		int N[] = {21, 21};
+//        int xmin[3];
+//        int xmax[3];
+//        int N[3];
+//		Float *data;
+//		readvol
+//		m_spline = spline(xmin, xmax, N);
+//		m_spline().build(data);
 
-		m_spline.build(data);
-		auto end = std::chrono::steady_clock::now();
+
+//		Float xres[2];
+//		xres[0] = (xmax[0] - xmin[0])/(N[0] - 1);
+//		xres[1] = (xmax[1] - xmin[1])/(N[1] - 1);
+//
+//		VectorType<Float> p;
+//		for(int i=0; i < N[0]; i++)
+//			for(int j=0; j < N[1]; j++){
+//				p[0] = 0;
+//				p[1] = xmin[1] + xres[1] * j;
+//				p[2] = xmin[0] + xres[0] * i;
+//				data[i + j*N[0]] = bessel_RIF(p, 1) - n_o; // Only fit the varying RIF. We will add the constant later. This is to include scaling factor easily.
+//			}
+//
+//		m_spline.build(data);
+//		auto end = std::chrono::steady_clock::now();
 #endif
     }
 
@@ -491,31 +506,47 @@ struct US {
 
 #ifdef SPLINE_RIF
     inline double spline_RIF(const VectorType<Float> &p, const Float &scaling) const{
-    	Float temp[2];
-    	temp[0] = p.y;
-    	temp[1] = p.z;
-    	return (m_spline.value<0, 0>(temp)*scaling + n_o);
+    	Float temp[3];
+		temp[0] = p.x;
+		temp[1] = p.y;
+		temp[2] = p.z;
+    	return m_spline.value(temp);
+//    	Float temp[2];
+//    	temp[0] = p.y;
+//    	temp[1] = p.z;
+//    	return (m_spline.value<0, 0>(temp)*scaling + n_o);
     }
 
-    inline const VectorType<Float> spline_dRIF(const VectorType<Float> &q, const Float &scaling) const{
-    	Float temp[2];
-    	temp[0] = q.z;
-    	temp[1] = q.y;
-
-//    	return scaling*m_spline.gradient2d(temp);
-    	return scaling*VectorType<Float>(0.0, m_spline.value<0, 1>(temp), m_spline.value<1, 0>(temp));
+    inline const VectorType<Float> spline_dRIF(const VectorType<Float> &p, const Float &scaling) const{
+    	Float temp[3];
+		temp[0] = p.x;
+		temp[1] = p.y;
+		temp[2] = p.z;
+		return m_spline.gradient(temp);
+//				VectorType<Float>(m_spline.value<1, 0, 0>(temp), m_spline.value<0, 1, 0>(temp), m_spline.value<0, 0, 1>(temp));
+//    	Float temp[2];
+//    	temp[0] = q.z;
+//    	temp[1] = q.y;
+//
+////    	return scaling*m_spline.gradient2d(temp);
+//    	return scaling*VectorType<Float>(0.0, m_spline.value<0, 1>(temp), m_spline.value<1, 0>(temp));
     }
 
     inline const Matrix3x3 spline_HessianRIF(const VectorType<Float> &p, const Float &scaling) const{
-    	Float temp[2];
-    	temp[0] = p.z;
-    	temp[1] = p.y;
-
-//    	return scaling*m_spline.hessian2d(temp);
-    	Float hxy = m_spline.value<1, 1>(temp);
-        return scaling*Matrix3x3(0, 0,   0,
-        				 0, m_spline.value<0, 2>(temp), hxy,
-    					 0, hxy, 						m_spline.value<2, 0>(temp));
+    	Float temp[3];
+		temp[0] = p.x;
+		temp[1] = p.y;
+		temp[2] = p.z;
+		return m_spline.hessian(temp);
+//    	Float temp[2];
+//    	temp[0] = p.z;
+//    	temp[1] = p.y;
+//
+////    	return scaling*m_spline.hessian2d(temp);
+//    	Float hxy = m_spline.value<1, 1>(temp);
+//        return scaling*Matrix3x3(0, 0,   0,
+//        				 0, m_spline.value<0, 2>(temp), hxy,
+//    					 0, hxy, 						m_spline.value<2, 0>(temp));
 
     }
 #endif
@@ -672,7 +703,8 @@ public:
 			const Float &er_stepsize,
 			const Float &tol, const Float &rrWeight, const int &precision, const Float &EgapEndLocX, const Float &SgapBeginLocX, const bool &useInitializationHack
 #ifdef SPLINE_RIF
-			, const Float xmin[], const Float xmax[],  const int N[]
+//			, const Float xmin[], const Float xmax[],  const int N[]
+			, const std::string &rifgridFile
 #endif
             ) :
 				m_ior(ior),
@@ -688,7 +720,8 @@ public:
 				m_bsdf(FPCONST(1.0), ior),
 				m_us(f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, EgapEndLocX, SgapBeginLocX, useInitializationHack
 #ifdef SPLINE_RIF
-						, xmin, xmax, N
+//						, xmin, xmax, N
+						, rifgridFile
 #endif
 						){
 

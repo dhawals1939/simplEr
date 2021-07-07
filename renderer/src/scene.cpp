@@ -17,7 +17,7 @@
 namespace scn {
 
 
-void sampleRandomDirection(tvec::Vec2f &randDirection,  smp::Sampler &sampler){ // Need to find a better place for these
+void sampleRandomDirection(tvec::Vec2f &randDirection, smp::Sampler &sampler){ // Need to find a better place for these
 	Float phi= 2*M_PI*sampler();
 	randDirection.x = std::cos(phi);
 	randDirection.y = std::sin(phi);
@@ -36,7 +36,6 @@ void sampleRandomDirection(tvec::Vec3f &randDirection, smp::Sampler &sampler){
 	randDirection.x =-randDirection.z; // compensating that the direction of photon propagation is -x
 	randDirection.z = randDirection.y;
 	randDirection.y = temp;
-
 }
 
 
