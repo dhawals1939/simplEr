@@ -30,7 +30,7 @@ USE_SIMPLIFIED_TIMING = 0
 USE_OMEGA_TRACKING = 0
 
 ## whether to use bessel RIF or spline RIF
-USE_SPLINE_RIF = 1
+USE_SPLINE_RIF = 0
 
 # initialize variables
 LIBS =
@@ -166,7 +166,7 @@ HEADERS = \
     $(INCLUDEDIR)/warp.h \
     $(INCLUDEDIR)/vmf.h \
 	$(INCLUDEDIR)/bsdf.h
-	
+
 OBJ = \
 	$(SRCDIR)/image.o \
 	$(SRCDIR)/phase.o \
@@ -225,7 +225,7 @@ $(SRCDIR)/rng_sse.o: \
 	$(INCLUDEDIR)/rng_sse.h \
 	$(INCLUDEDIR)/sse.h
 	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
-	
+
 $(SRCDIR)/rng_%.o: \
 	$(SRCDIR)/rng_%.cpp \
 	$(INCLUDEDIR)/rng_%.h

@@ -274,9 +274,10 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 #else
 	int numThreads = 1;
 #endif
+	/* Set-up least squares problem for doing next event estimation */
 	Problem *problem = new Problem[numThreads];
 	scn::NEECostFunction<tvec::TVector3> *costFunctions[numThreads];
-	Float *initializations = new Float[numThreads*3];
+	Float *initializations = new Float[numThreads*3]; // The initial parameter values (3 dimensional for x,y,z)
 
 	for(int i=0; i<numThreads; i++){
 		costFunctions[i] = new scn::NEECostFunction<tvec::TVector3>(&scene);
@@ -347,7 +348,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 	for(int i=0; i<numThreads; i++){
 		delete costFunctions[i];
 	}
-	delete initializations;
+	delete[] initializations;
 //	delete[] problem;
 }
 
