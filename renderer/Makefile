@@ -28,6 +28,7 @@ USE_FILE = 0
 USE_WEIGHT_NORMALIZATION = 0
 USE_SIMPLIFIED_TIMING = 0
 USE_OMEGA_TRACKING = 0
+USE_CUDA = 1
 
 ## whether to use bessel RIF or spline RIF
 USE_SPLINE_RIF = 0
@@ -187,6 +188,16 @@ else
 	HEADERS += $(INCLUDEDIR)/rng_boost.h
 endif
 
+ifeq ($(USE_CUDA), 1)
+	NVCCFLAGS=-O0 -m64 --gpu-architecture compute_61 -ccbin $(CC)
+# TODO: Make this generic
+	LIBS += /opt/cuda/lib64/libcudart.so
+	NVCC=nvcc
+
+	HEADERS += $(INCLUDEDIR)/cudaRenderer.h
+	OBJ += $(SRCDIR)/cudaRenderer.o
+endif
+
 ifeq ($(USE_MATLAB), 1)
 all: mexfiles
 else
@@ -218,6 +229,12 @@ $(MEXDIR)/%.o: $(MEXDIR)/%.cpp \
 	$(INCLUDEDIR)/mex_wrapper.h \
 	$(HEADERS)
 	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
+
+# cuda object files
+$(SRCDIR)/cudaRenderer.o: \
+	$(SRCDIR)/cudaRenderer.cu \
+	$(INCLUDEDIR)/cudaRenderer.h
+	$(NVCC) $< $(NVCCFLAGS) $(INCLUDES) -c -o $@
 
 # src object files
 $(SRCDIR)/rng_sse.o: \
