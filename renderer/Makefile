@@ -30,6 +30,12 @@ USE_SIMPLIFIED_TIMING = 0
 USE_OMEGA_TRACKING = 0
 USE_CUDA = 1
 
+## TODO: Eventually allow for double precision with CUDA
+## but produce warning message
+ifeq ($(USE_CUDA), 1)
+	USE_DOUBLE_PRECISION = 0
+endif
+
 ## whether to use bessel RIF or spline RIF
 USE_SPLINE_RIF = 0
 
