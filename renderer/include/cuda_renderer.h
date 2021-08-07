@@ -11,7 +11,7 @@
 
 #include "image.h"
 #include "curand.h"
-
+#include "sampler.h"
 
 typedef unsigned int CudaSeedType;
 
@@ -19,20 +19,26 @@ class CudaRenderer {
 
 public:
 
-    CudaRenderer(image::SmallImage& img, int numPhotons)
-        : img(img), \
-          numPhotons(numPhotons){}
+    CudaRenderer(image::SmallImage& target, int numPhotons)
+        : target(target), \
+          numPhotons(numPhotons){
+        setup();
+    }
 
     virtual ~CudaRenderer();
 
     void renderImage();
 
+    /* For testing */
+    void compareRNGTo(smp::Sampler sampler, int numSamples);
+
 private:
 
     void setup();
-    float *genDeviceRandomNumbers(CudaSeedType seed);
+    void genDeviceRandomNumbers(int num, CudaSeedType seed = CudaSeedType(5489));
+    unsigned int requiredRandomNumbers();
 
-    image::SmallImage& img;
+    image::SmallImage& target;
     int numPhotons;
 
 
