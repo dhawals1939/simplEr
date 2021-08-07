@@ -1,11 +1,11 @@
 /*
- * cudaRenderer.cu
+ * cuda_renderer.cu
  *
  *  Created on: Aug 2, 2021
  *      Author: Andre
  */
 
-#include "cudaRenderer.h"
+#include "cuda_renderer.h"
 
 /* TODO:
  * - The contribution of a photon equates to a sum on the pixel(s) it affects. Figure

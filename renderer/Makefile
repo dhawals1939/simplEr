@@ -195,8 +195,8 @@ ifeq ($(USE_CUDA), 1)
 	NVCCFLAGS=-O0 -m64 -std=c++14 -arch=compute_61
 	NVCC=nvcc
 
-	HEADERS += $(INCLUDEDIR)/cudaRenderer.h
-	OBJ += $(SRCDIR)/cudaRenderer.o
+	HEADERS += $(INCLUDEDIR)/cuda_renderer.h
+	OBJ += $(SRCDIR)/cuda_renderer.o
 endif
 
 ifeq ($(USE_MATLAB), 1)
@@ -232,9 +232,9 @@ $(MEXDIR)/%.o: $(MEXDIR)/%.cpp \
 	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
 
 # cuda object files
-$(SRCDIR)/cudaRenderer.o: \
-	$(SRCDIR)/cudaRenderer.cu \
-	$(INCLUDEDIR)/cudaRenderer.h
+$(SRCDIR)/cuda_renderer.o: \
+	$(SRCDIR)/cuda_renderer.cu \
+	$(INCLUDEDIR)/cuda_renderer.h
 	$(NVCC) $< $(NVCCFLAGS) -c -o $@
 
 # src object files

@@ -1,5 +1,5 @@
 /*
- * cudaRenderer.h
+ * cuda_renderer.h
  *
  *  Created on: Aug 2, 2021
  *      Author: Andre
