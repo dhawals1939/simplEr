@@ -189,9 +189,10 @@ else
 endif
 
 ifeq ($(USE_CUDA), 1)
-	NVCCFLAGS=-O0 -m64 --gpu-architecture compute_61 -ccbin $(CC)
-# TODO: Make this generic
-	LIBS += /opt/cuda/lib64/libcudart.so
+	LIBS+= -L/opt/cuda/lib64 -lcudart -lcurand
+	INCLUDES+=-I/opt/cuda/include
+
+	NVCCFLAGS=-O0 -m64 -std=c++14 -arch=compute_61
 	NVCC=nvcc
 
 	HEADERS += $(INCLUDEDIR)/cudaRenderer.h
@@ -234,7 +235,7 @@ $(MEXDIR)/%.o: $(MEXDIR)/%.cpp \
 $(SRCDIR)/cudaRenderer.o: \
 	$(SRCDIR)/cudaRenderer.cu \
 	$(INCLUDEDIR)/cudaRenderer.h
-	$(NVCC) $< $(NVCCFLAGS) $(INCLUDES) -c -o $@
+	$(NVCC) $< $(NVCCFLAGS) -c -o $@
 
 # src object files
 $(SRCDIR)/rng_sse.o: \
