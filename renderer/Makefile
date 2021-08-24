@@ -189,8 +189,7 @@ OBJ = \
     $(SRCDIR)/vmf.o \
 	$(SRCDIR)/bsdf.o
 
-## specify sampler-related options
-# specify RNG to use 
+## specify sampler-related options specify RNG to use
 ifeq ($(USE_SFMT), 1)
 	HEADERS += $(INCLUDEDIR)/rng_sse.h $(INCLUDEDIR)/sse.h
 	OBJ += $(SRCDIR)/rng_sse.o
@@ -259,6 +258,18 @@ $(SRCDIR)/rng_%.o: \
 	$(INCLUDEDIR)/rng_%.h
 	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
 
+ifeq ($(USE_CUDA), 1)
+$(SRCDIR)/photon.o: \
+	$(SRCDIR)/photon.cpp \
+	$(INCLUDEDIR)/photon.h \
+	$(SRCDIR)/cuda_renderer.o
+	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
+else
+$(SRCDIR)/photon.o: \
+	$(SRCDIR)/photon.cpp \
+	$(INCLUDEDIR)/photon.h
+	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
+endif
 
 $(SRCDIR)/%.o: \
 	$(SRCDIR)/%.cpp \
