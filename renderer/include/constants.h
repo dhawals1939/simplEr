@@ -21,7 +21,10 @@ typedef double Float;
 #define FPCONST(X) X
 #else
 typedef float Float;
-#define FPCONST(X) X ## f
+// FPCONST_INNER ensures X is expanded before concatenation
+#define FPCONST_INNER(X) \
+     X ## f
+#define FPCONST(X) FPCONST_INNER(X)
 #endif
 
 /* Choice of precision */

@@ -72,9 +72,9 @@ int main(int argc, char **argv) {
 	/*
 	 * Initialize scattering parameters.
 	 */
-	Float sigmaT = FPCONST(0);
+	Float sigmaT = FPCONST(0.0);
 	Float albedo = FPCONST(1.0);
-	Float gVal = FPCONST(0);
+	Float gVal = FPCONST(0.0);
 
 	/*
 	 * Initialize scene parameters.

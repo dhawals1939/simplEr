@@ -41,6 +41,7 @@ private:
     image::SmallImage& target;
     int numPhotons;
 
+    curandGenerator_t generator;
 
     /* Host memory*/
     float *image;

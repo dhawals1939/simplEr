@@ -266,6 +266,12 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 				const med::Medium &medium, const scn::Scene<VectorType> &scene,
 				const int64 numPhotons) const {
 
+#ifdef USE_CUDA
+	std::cout << "Using cuda" << std::endl;
+	CudaRenderer cuRenderer = CudaRenderer(img0, numPhotons);
+	cuRenderer.compareRNGTo(smp::Sampler(), 1000);
+#else
+	std::cout << "Not using cuda" << std::endl;
 #ifdef USE_THREADED
 	int numThreads = omp_get_num_procs();
 	if(m_threads > 0)
@@ -350,6 +356,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 	}
 	delete[] initializations;
 //	delete[] problem;
+#endif /* USE_CUDA */
 }
 
 //template <template <typename> class VectorType>

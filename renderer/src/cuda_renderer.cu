@@ -14,12 +14,13 @@
  * support for the sse rng as well.
  * - Support for doubles eventually? */
 
+// TODO: Consider exiting on error instead of just printing error
 #define CUDA_CALL(x) do { if((x)!=cudaSuccess) { \
     printf("Error at %s:%d\n",__FILE__,__LINE__);\
-    return EXIT_FAILURE;}} while(0)
+    }} while(0)
 #define CURAND_CALL(x) do { if((x)!=CURAND_STATUS_SUCCESS) { \
     printf("Error at %s:%d\n",__FILE__,__LINE__);\
-    return EXIT_FAILURE;}} while(0)
+    }} while(0)
 
 // Store symbols here so as to avoid long argument list
 // in kernel calls
@@ -43,7 +44,7 @@ void CudaRenderer::renderImage() {
     CUDA_CALL(cudaDeviceSynchronize());
 
     CUDA_CALL(cudaMemcpy(image, cudaImage,
-                         img.getXRes()*img.getYRes()*img.getZRes()*sizeof(float),
+                         target.getXRes()*target.getYRes()*target.getZRes()*sizeof(float),
                          cudaMemcpyDeviceToHost));
 
     // TODO: Write image to target
@@ -54,8 +55,8 @@ void CudaRenderer::renderImage() {
 void CudaRenderer::setup() {
     /* Allocate device memory*/
     CUDA_CALL(cudaMalloc((void **)&cudaImage,
-                         img.getXRes()*img.getYRes()*img.getZRes()*sizeof(float)));
-    CUDA_CALL(cudaMalloc((void **)&cudaRandom, num * sizeof(float)));
+                         target.getXRes()*target.getYRes()*target.getZRes()*sizeof(float)));
+    CUDA_CALL(cudaMalloc((void **)&cudaRandom, requiredRandomNumbers() * sizeof(float)));
 
     /* Setup generator. */
     CURAND_CALL(curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_MT19937));
@@ -68,9 +69,10 @@ void CudaRenderer::setup() {
     CUDA_CALL(cudaMemcpyToSymbol(constants, &params, sizeof(Constants)));
 }
 
+// TODO: Remove num parameter as its nonsensical and error prone
 // TODO: Ensure ordering and offset are the same as boost
 /* Generates random numbers on the device. */
-void CudaRenderer::genDeviceRandomNumbers(int num, CudaSeedType seed = CudaSeedType(5489)) {
+void CudaRenderer::genDeviceRandomNumbers(int num, CudaSeedType seed) {
     CURAND_CALL(curandSetPseudoRandomGeneratorSeed(generator, seed));
     /* Generate reals uniformly between 0.0 and 1.0 */
     CURAND_CALL(curandGenerateUniform(generator, cudaRandom, num));
@@ -101,10 +103,8 @@ void CudaRenderer::compareRNGTo(smp::Sampler sampler, int numSamples) {
     // TODO: Print 2 columns, one for cuda one for boost
     printf("Cuda\rBoost\n\n");
     for (int i = 0; i < numSamples; i++) {
-        printf("%f\n", random[i]);
+        printf("%f\r%f\n", random[i], sampler());
     }
-
-    return 0;
 }
 
 /* Required amount of random numbers to run the renderPhotons kernel on numPhotons */

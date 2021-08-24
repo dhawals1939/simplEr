@@ -61,8 +61,8 @@ int main(int argc, char **argv) {
     /*
      * film parameters 
      */
-    Float pathLengthMin = 0; // This is for path length binning
-    Float pathLengthMax = 64; // This is for path length binning
+    Float pathLengthMin = FPCONST(0.0); // This is for path length binning
+    Float pathLengthMax = FPCONST(64.0); // This is for path length binning
     int pathLengthBins = 128;
     int spatialX = 128; // X resolution of the film 
     int spatialY = 128; // Y resolution of the film
@@ -73,15 +73,15 @@ int main(int argc, char **argv) {
     Float halfThetaLimit = FPCONST(12.8e-3);
     Float emitter_size = FPCONST(0.002); // size of emitter (square shaped)
     Float sensor_size = FPCONST(0.002); // size of sensor (square shaped)
-    Float emitter_distance = FPCONST(0);
-    Float sensor_distance = FPCONST(0);
+    Float emitter_distance = FPCONST(0.0);
+    Float sensor_distance = FPCONST(0.0);
 
     /*
      * Initialize scattering parameters.
      */
-    Float sigmaT = FPCONST(0);
+    Float sigmaT = FPCONST(0.0);
     Float albedo = FPCONST(1.0);
-    Float gVal = FPCONST(0);
+    Float gVal = FPCONST(0.0);
 
     /*
      * Initialize scene parameters.
@@ -618,8 +618,8 @@ int main(int argc, char **argv) {
     const Float lightAngle = FPCONST(M_PI);
     const tvec::Vec3f lightDir(std::cos(lightAngle), std::sin(lightAngle),
                             FPCONST(0.0));
-    const tvec::Vec2f lightPlane(FPCONST(emitter_size), FPCONST(emitter_size));
-    const Float Li = FPCONST(75000);
+    const tvec::Vec2f lightPlane(emitter_size, emitter_size);
+    const Float Li = FPCONST(75000.0);
 
     /*
      * Initialize camera parameters.
@@ -627,8 +627,8 @@ int main(int argc, char **argv) {
     const tvec::Vec3f viewOrigin(mediumL[0] - sensor_distance, FPCONST(0.0), FPCONST(0.0));
     const tvec::Vec3f viewDir(-FPCONST(1.0), FPCONST(0.0), FPCONST(0.0));
     const tvec::Vec3f viewX(FPCONST(0.0), -FPCONST(1.0), FPCONST(0.0));
-    const tvec::Vec2f viewPlane(FPCONST(sensor_size), FPCONST(sensor_size));
-    const tvec::Vec2f pathlengthRange(FPCONST(pathLengthMin), FPCONST(pathLengthMax));
+    const tvec::Vec2f viewPlane(sensor_size, sensor_size);
+    const tvec::Vec2f pathlengthRange(pathLengthMin, pathLengthMax);
 
     const tvec::Vec3i viewReso(spatialX, spatialY, pathLengthBins);
 

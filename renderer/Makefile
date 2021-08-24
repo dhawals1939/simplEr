@@ -30,10 +30,9 @@ USE_SIMPLIFIED_TIMING = 0
 USE_OMEGA_TRACKING = 0
 USE_CUDA = 1
 
-## TODO: Eventually allow for double precision with CUDA
-## but produce warning message
+## FIXME: Use single precision
 ifeq ($(USE_CUDA), 1)
-	USE_DOUBLE_PRECISION = 0
+	USE_DOUBLE_PRECISION = 1
 endif
 
 ## whether to use bessel RIF or spline RIF
@@ -143,9 +142,14 @@ ifeq ($(USE_SPLINE_RIF), 1)
     CFLAGS += -DSPLINE_RIF
 endif
 
+ifeq ($(USE_CUDA), 1)
+	CFLAGS += -DUSE_CUDA
+endif
+
 ifeq ($(USE_MATLAB), 1)
 	MATLIBS += $(LIBS)
 endif
+
 
 # ROOTDIR = $(shell pwd)
 ROOTDIR = .
@@ -241,7 +245,7 @@ $(MEXDIR)/%.o: $(MEXDIR)/%.cpp \
 $(SRCDIR)/cuda_renderer.o: \
 	$(SRCDIR)/cuda_renderer.cu \
 	$(INCLUDEDIR)/cuda_renderer.h
-	$(NVCC) $< $(NVCCFLAGS) -c -o $@
+	$(NVCC) $(NVCCFLAGS) $(INCLUDES) -c -o $@ $<
 
 # src object files
 $(SRCDIR)/rng_sse.o: \
