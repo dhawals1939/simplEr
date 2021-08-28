@@ -7,6 +7,10 @@
 
 #include "cuda_renderer.h"
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
+
 /* TODO:
  * - The contribution of a photon equates to a sum on the pixel(s) it affects. Figure
  * out how to synchronize the contributions across all photons. */
@@ -14,6 +18,8 @@
 // Rendering a photon requires 6 calls to sampler() or
 // equivalently, 6 random floats/doubles
 #define RANDOM_NUMBERS_PER_PHOTON 6
+
+namespace cuda {
 
 // Store symbols here so as to avoid long argument list
 // in kernel calls
@@ -66,11 +72,10 @@ void CudaRenderer::setup(image::SmallImage& target, int numPhotons) {
 
     /* Generate random numbers to be used by each thread */
     genDeviceRandomNumbers(requiredRandomNumbers(numPhotons));
-
 }
 
 /* Generates random numbers on the device. */
-// TODO: Currently sequential
+// TODO: currently sequential
 void CudaRenderer::genDeviceRandomNumbers(int num, CudaSeedType seed) {
     smp::SamplerSet sampler(1, 0);
     float *random = new float[num];
@@ -106,4 +111,6 @@ CudaRenderer::~CudaRenderer() {}
 /* Required amount of random numbers to run the renderPhotons kernel on numPhotons */
 unsigned int CudaRenderer::requiredRandomNumbers(int numPhotons) {
     return numPhotons * RANDOM_NUMBERS_PER_PHOTON;
+}
+
 }

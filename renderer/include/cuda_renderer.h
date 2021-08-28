@@ -9,9 +9,12 @@
 #ifndef CUDA_RENDERER_H_
 #define CUDA_RENDERER_H_
 
+#include <curand.h>
+
 #include "image.h"
-#include "curand.h"
 #include "sampler.h"
+
+namespace cuda {
 
 typedef unsigned int CudaSeedType;
 
@@ -50,5 +53,8 @@ private:
     float *cudaRandom;
 
 };
+
+}
+
 
 #endif /* CUDA_RENDERER_H_ */

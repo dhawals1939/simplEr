@@ -171,12 +171,11 @@ HEADERS = \
 	$(INCLUDEDIR)/spline.h \
 	$(INCLUDEDIR)/tvector.h \
 	$(INCLUDEDIR)/matrix.h \
-	$(INCLUDEDIR)/cuda_renderer.h \
 	$(INCLUDEDIR)/util.h \
 	$(INCLUDEDIR)/photon.h \
 	$(INCLUDEDIR)/scene.h \
-    $(INCLUDEDIR)/warp.h \
-    $(INCLUDEDIR)/vmf.h \
+	$(INCLUDEDIR)/warp.h \
+	$(INCLUDEDIR)/vmf.h \
 	$(INCLUDEDIR)/bsdf.h
 
 OBJ = \
@@ -184,11 +183,10 @@ OBJ = \
 	$(SRCDIR)/phase.o \
 	$(SRCDIR)/sampler.o \
 	$(SRCDIR)/matrix.o \
-	$(SRCDIR)/cuda_renderer.o \
 	$(SRCDIR)/photon.o \
 	$(SRCDIR)/scene.o \
-    $(SRCDIR)/warp.o \
-    $(SRCDIR)/vmf.o \
+	$(SRCDIR)/warp.o \
+	$(SRCDIR)/vmf.o \
 	$(SRCDIR)/bsdf.o
 
 ## specify sampler-related options specify RNG to use
@@ -200,10 +198,10 @@ else
 endif
 
 ifeq ($(USE_CUDA), 1)
-	LIBS+= -L/opt/cuda/lib64 -lcudart -lcurand
-	INCLUDES+=-I/opt/cuda/include
+	LIBS+= -L/opt/cuda/lib64/ -lcudart -lcurand
+	INCLUDES+=-I/opt/cuda/include/
 
-	NVCCFLAGS=-O0 -m64 -std=c++14 -arch=compute_61
+	NVCCFLAGS=-O0 -m64 -ccbin /usr/bin/g++ -std=c++14 -arch=compute_61
 	NVCC=nvcc
 
 	HEADERS += $(INCLUDEDIR)/cuda_renderer.h
@@ -242,13 +240,12 @@ $(MEXDIR)/%.o: $(MEXDIR)/%.cpp \
 	$(HEADERS)
 	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
 
-# cuda object files
+# src object files
 $(SRCDIR)/cuda_renderer.o: \
 	$(SRCDIR)/cuda_renderer.cu \
-	$(INCLUDEDIR)/cuda_renderer.h
-	$(NVCC) $(NVCCFLAGS) $(INCLUDES) -c -o $@ $<
+	$(HEADERS)
+	$(NVCC) $< $(NVCCFLAGS) -Xcompiler "$(CFLAGS)" $(INCLUDES) -c -o $@
 
-# src object files
 $(SRCDIR)/rng_sse.o: \
 	$(SRCDIR)/rng_sse.cpp \
 	$(INCLUDEDIR)/rng_sse.h \
@@ -260,32 +257,19 @@ $(SRCDIR)/rng_%.o: \
 	$(INCLUDEDIR)/rng_%.h
 	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
 
-#ifeq ($(USE_CUDA), 1)
-#$(SRCDIR)/photon.o: \
-#	$(SRCDIR)/photon.cpp \
-#	$(INCLUDEDIR)/photon.h \
-#	$(SRCDIR)/cuda_renderer.o
-#	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
-#else
-#$(SRCDIR)/photon.o: \
-#	$(SRCDIR)/photon.cpp \
-#	$(INCLUDEDIR)/photon.h
-#	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
-#endif
-
 $(SRCDIR)/%.o: \
 	$(SRCDIR)/%.cpp \
 	$(HEADERS)
-	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
+	$(CC) $< $(CFLAGS) $(INCLUDES) -c -o $@
 
-clean:	
+clean:
 	rm -rf *.o *~
 	rm -rf $(MEXDIR)/*.o $(MEXDIR)/*~
 	rm -rf $(SAMPLEDIR)/*.o $(SAMPLEDIR)/*~
 	rm -rf $(SRCDIR)/*.o $(SRCDIR)/*~
 
-distclean:	
+distclean:
 	rm -rf *.o *~
-	rm -rf $(MEXDIR)/*.o $(MEXDIR)/*~ $(MEXDIR)/*.$(MEXEXT) 
+	rm -rf $(MEXDIR)/*.o $(MEXDIR)/*~ $(MEXDIR)/*.$(MEXEXT)
 	rm -rf $(SAMPLEDIR)/*.o $(SAMPLEDIR)/*~ $(SAMPLEDIR)/*_bin
 	rm -rf $(SRCDIR)/*.o $(SRCDIR)/*~

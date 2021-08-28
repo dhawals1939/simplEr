@@ -10,6 +10,10 @@
 #include <iterator>
 #include <iostream>
 
+#ifdef USE_CUDA
+#include "cuda_renderer.h"
+#endif
+
 namespace photon {
 
 template <template <typename> class VectorType>
@@ -267,6 +271,8 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 				const int64 numPhotons) const {
 
 #ifdef USE_CUDA
+	cuda::CudaRenderer cuRenderer = cuda::CudaRenderer();
+	cuRenderer.renderImage(img0, numPhotons);
 #endif /* USE_CUDA */
 #ifdef USE_THREADED
 	int numThreads = omp_get_num_procs();
