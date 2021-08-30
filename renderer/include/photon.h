@@ -19,10 +19,6 @@
 #include "medium.h"
 #include "scene.h"
 
-#ifdef USE_CUDA
-#include "cuda_renderer.h"
-#endif
-
 #include <omp.h>
 
 namespace photon {

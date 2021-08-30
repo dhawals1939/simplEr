@@ -9,37 +9,39 @@
 #ifndef CUDA_RENDERER_H_
 #define CUDA_RENDERER_H_
 
+#include <curand.h>
+
 #include "image.h"
-#include "curand.h"
 #include "sampler.h"
 
+namespace cuda {
+
 typedef unsigned int CudaSeedType;
+
+// TODO: Consider exiting on error instead of just printing error
+#define CUDA_CALL(x) do { if((x)!=cudaSuccess) { \
+    printf("Error at %s:%d\n",__FILE__,__LINE__);\
+    }} while(0)
+#define CURAND_CALL(x) do { if((x)!=CURAND_STATUS_SUCCESS) { \
+    printf("Error at %s:%d\n",__FILE__,__LINE__);\
+    }} while(0)
 
 class CudaRenderer {
 
 public:
 
-    CudaRenderer(image::SmallImage& target, int numPhotons)
-        : target(target), \
-          numPhotons(numPhotons){
-        setup();
-    }
+    CudaRenderer() {};
 
-    virtual ~CudaRenderer();
+    ~CudaRenderer();
 
-    void renderImage();
-
-    /* For testing */
-    void compareRNGTo(smp::Sampler sampler, int numSamples);
+    void renderImage(image::SmallImage& target, int numPhotons);
 
 private:
 
-    void setup();
+    void setup(image::SmallImage& target, int numPhotons);
+    void cleanup();
     void genDeviceRandomNumbers(int num, CudaSeedType seed = CudaSeedType(5489));
-    unsigned int requiredRandomNumbers();
-
-    image::SmallImage& target;
-    int numPhotons;
+    unsigned int requiredRandomNumbers(int numPhotons);
 
     curandGenerator_t generator;
 
@@ -51,5 +53,8 @@ private:
     float *cudaRandom;
 
 };
+
+}
+
 
 #endif /* CUDA_RENDERER_H_ */

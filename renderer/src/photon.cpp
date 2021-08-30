@@ -10,6 +10,10 @@
 #include <iterator>
 #include <iostream>
 
+#ifdef USE_CUDA
+#include "cuda_renderer.h"
+#endif
+
 namespace photon {
 
 template <template <typename> class VectorType>
@@ -267,11 +271,9 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 				const int64 numPhotons) const {
 
 #ifdef USE_CUDA
-	std::cout << "Using cuda" << std::endl;
-	CudaRenderer cuRenderer = CudaRenderer(img0, numPhotons);
-	cuRenderer.compareRNGTo(smp::Sampler(), 1000);
-#else
-	std::cout << "Not using cuda" << std::endl;
+	cuda::CudaRenderer cuRenderer = cuda::CudaRenderer();
+	cuRenderer.renderImage(img0, numPhotons);
+#endif /* USE_CUDA */
 #ifdef USE_THREADED
 	int numThreads = omp_get_num_procs();
 	if(m_threads > 0)
@@ -290,13 +292,13 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 		problem[i].AddResidualBlock((CostFunction*)costFunctions[i], NULL, initializations +i*3);
 	}
 
-
 #ifndef NDEBUG
 	std::cout << "numthreads = " << numThreads << std::endl;
 	std::cout << "numphotons = " << numPhotons << std::endl;
 #endif
 
-	smp::SamplerSet sampler(numThreads);
+	// FIXME: Once cuda testing done, remove 0 seed.
+	smp::SamplerSet sampler(numThreads, 0);
 
 	image::SmallImageSet img(img0.getXRes(), img0.getYRes(), img0.getZRes(), numThreads);
 	img.zero();
@@ -356,7 +358,6 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 	}
 	delete[] initializations;
 //	delete[] problem;
-#endif /* USE_CUDA */
 }
 
 //template <template <typename> class VectorType>

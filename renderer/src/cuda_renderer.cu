@@ -7,26 +7,25 @@
 
 #include "cuda_renderer.h"
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
+
 /* TODO:
  * - The contribution of a photon equates to a sum on the pixel(s) it affects. Figure
- * out how to synchronize the contributions across all photons.
- * - Random number generation has to match that of the boost library. In the future,
- * support for the sse rng as well.
- * - Support for doubles eventually? */
+ * out how to synchronize the contributions across all photons. */
 
-// TODO: Consider exiting on error instead of just printing error
-#define CUDA_CALL(x) do { if((x)!=cudaSuccess) { \
-    printf("Error at %s:%d\n",__FILE__,__LINE__);\
-    }} while(0)
-#define CURAND_CALL(x) do { if((x)!=CURAND_STATUS_SUCCESS) { \
-    printf("Error at %s:%d\n",__FILE__,__LINE__);\
-    }} while(0)
+// Rendering a photon requires 6 calls to sampler() or
+// equivalently, 6 random floats/doubles
+#define RANDOM_NUMBERS_PER_PHOTON 6
+
+namespace cuda {
 
 // Store symbols here so as to avoid long argument list
 // in kernel calls
 struct Constants {
     float* image;
-    float* random;
+    float* random; // TODO: Add const qualifier to random?
 };
 
 __constant__ Constants constants;
@@ -36,9 +35,8 @@ __global__ void renderPhotons() {
 
 }
 
-void CudaRenderer::renderImage() {
-    // Generate random numbers to be used by each thread
-    genDeviceRandomNumbers(requiredRandomNumbers());
+void CudaRenderer::renderImage(image::SmallImage& target, int numPhotons) {
+    setup(target, numPhotons);
 
     renderPhotons<<<1,numPhotons>>>();
     CUDA_CALL(cudaDeviceSynchronize());
@@ -49,14 +47,18 @@ void CudaRenderer::renderImage() {
 
     // TODO: Write image to target
 
+    cleanup();
 }
 
-/* Allocates device data, sends parameters to device and sets up RNG. */
-void CudaRenderer::setup() {
+/* Allocates host and device data and sets up RNG. */
+void CudaRenderer::setup(image::SmallImage& target, int numPhotons) {
+    /* Allocate host memory */
+    image = new float[target.getXRes()*target.getYRes()*target.getZRes()*sizeof(float)];
+
     /* Allocate device memory*/
     CUDA_CALL(cudaMalloc((void **)&cudaImage,
                          target.getXRes()*target.getYRes()*target.getZRes()*sizeof(float)));
-    CUDA_CALL(cudaMalloc((void **)&cudaRandom, requiredRandomNumbers() * sizeof(float)));
+    CUDA_CALL(cudaMalloc((void **)&cudaRandom, requiredRandomNumbers(numPhotons) * sizeof(float)));
 
     /* Setup generator. */
     CURAND_CALL(curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_MT19937));
@@ -67,21 +69,33 @@ void CudaRenderer::setup() {
     params.random = cudaRandom;
 
     CUDA_CALL(cudaMemcpyToSymbol(constants, &params, sizeof(Constants)));
+
+    /* Generate random numbers to be used by each thread */
+    genDeviceRandomNumbers(requiredRandomNumbers(numPhotons));
 }
 
-// TODO: Remove num parameter as its nonsensical and error prone
-// TODO: Ensure ordering and offset are the same as boost
 /* Generates random numbers on the device. */
+// TODO: currently sequential
 void CudaRenderer::genDeviceRandomNumbers(int num, CudaSeedType seed) {
-    CURAND_CALL(curandSetPseudoRandomGeneratorSeed(generator, seed));
-    /* Generate reals uniformly between 0.0 and 1.0 */
-    CURAND_CALL(curandGenerateUniform(generator, cudaRandom, num));
+    smp::SamplerSet sampler(1, 0);
+    float *random = new float[num];
+    for (int i = 0; i < num; i++) {
+        random[i] = sampler[0]();
+    }
+
+    CUDA_CALL(cudaMemcpy(cudaRandom, random, sizeof(float)*num, cudaMemcpyHostToDevice));
+
+    delete[] random;
+
+    // TODO: Enable below to make it parallel
+    //CURAND_CALL(curandSetPseudoRandomGeneratorSeed(generator, seed));
+    ///* Generate reals uniformly between 0.0 and 1.0 */
+    //CURAND_CALL(curandGenerateUniform(generator, cudaRandom, num));
 }
 
-CudaRenderer::~CudaRenderer() {
-
+void CudaRenderer::cleanup() {
     if (image) {
-        delete image;
+        delete[] image;
     }
 
     if (cudaImage) {
@@ -90,24 +104,13 @@ CudaRenderer::~CudaRenderer() {
         CUDA_CALL(cudaFree(cudaImage));
         CUDA_CALL(cudaFree(cudaRandom));
     }
-
-    // No need to free constant memory
 }
 
-void CudaRenderer::compareRNGTo(smp::Sampler sampler, int numSamples) {
-
-    float *random = (float *)malloc(numSamples * sizeof(float));
-    genDeviceRandomNumbers(numSamples);
-    CUDA_CALL(cudaMemcpy(random, cudaRandom, numSamples * sizeof(float), cudaMemcpyDeviceToHost));
-
-    // TODO: Print 2 columns, one for cuda one for boost
-    printf("Cuda\rBoost\n\n");
-    for (int i = 0; i < numSamples; i++) {
-        printf("%f\r%f\n", random[i], sampler());
-    }
-}
+CudaRenderer::~CudaRenderer() {}
 
 /* Required amount of random numbers to run the renderPhotons kernel on numPhotons */
-unsigned int CudaRenderer::requiredRandomNumbers() {
-    return numPhotons * 4;
+unsigned int CudaRenderer::requiredRandomNumbers(int numPhotons) {
+    return numPhotons * RANDOM_NUMBERS_PER_PHOTON;
+}
+
 }
