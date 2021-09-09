@@ -273,7 +273,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 #ifdef USE_CUDA
 	cuda::CudaRenderer cuRenderer = cuda::CudaRenderer();
 	cuRenderer.renderImage(img0, numPhotons);
-#endif /* USE_CUDA */
+#else
 #ifdef USE_THREADED
 	int numThreads = omp_get_num_procs();
 	if(m_threads > 0)
@@ -281,12 +281,13 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 	omp_set_num_threads(numThreads);
 #else
 	int numThreads = 1;
-#endif
+#endif /* USE_THREADED */
 	/* Set-up least squares problem for doing next event estimation */
 	Problem *problem = new Problem[numThreads];
 	scn::NEECostFunction<tvec::TVector3> *costFunctions[numThreads];
 	Float *initializations = new Float[numThreads*3]; // The initial parameter values (3 dimensional for x,y,z)
 
+	// TODO: Get rid of this in CUDA impl
 	for(int i=0; i<numThreads; i++){
 		costFunctions[i] = new scn::NEECostFunction<tvec::TVector3>(&scene);
 		problem[i].AddResidualBlock((CostFunction*)costFunctions[i], NULL, initializations +i*3);
@@ -358,6 +359,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 	}
 	delete[] initializations;
 //	delete[] problem;
+#endif /* USE_CUDA */
 }
 
 //template <template <typename> class VectorType>

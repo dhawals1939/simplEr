@@ -11,7 +11,11 @@ tvec::Vec3f squareToUniformSphere(const tvec::Vec2f &sample) {
 	Float z = 1.0f - 2.0f * sample.y;
 	Float r = std::sqrt(1.0f - z*z);
 	Float sinPhi, cosPhi;
+#ifdef USE_DOUBLE_PRECISION
 	sincos(2.0f * M_PI * sample.x, &sinPhi, &cosPhi);
+#else
+	sincosf(2.0f * M_PI * sample.x, &sinPhi, &cosPhi);
+#endif /* USE_DOUBLE_PRECISION */
 	return tvec::Vec3f(r * cosPhi, r * sinPhi, z);
 }
 
@@ -20,7 +24,11 @@ tvec::Vec3f squareToUniformHemisphere(const tvec::Vec2f &sample) {
 	Float tmp = std::sqrt(1.0f - z*z);
 
 	Float sinPhi, cosPhi;
+#ifdef USE_DOUBLE_PRECISION
 	sincos(2.0f * M_PI * sample.y, &sinPhi, &cosPhi);
+#else
+	sincosf(2.0f * M_PI * sample.y, &sinPhi, &cosPhi);
+#endif /*USE_DOUBLE_PRECISION*/
 
 	return tvec::Vec3f(cosPhi * tmp, sinPhi * tmp, z);
 }
@@ -41,7 +49,11 @@ tvec::Vec3f squareToUniformCone(Float cosCutoff, const tvec::Vec2f &sample) {
 	Float sinTheta = std::sqrt(1.0f - cosTheta * cosTheta);
 
 	Float sinPhi, cosPhi;
+#ifdef USE_DOUBLE_PRECISION
 	sincos(2.0f * M_PI * sample.y, &sinPhi, &cosPhi);
+#else
+	sincosf(2.0f * M_PI * sample.y, &sinPhi, &cosPhi);
+#endif /*USE_DOUBLE_PRECISION*/
 
 	return tvec::Vec3f(cosPhi * sinTheta,
 		sinPhi * sinTheta, cosTheta);
@@ -50,7 +62,11 @@ tvec::Vec3f squareToUniformCone(Float cosCutoff, const tvec::Vec2f &sample) {
 tvec::Vec2f squareToUniformDisk(const tvec::Vec2f &sample) {
 	Float r = std::sqrt(sample.x);
 	Float sinPhi, cosPhi;
+#ifdef USE_DOUBLE_PRECISION
 	sincos(2.0f * M_PI * sample.y, &sinPhi, &cosPhi);
+#else
+	sincosf(2.0f * M_PI * sample.y, &sinPhi, &cosPhi);
+#endif /*USE_DOUBLE_PRECISION*/
 
 	return tvec::Vec2f(
 		cosPhi * r,
@@ -81,7 +97,11 @@ tvec::Vec2f squareToUniformDiskConcentric(const tvec::Vec2f &sample) {
 	}
 
 	Float cosPhi, sinPhi;
+#ifdef USE_DOUBLE_PRECISION
 	sincos(phi, &sinPhi, &cosPhi);
+#else
+	sincosf(phi, &sinPhi, &cosPhi);
+#endif /*USE_DOUBLE_PRECISION*/
 
 	return tvec::Vec2f(r * cosPhi, r * sinPhi);
 }
@@ -117,7 +137,11 @@ tvec::Vec2f squareToStdNormal(const tvec::Vec2f &sample) {
 	Float r   = std::sqrt(-2 * std::log(1-sample.x)),
 		  phi = 2 * M_PI * sample.y;
 	tvec::Vec2f result;
+#ifdef USE_DOUBLE_PRECISION
 	sincos(phi, &result.y, &result.x);
+#else
+	sincosf(phi, &result.y, &result.x);
+#endif /*USE_DOUBLE_PRECISION*/
 	return result * r;
 }
 

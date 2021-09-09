@@ -47,7 +47,20 @@ void CudaRenderer::renderImage(image::SmallImage& target, int numPhotons) {
 
     // TODO: Write image to target
 
-    cleanup();
+    // TODO: Implement this functionallity withing kernel
+    //if (scene.genRay(pos, dir, sampler[id], totalDistance)) {
+
+	//	float scaling = std::max(std::min(std::sin(scene.getUSPhi_min() + scene.getUSPhi_range()*sampler[id]()), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
+
+    //    Assert(!m_useDirect);
+    //    if(m_useDirect)
+    //        directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
+    //    scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance, *costFunctions[id], problem[id], initializations+id*3);
+    //}
+
+	//img.mergeImages(img0);
+
+    //cleanup();
 }
 
 /* Allocates host and device data and sets up RNG. */

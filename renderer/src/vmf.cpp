@@ -40,7 +40,11 @@ void VonMisesFisherDistr::sample(const tvec::Vec3f &in, smp::Sampler &smp, tvec:
 	Float sinTheta = std::sqrt(1-cosTheta*cosTheta),
 	      sinPhi, cosPhi;
 
+#ifdef USE_DOUBLE_PRECISION
 	sincos(2*M_PI * sample.y, &sinPhi, &cosPhi);
+#else
+	sincosf(2*M_PI * sample.y, &sinPhi, &cosPhi);
+#endif /* USE_DOUBLE_PRECISION */
 
     out = (sinTheta * cosPhi) * axisX + (sinTheta * sinPhi) * axisY + cosTheta * in;
 }
@@ -61,7 +65,11 @@ tvec::Vec3f VonMisesFisherDistr::sample(const tvec::Vec2f &sample) const {
 	Float sinTheta = std::sqrt(1-cosTheta*cosTheta),
 	      sinPhi, cosPhi;
 
+#ifdef USE_DOUBLE_PRECISION
 	sincos(2*M_PI * sample.y, &sinPhi, &cosPhi);
+#else
+	sincosf(2*M_PI * sample.y, &sinPhi, &cosPhi);
+#endif /* USE_DOUBLE_PRECISION */
 
 	return tvec::Vec3f(cosPhi * sinTheta,
 		sinPhi * sinTheta, cosTheta);
