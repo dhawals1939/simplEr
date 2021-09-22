@@ -2,12 +2,9 @@
 #define CUDA_IMAGE_H_
 
 #include "constants.h"
-
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include "cuda_utils.cuh"
-
 #include "image.h"
+
+#include "cuda_utils.cuh"
 
 namespace cuda {
 
@@ -16,10 +13,15 @@ template <typename T>
 class Image2 {
 public:
 
-    __host__ static Image2 from(image::Image2<T> &image) {
+    /* Create a cuda::Image2 on the GPU. */
+    __host__ static Image2* from(const image::Image2<T> &image) {
         Image2 cuda_image = new Image2(image.getXRes(), image.getYRes());
         cuda_image.setPixels(image.getImage(), image.getXRes(), image.getYRes());
-        return cuda_image;
+
+        Image2 *d_cuda_image;
+        CUDA_CALL(cudaMalloc((void **)&d_cuda_image, sizeof(Image2)));
+        CUDA_CALL(cudaMemcpy(d_cuda_image, &cuda_image, sizeof(CudaClass), cudaMemcpyHostToDevice));
+        return d_cuda_image;
     }
 
 	__host__ __device__ inline int getXRes() const {

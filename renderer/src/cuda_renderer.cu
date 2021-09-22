@@ -5,11 +5,9 @@
  *      Author: Andre
  */
 
-#include "cuda_vector.cu"
+#include "cuda_vector.cuh"
 #include "cuda_renderer.h"
-
-#include <cuda.h>
-#include <cuda_runtime.h>
+#include "cuda_utils.cuh"
 
 namespace cuda {
 

@@ -4,7 +4,9 @@
 #include "cuda_vector.cuh"
 #include "cuda_image.cuh"
 #include "cuda_utils.cuh"
+
 #include "constants.h"
+#include "scene.h"
 
 
 // Rendering a photon requires 6 calls to sampler() or
@@ -13,37 +15,40 @@
 
 namespace cuda {
 
-// Currently only supporting AreaTexturedSource (which assumes PROJECTOR flag is on,
+// Currently only supporting AreaTexturedSource (which assumes PROJECTOR flag is on
 // for non-CUDA code).
 class AreaTexturedSource {
 public:
 
 	enum EmitterType{directional, diffuse}; //diffuse is still not implemented
 
-	__host__ AreaTexturedSource(const TVector3<Float> &origin, const TVector3<Float> &dir, const Float &halfThetaLimit, const std::string& filename,
-			const TVector2<Float> &plane, const Float &Li, const TVector3<Float> &lens_origin, const Float &lens_aperture, const Float &lens_focalLength,
-                                  const bool &lens_active, const EmitterType &emittertype = EmitterType::directional)
-			: m_origin(origin),
-			  m_dir(dir),
-			  m_halfThetaLimit(halfThetaLimit),
-			  m_emittertype(emittertype),
-			  m_plane(plane),
-			  m_Li(Li),
-			  m_lens(lens_origin, lens_aperture, lens_focalLength, lens_active){
+    __host__
 
-        m_texture.readFile(filename);
-		int _length = m_texture.getXRes()*m_texture.getYRes();
-		m_pixelsize.x = m_plane.x/m_texture.getXRes();
-		m_pixelsize.y = m_plane.y/m_texture.getYRes();
+    
+	//__host__ AreaTexturedSource(const TVector3<Float> &origin, const TVector3<Float> &dir, const Float &halfThetaLimit, const std::string& filename,
+	//		const TVector2<Float> &plane, const Float &Li, const TVector3<Float> &lens_origin, const Float &lens_aperture, const Float &lens_focalLength,
+    //                              const bool &lens_active, const EmitterType &emittertype = EmitterType::directional)
+	//		: m_origin(origin),
+	//		  m_dir(dir),
+	//		  m_halfThetaLimit(halfThetaLimit),
+	//		  m_emittertype(emittertype),
+	//		  m_plane(plane),
+	//		  m_Li(Li),
+	//		  m_lens(lens_origin, lens_aperture, lens_focalLength, lens_active){
 
-		m_ct = cos(m_halfThetaLimit);
+    //    m_texture.readFile(filename);
+	//	int _length = m_texture.getXRes()*m_texture.getYRes();
+	//	m_pixelsize.x = m_plane.x/m_texture.getXRes();
+	//	m_pixelsize.y = m_plane.y/m_texture.getYRes();
 
-		m_textureSampler.reserve(_length);
-		for(int i=0; i<_length; i++){
-			m_textureSampler.append(m_texture.getPixel(i));
-		}
-		m_textureSampler.normalize();
-	}
+	//	m_ct = cos(m_halfThetaLimit);
+
+	//	m_textureSampler.reserve(_length);
+	//	for(int i=0; i<_length; i++){
+	//		m_textureSampler.append(m_texture.getPixel(i));
+	//	}
+	//	m_textureSampler.normalize();
+	//}
 
 	__device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float (*sampler)(void), Float &totalDistance) const;
 
