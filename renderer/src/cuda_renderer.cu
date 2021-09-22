@@ -5,19 +5,11 @@
  *      Author: Andre
  */
 
+#include "cuda_vector.cu"
 #include "cuda_renderer.h"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
-
-
-/* TODO:
- * - The contribution of a photon equates to a sum on the pixel(s) it affects. Figure
- * out how to synchronize the contributions across all photons. */
-
-// Rendering a photon requires 6 calls to sampler() or
-// equivalently, 6 random floats/doubles
-#define RANDOM_NUMBERS_PER_PHOTON 6
 
 namespace cuda {
 
@@ -30,8 +22,109 @@ struct Constants {
 
 __constant__ Constants constants;
 
+__device__ bool deflect(pos, dir, totalDistance) {
+    ///* Deflection computation:
+    // * Point going through the center of lens and parallel to dir is [pos.x, 0, 0]. Ray from this point goes straight
+    // * This ray meets focal plane at (pos.x - d[0] * f/d[0], -d[1] * f/d[0], -d[2] * f/d[0]) (assuming -x direction of propagation of light)
+    // * Original ray deflects to pass through this point
+    // * The negative distance (HACK) travelled by this ray at the lens is -f/d[0] - norm(focalpoint_Pos - original_Pos)
+    // */
+    //Float squareDistFromLensOrigin = 0.0f;
+    //for(int i = 1; i < pos.dim; i++)
+    //	squareDistFromLensOrigin += pos[i]*pos[i];
+    //if(squareDistFromLensOrigin > m_squareApertureRadius)
+    //	return false;
+
+    //Assert(pos.x == m_origin.x);
+    //Float invd = -1/dir[0];
+    //dir[0] = -m_focalLength;
+    //dir[1] = dir[1]*invd*m_focalLength - pos[1];
+    //dir[2] = dir[2]*invd*m_focalLength - pos[2];
+    //totalDistance += m_focalLength*invd - dir.length();
+    //dir.normalize();
+    //return true; // should return additional path length added by the lens.
+    return false;
+}
+
+// FIXME: Actually propagateTillLens
+__device__ bool propagateTillMedium() {
+    //Float dist = -(pos[0]-m_origin[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
+    //pos += dist*dir;
+    //totalDistance += dist;
+    //if(m_active)
+    //	return deflect(pos, dir, totalDistance);
+    //else
+    //	return true;
+    return false;
+}
+
+
+__device__ void scatter() {
+//	Assert(scene.getMediumBlock().inside(p));
+//
+//	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
+//		VectorType<Float> pos(p), dir(d);
+//
+//		Float dist = getMoveStep(medium, sampler);
+//		if (!scene.movePhoton(pos, dir, dist, totalOpticalDistance, sampler, scaling)) {
+//			return;
+//		}
+//
+//#ifdef PRINT_DEBUGLOG
+//		std::cout << "dist: " << dist << "\n";
+//		std::cout << "pos: (" << pos.x << ", " << pos.y << ", " << pos.z << ") " << "\n";
+//		std::cout << "dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ") " << "\n";
+//#endif
+//		int depth = 1;
+//		Float totalDist = dist;
+//		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
+//				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
+//			if(m_useAngularSampling)
+//                scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, depth, weight, medium, sampler, scaling);
+//			else
+//				scene.addEnergy(img, pos, dir, totalOpticalDistance, depth, weight, medium, sampler, scaling, costFunction, problem, initialization);
+//			if (!scatterOnce(pos, dir, dist, scene, medium, totalOpticalDistance, sampler, scaling)){
+//#ifdef PRINT_DEBUGLOG
+//				std::cout << "sampler after failing scatter once:" << sampler() << std::endl;
+//#endif
+//				break;
+//			}
+//#ifdef PRINT_DEBUGLOG
+//			std::cout << "sampler after succeeding scatter once:" << sampler() << std::endl;
+//
+//			std::cout << "dist: " << dist << "\n";
+//			std::cout << "pos: (" << pos.x << ", " << pos.y << ", " << pos.z << ", " << "\n";
+//			std::cout << "dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ", " << "\n";
+//#endif
+//#if USE_SIMPLIFIED_TIMING
+//			totalOpticalDistance += dist;
+//#endif
+//			++depth;
+//		}
+//	}
+}
+
 __global__ void renderPhotons() {
-    //int i = threadIdx.x;
+    int i = threadIdx.x;
+
+    // For now just compute photon contribution to this pixel
+    // Later worry about reduction across CUDA threads
+
+    // TODO: Zero out constants.image
+
+    TVector3<Float> pos;
+    TVector3<Float> dir;
+    Float totalDistance;
+    // TODO: Implement this functionality within kernel
+    if (scene.genRay(pos, dir, totalDistance)) {
+
+	//	float scaling = std::max(std::min(std::sin(scene.getUSPhi_min() + scene.getUSPhi_range()*sampler[id]()), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
+
+    //    Assert(!m_useDirect);
+    //    if(m_useDirect)
+    //        directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
+    //    scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance, *costFunctions[id], problem[id], initializations+id*3);
+    }
 
 }
 
@@ -45,22 +138,11 @@ void CudaRenderer::renderImage(image::SmallImage& target, int numPhotons) {
                          target.getXRes()*target.getYRes()*target.getZRes()*sizeof(float),
                          cudaMemcpyDeviceToHost));
 
+	//img.mergeImages(img0);
+    //cleanup();
+
     // TODO: Write image to target
 
-    // TODO: Implement this functionallity withing kernel
-    //if (scene.genRay(pos, dir, sampler[id], totalDistance)) {
-
-	//	float scaling = std::max(std::min(std::sin(scene.getUSPhi_min() + scene.getUSPhi_range()*sampler[id]()), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
-
-    //    Assert(!m_useDirect);
-    //    if(m_useDirect)
-    //        directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
-    //    scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance, *costFunctions[id], problem[id], initializations+id*3);
-    //}
-
-	//img.mergeImages(img0);
-
-    //cleanup();
 }
 
 /* Allocates host and device data and sets up RNG. */
@@ -88,7 +170,7 @@ void CudaRenderer::setup(image::SmallImage& target, int numPhotons) {
 }
 
 /* Generates random numbers on the device. */
-// TODO: currently sequential
+// TODO: currently sequential, compare to result produced by sequential renderer (as opposed to threaded)
 void CudaRenderer::genDeviceRandomNumbers(int num, CudaSeedType seed) {
     smp::SamplerSet sampler(1, 0);
     float *random = new float[num];

@@ -14,6 +14,8 @@
 #include "image.h"
 #include "sampler.h"
 
+#include "cuda_scene.cuh"
+
 namespace cuda {
 
 typedef unsigned int CudaSeedType;
