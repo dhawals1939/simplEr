@@ -4,10 +4,6 @@
 
 namespace cuda {
 
-void Assert(bool p) {
-    (void)p;
-}
-
 template <typename T> struct TVector2 {
 	T x, y;
 
@@ -23,7 +19,7 @@ template <typename T> struct TVector2 {
 		: x((T) v.x), y((T) v.y) { }
 
 	__device__ template <typename T2> explicit TVector2(const T2 *v, const int size) {
-		Assert(size == dim);
+		ASSERT(size == dim);
 		x = static_cast<T>(v[0]);
 		y = static_cast<T>(v[1]);
 	}
@@ -60,13 +56,13 @@ template <typename T> struct TVector2 {
 	}
 
 	__device__ TVector2 operator/(T f) const {
-		Assert(std::abs(static_cast<Float>(f)) > M_EPSILON);
+		ASSERT(abs(static_cast<Float>(f)) > M_EPSILON);
 		T recip = (T) 1 / f;
 		return TVector2(x * recip, y * recip);
 	}
 
 	__device__ TVector2 &operator/=(T f) {
-		Assert(std::abs(static_cast<Float>(f)) > M_EPSILON);
+		ASSERT(abs(static_cast<Float>(f)) > M_EPSILON);
 		T recip = (T) 1 / f;
 		x *= recip; y *= recip;
 		return *this;
@@ -85,15 +81,15 @@ template <typename T> struct TVector2 {
 	}
 
 	__device__ T min() const {
-		return std::min(x, y);
+		return min(x, y);
 	}
 
 	__device__ T max() const {
-		return std::max(x, y);
+		return max(x, y);
 	}
 
 	__device__ T length() const {
-		return std::sqrt(lengthSquared());
+		return sqrt(lengthSquared());
 	}
 
 	__device__ void normalize() {
@@ -118,8 +114,8 @@ template <typename T> struct TVector2 {
 	}
 
 	__device__ bool aproxEqual(const TVector2 &v) const {
-		return (std::abs(v.x - x) < M_EPSILON * std::max((T) 1, std::max(std::abs(v.x), std::abs(x)))) && \
-				(std::abs(v.y - y) < M_EPSILON * std::max((T) 1, std::max(std::abs(v.y), std::abs(y))));
+		return (abs(v.x - x) < M_EPSILON * max((T) 1, max(abs(v.x), abs(x)))) && \
+				(abs(v.y - y) < M_EPSILON * max((T) 1, max(abs(v.y), abs(y))));
 	}
 
 	__device__ bool operator!=(const TVector2 &v) const {
@@ -140,7 +136,7 @@ __device__ inline T dot(const TVector2<T> &v1, const TVector2<T> &v2) {
 
 template <typename T>
 __device__ inline T absDot(const TVector2<T> &v1, const TVector2<T> &v2) {
-	return std::abs(dot(v1, v2));
+	return abs(dot(v1, v2));
 }
 
 
@@ -157,13 +153,13 @@ __device__ inline TVector2<T> normalize(const TVector2<T> &v) {
 
 template <>
 __device__ inline TVector2<int> TVector2<int>::operator/(int s) const {
-	Assert(std::abs(static_cast<Float>(s)) > M_EPSILON);
+	ASSERT(abs(static_cast<Float>(s)) > M_EPSILON);
 	return TVector2(x/s, y/s);
 }
 
 template <>
 __device__ inline TVector2<int> &TVector2<int>::operator/=(int s) {
-	Assert(std::abs(static_cast<Float>(s)) > M_EPSILON);
+	ASSERT(abs(static_cast<Float>(s)) > M_EPSILON);
 	x /= s;
 	y /= s;
 	return *this;
@@ -195,7 +191,7 @@ template <typename T> struct TVector3 {
 	// Not safe if incorrectly sized array is passed. size argument is used for
 	// some weak safety checking.
 	template <typename T2> __device__ explicit TVector3(const T2 *v, const int size) {
-		Assert(size == dim);
+		ASSERT(size == dim);
 		x = static_cast<T>(v[0]);
 		y = static_cast<T>(v[1]);
 		z = static_cast<T>(v[2]);
@@ -241,14 +237,14 @@ template <typename T> struct TVector3 {
 
 	/// Divide the vector by the given scalar and return the result
 	__device__ TVector3 operator/(T f) const {
-		Assert(std::abs(static_cast<Float>(f)) > M_EPSILON);
+		ASSERT(abs(static_cast<Float>(f)) > M_EPSILON);
 		T recip = (T) 1 / f;
 		return TVector3(x * recip, y * recip, z * recip);
 	}
 
 	/// Divide the vector by the given scalar
 	__device__ TVector3 &operator/=(T f) {
-		Assert(std::abs(static_cast<Float>(f)) > M_EPSILON);
+		ASSERT(abs(static_cast<Float>(f)) > M_EPSILON);
 		T recip = (T) 1 / f;
 		x *= recip; y *= recip; z *= recip;
 		return *this;
@@ -271,17 +267,17 @@ template <typename T> struct TVector3 {
 
 	/// Return the 2-norm of this vector
 	__device__ T length() const {
-		return std::sqrt(lengthSquared());
+		return sqrt(lengthSquared());
 	}
 
 	/// Return the min entry of this vector
 	__device__ T min() const {
-		return std::min(x, std::min(y, z));
+		return min(x, min(y, z));
 	}
 
 	/// Return the max entry of this vector
 	__device__ T max() const {
-		return std::max(x, std::max(y, z));
+		return max(x, max(y, z));
 	}
 
 	__device__ void normalize() {
@@ -311,9 +307,9 @@ template <typename T> struct TVector3 {
 
 	/// Approximate equality test
 	__device__ bool aproxEqual(const TVector3 &v) const {
-		return (std::abs(v.x - x) < M_EPSILON * std::max((T) 1, std::max(std::abs(v.x), std::abs(x)))) && \
-				(std::abs(v.y - y) < M_EPSILON * std::max((T) 1, std::max(std::abs(v.y), std::abs(y)))) && \
-				(std::abs(v.z - z) < M_EPSILON * std::max((T) 1, std::max(std::abs(v.z), std::abs(z))));
+		return (abs(v.x - x) < M_EPSILON * max((T) 1, max(abs(v.x), abs(x)))) && \
+				(abs(v.y - y) < M_EPSILON * max((T) 1, max(abs(v.y), abs(y)))) && \
+				(abs(v.z - z) < M_EPSILON * max((T) 1, max(abs(v.z), abs(z))));
 	}
 
 	/// Inequality test

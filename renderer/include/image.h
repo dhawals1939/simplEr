@@ -111,9 +111,9 @@ public:
 		m_pixels[y * m_xRes + x] += val;
 	}
 
-//	inline const T* getImage() const {
-//		return m_pixels;
-//	}
+	inline const T* getImage() const {
+		return m_pixels;
+	}
 
 	inline int getXRes() const {
 		return m_xRes;

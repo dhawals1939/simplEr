@@ -3,7 +3,9 @@
 
 #include "cuda_vector.cuh"
 #include "cuda_image.cuh"
+#include "cuda_utils.cuh"
 #include "constants.h"
+
 
 // Rendering a photon requires 6 calls to sampler() or
 // equivalently, 6 random floats/doubles (FIXME: Not really true)
@@ -18,8 +20,7 @@ public:
 
 	enum EmitterType{directional, diffuse}; //diffuse is still not implemented
 
-    // FIXME: Don't pass in filename
-	__device__ AreaTexturedSource(const TVector3<Float> &origin, const TVector3<Float> &dir, const Float &halfThetaLimit, const std::string& filename,
+	__host__ AreaTexturedSource(const TVector3<Float> &origin, const TVector3<Float> &dir, const Float &halfThetaLimit, const std::string& filename,
 			const TVector2<Float> &plane, const Float &Li, const TVector3<Float> &lens_origin, const Float &lens_aperture, const Float &lens_focalLength,
                                   const bool &lens_active, const EmitterType &emittertype = EmitterType::directional)
 			: m_origin(origin),
@@ -67,14 +68,14 @@ public:
 		return m_lens.propagateTillLens(pos, dir, totalDistance);
 	}
 
-	virtual ~AreaTexturedSource() { }
+	__host__ virtual ~AreaTexturedSource() { }
 
 protected:
 	TVector3<Float> m_origin;
 	TVector3<Float> m_dir;
 	Float m_halfThetaLimit;
 	Float m_ct;
-	image::Texture m_texture;
+    Image2<Float> m_texture;
 	DiscreteDistribution m_textureSampler;
 	TVector2<Float> m_pixelsize;
 	TVector2<Float> m_plane;
@@ -87,9 +88,14 @@ class Scene {
 
 public:
 
-    Scene(Float *random, Image &texture) : m_random(random), m_texture(texture) {};
+    __host__ Scene(Float *host_random, size_t random_size, AreaTexturedSource &source) : m_random(random), m_source(source) {
+        CUDA_CALL(cudaMalloc((void **)&m_random, random_size * sizeof(Float)));
+        CUDA_CALL(cudaMemcpy(m_random, host_random, random_size * sizeof(Float)));
+    }
 
-    ~Scene();
+    __host__ ~Scene() {
+        CUDA_CALL(cudaFree(m_random));
+    }
 
     __device__ bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) {
         return m_source.sampleRay(pos, dir, sampler, totalDistance);
@@ -97,28 +103,19 @@ public:
 
 private:
     __device__ Float sampler() {
-        Assert(m_sampler_uses < RANDOM_NUMBERS_PER_PHOTON);
+        ASSERT(m_sampler_uses < RANDOM_NUMBERS_PER_PHOTON);
         return m_random[threadIdx.x * RANDOM_NUMBERS_PER_PHOTON + m_sampler_uses++];
     }
 
-    // TODO: Initialize these values
-    TVector3<Float> m_dir;
-    TVector2<Float> m_plane;
-    TVector2<Float> m_pixelsize;
-
 	AreaSource m_source;
-
-    DiscreteDistribution m_textureSampler;
 
     Float *m_random;
     short m_sampler_uses = 0;
-
-    Image m_texture;
 };
 
 
 struct DiscreteDistribution {
-	explicit inline DiscreteDistribution(size_t nEntries = 0) {
+	__device__ explicit inline DiscreteDistribution(size_t nEntries = 0) {
         m_cdf_length = 0;
         m_cdf_capacity = 0;
 		reserve(nEntries);
@@ -133,6 +130,7 @@ struct DiscreteDistribution {
 
     // TODO: This might be inneficient
 	__device__ inline void reserve(size_t nEntries) {
+        ASSERT(nEntries >= m_cdf_capacity);
         m_cdf_capacity = nEntries+1;
         Float *temp = malloc((nEntries+1) * sizeof(Float));
         if (m_cdf) {
@@ -140,7 +138,7 @@ struct DiscreteDistribution {
             free(m_cdf);
         }
         m_cdf = temp;
-        if (!m_cdf) {} // FIXME: Error message here
+        ASSERT(m_cdf);
 	}
 
     // TODO: Is this efficient?
@@ -150,6 +148,7 @@ struct DiscreteDistribution {
         }
         m_cdf[m_cdf_length] = m_cdf[m_cdf_length-1] + pdfValue;
         m_cdf_length++;
+        ASSERT(m_cdf_length <= m_cdf_capacity);
 	}
 //
 //	inline size_t size() const {
@@ -173,7 +172,7 @@ struct DiscreteDistribution {
 //	}
 //
 	__device__ inline Float normalize() {
-		Assert(m_cdf.size() > 1);
+		ASSERT(m_cdf_length > 1);
 		m_sum = m_cdf[m_cdf_length-1];
 		if (m_sum > 0) {
 			m_normalization = 1.0f / m_sum;
