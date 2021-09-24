@@ -30,7 +30,7 @@ USE_SIMPLIFIED_TIMING = 0
 USE_OMEGA_TRACKING = 0
 
 ## whether to use bessel RIF or spline RIF
-USE_SPLINE_RIF = 1
+USE_SPLINE_RIF = 0
 
 # initialize variables
 LIBS =
