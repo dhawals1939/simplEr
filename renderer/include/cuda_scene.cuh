@@ -22,7 +22,18 @@ public:
 
 	enum EmitterType{directional, diffuse}; //diffuse is still not implemented
 
-    __host__
+    __host__ static AreaTexturedSource from(const scn::AreaTexturedSource<TVector3<Float>> &source) {
+        //m_origin = source.getOrigin();
+        //m_dir = source.getDir();
+        //m_halfThetaLimit = source.getHalfThetaLimit();
+        //m_emittertype = source.getEmitterType();
+        //m_plane = source.getPlane();
+        //m_Li = source.getLi();
+        //{
+        //    scn::Lens<TVector3> lens = source.getLens();
+        //    m_lens = new Lens<TVector3>(lens.);
+        //}
+    }
 
     
 	//__host__ AreaTexturedSource(const TVector3<Float> &origin, const TVector3<Float> &dir, const Float &halfThetaLimit, const std::string& filename,
@@ -80,13 +91,13 @@ protected:
 	TVector3<Float> m_dir;
 	Float m_halfThetaLimit;
 	Float m_ct;
-    Image2<Float> m_texture;
+    Image2<Float> *m_texture;
 	DiscreteDistribution m_textureSampler;
 	TVector2<Float> m_pixelsize;
 	TVector2<Float> m_plane;
 	Float m_Li;
 	EmitterType m_emittertype;
-	Lens<TVector3> m_lens;
+	Lens<TVector3> *m_lens;
 }
 
 class Scene {

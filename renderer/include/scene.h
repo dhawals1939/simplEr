@@ -133,6 +133,9 @@ public:
         return m_active;
     }
 
+    inline VectorType<Float>& getOrigin() const {
+        return m_origin;
+    }
 
 protected:
     VectorType<Float> m_origin;
@@ -280,9 +283,21 @@ struct AreaTexturedSource {
 		return m_plane;
 	}
 
+    inline Float getHalfThetaLimit() const {
+        return m_halfThetaLimit;
+    }
+
+    inline EmitterType& getEmitterType() const {
+        return m_emittertype;
+    }
+
 	inline Float getLi() const {
 		return m_Li;
 	}
+
+    inline Lens<VectorType>& getLens() const {
+        return m_lens;
+    }
 
 	inline const bool propagateTillMedium(VectorType<Float> &pos, VectorType<Float> &dir, Float &totalDistance) const{
 		//propagate till lens
