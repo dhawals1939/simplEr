@@ -20,7 +20,7 @@ public:
 
         Image2 *d_cuda_image;
         CUDA_CALL(cudaMalloc((void **)&d_cuda_image, sizeof(Image2)));
-        CUDA_CALL(cudaMemcpy(d_cuda_image, &cuda_image, sizeof(CudaClass), cudaMemcpyHostToDevice));
+        CUDA_CALL(cudaMemcpy(d_cuda_image, &cuda_image, sizeof(Image2), cudaMemcpyHostToDevice));
         return d_cuda_image;
     }
 

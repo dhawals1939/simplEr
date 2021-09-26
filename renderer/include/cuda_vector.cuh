@@ -1,4 +1,5 @@
 #include "constants.h"
+#include "tvector.h"
 
 /* Adapted from TVector code by igkiou */
 
@@ -9,9 +10,18 @@ template <typename T> struct TVector2 {
 
 	const static int dim = 2;
 
-	__device__ TVector2() : x(0), y(0) {  }
+    __host__ static TVector2 *from(tvec::TVector2<T> vec) {
+        TVector2 result(vec.x, vec.y);
+        TVector2 *d_result;
 
-	__device__ TVector2(T x, T y) : x(x), y(y) {  }
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(TVector2)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(TVector2), cudaMemcpyHostToDevice));
+        return d_result;
+    }
+
+	__host__ __device__ TVector2() : x(0), y(0) {  }
+
+	__host__ __device__ TVector2(T x, T y) : x(x), y(y) {  }
 
 	__device__ explicit TVector2(T val) : x(val), y(val) { }
 
@@ -173,11 +183,20 @@ template <typename T> struct TVector3 {
 	/// Number of dimensions
 	const static int dim = 3;
 
+    __host__ static TVector3 *from(tvec::TVector3<T> vec) {
+        TVector3 result(vec.x, vec.y, vec.z);
+        TVector2 *d_result;
+
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(TVector3)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(TVector3), cudaMemcpyHostToDevice));
+        return d_result;
+    }
+
 	/// default constructor
-	__device__ TVector3() : x(0), y(0), z(0) {  }
+	__host__ __device__ TVector3() : x(0), y(0), z(0) {  }
 
 	/// Initialize the vector with the specified X, Y and Z components
-	__device__ TVector3(T x, T y, T z) : x(x), y(y), z(z) {  }
+	__host__ __device__ TVector3(T x, T y, T z) : x(x), y(y), z(z) {  }
 
 	/// Initialize all components of the the vector with the specified value
 	__device__ explicit TVector3(T val) : x(val), y(val), z(val) { }
