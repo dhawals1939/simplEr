@@ -1,3 +1,4 @@
+#include "cuda_utils.cuh"
 #include "constants.h"
 #include "tvector.h"
 
@@ -66,13 +67,13 @@ template <typename T> struct TVector2 {
 	}
 
 	__device__ TVector2 operator/(T f) const {
-		ASSERT(abs(static_cast<Float>(f)) > M_EPSILON);
+		ASSERT(fabsf(static_cast<Float>(f)) > M_EPSILON);
 		T recip = (T) 1 / f;
 		return TVector2(x * recip, y * recip);
 	}
 
 	__device__ TVector2 &operator/=(T f) {
-		ASSERT(abs(static_cast<Float>(f)) > M_EPSILON);
+		ASSERT(fabsf(static_cast<Float>(f)) > M_EPSILON);
 		T recip = (T) 1 / f;
 		x *= recip; y *= recip;
 		return *this;
@@ -99,7 +100,7 @@ template <typename T> struct TVector2 {
 	}
 
 	__device__ T length() const {
-		return sqrt(lengthSquared());
+		return sqrtf(lengthSquared());
 	}
 
 	__device__ void normalize() {
@@ -124,8 +125,8 @@ template <typename T> struct TVector2 {
 	}
 
 	__device__ bool aproxEqual(const TVector2 &v) const {
-		return (abs(v.x - x) < M_EPSILON * max((T) 1, max(abs(v.x), abs(x)))) && \
-				(abs(v.y - y) < M_EPSILON * max((T) 1, max(abs(v.y), abs(y))));
+		return (fabsf(v.x - x) < M_EPSILON * max((T) 1, max(fabsf(v.x), fabsf(x)))) && \
+				(fabsf(v.y - y) < M_EPSILON * max((T) 1, max(fabsf(v.y), fabsf(y))));
 	}
 
 	__device__ bool operator!=(const TVector2 &v) const {
@@ -146,7 +147,7 @@ __device__ inline T dot(const TVector2<T> &v1, const TVector2<T> &v2) {
 
 template <typename T>
 __device__ inline T absDot(const TVector2<T> &v1, const TVector2<T> &v2) {
-	return abs(dot(v1, v2));
+	return fabsf(dot(v1, v2));
 }
 
 
@@ -163,13 +164,13 @@ __device__ inline TVector2<T> normalize(const TVector2<T> &v) {
 
 template <>
 __device__ inline TVector2<int> TVector2<int>::operator/(int s) const {
-	ASSERT(abs(static_cast<Float>(s)) > M_EPSILON);
+	ASSERT(fabsf(static_cast<Float>(s)) > M_EPSILON);
 	return TVector2(x/s, y/s);
 }
 
 template <>
 __device__ inline TVector2<int> &TVector2<int>::operator/=(int s) {
-	ASSERT(abs(static_cast<Float>(s)) > M_EPSILON);
+	ASSERT(fabsf(static_cast<Float>(s)) > M_EPSILON);
 	x /= s;
 	y /= s;
 	return *this;
@@ -256,14 +257,14 @@ template <typename T> struct TVector3 {
 
 	/// Divide the vector by the given scalar and return the result
 	__device__ TVector3 operator/(T f) const {
-		ASSERT(abs(static_cast<Float>(f)) > M_EPSILON);
+		ASSERT(fabsf(static_cast<Float>(f)) > M_EPSILON);
 		T recip = (T) 1 / f;
 		return TVector3(x * recip, y * recip, z * recip);
 	}
 
 	/// Divide the vector by the given scalar
 	__device__ TVector3 &operator/=(T f) {
-		ASSERT(abs(static_cast<Float>(f)) > M_EPSILON);
+		ASSERT(fabsf(static_cast<Float>(f)) > M_EPSILON);
 		T recip = (T) 1 / f;
 		x *= recip; y *= recip; z *= recip;
 		return *this;
@@ -286,7 +287,7 @@ template <typename T> struct TVector3 {
 
 	/// Return the 2-norm of this vector
 	__device__ T length() const {
-		return sqrt(lengthSquared());
+		return sqrtf(lengthSquared());
 	}
 
 	/// Return the min entry of this vector
@@ -326,9 +327,9 @@ template <typename T> struct TVector3 {
 
 	/// Approximate equality test
 	__device__ bool aproxEqual(const TVector3 &v) const {
-		return (abs(v.x - x) < M_EPSILON * max((T) 1, max(abs(v.x), abs(x)))) && \
-				(abs(v.y - y) < M_EPSILON * max((T) 1, max(abs(v.y), abs(y)))) && \
-				(abs(v.z - z) < M_EPSILON * max((T) 1, max(abs(v.z), abs(z))));
+		return (fabsf(v.x - x) < M_EPSILON * max((T) 1, max(fabsf(v.x), fabsf(x)))) && \
+				(fabsf(v.y - y) < M_EPSILON * max((T) 1, max(fabsf(v.y), fabsf(y)))) && \
+				(fabsf(v.z - z) < M_EPSILON * max((T) 1, max(fabsf(v.z), fabsf(z))));
 	}
 
 	/// Inequality test

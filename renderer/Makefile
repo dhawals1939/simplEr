@@ -39,9 +39,7 @@ INCLUDES =
 CFLAGS =
 LDFLAGS =
 
-# We won't use Ceres when using CUDA
-# but it would cause too much trouble
-# to disable it
+# Use floats with cuda as doubles are very slow
 ifeq ($(USE_CUDA), 1)
 	USE_DOUBLE_PRECISION = 0
 endif
@@ -199,6 +197,7 @@ else
 	HEADERS += $(INCLUDEDIR)/rng_boost.h
 endif
 
+## FIXME: opt/cuda/ is not cuda's location for all devices
 ifeq ($(USE_CUDA), 1)
 	LIBS+= -L/opt/cuda/lib64/ -lcudart -lcurand
 	INCLUDES+=-I/opt/cuda/include/
@@ -206,8 +205,16 @@ ifeq ($(USE_CUDA), 1)
 	NVCCFLAGS=-O0 -m64 -ccbin /usr/bin/g++ -std=c++14 -arch=compute_61
 	NVCC=nvcc
 
-	HEADERS += $(INCLUDEDIR)/cuda_renderer.h
-	OBJ += $(SRCDIR)/cuda_renderer.o
+	HEADERS += \
+		$(INCLUDEDIR)/cuda_renderer.h \
+		$(INCLUDEDIR)/cuda_image.cuh \
+		$(INCLUDEDIR)/cuda_scene.cuh \
+		$(INCLUDEDIR)/cuda_utils.cuh \
+		$(INCLUDEDIR)/cuda_vector.cuh
+
+	OBJ += \
+		$(SRCDIR)/cuda_renderer.o \
+		$(SRCDIR)/cuda_scene.o
 endif
 
 ifeq ($(USE_MATLAB), 1)
@@ -243,8 +250,8 @@ $(MEXDIR)/%.o: $(MEXDIR)/%.cpp \
 	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
 
 # src object files
-$(SRCDIR)/cuda_renderer.o: \
-	$(SRCDIR)/cuda_renderer.cu \
+$(SRCDIR)/%.o: \
+	$(SRCDIR)/%.cu \
 	$(HEADERS)
 	$(NVCC) $< $(NVCCFLAGS) -Xcompiler "$(CFLAGS)" $(INCLUDES) -c -o $@
 

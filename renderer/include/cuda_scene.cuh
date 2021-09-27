@@ -31,7 +31,7 @@ public:
         return d_result;
     }
 
-	__device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float (*sampler)(void), Float &totalDistance) const;
+	__device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, short &uses) const;
 
 	__device__ inline const TVector3<Float>& getOrigin() const {
 		return m_origin;
@@ -63,7 +63,7 @@ protected:
         m_dir            = TVector3<Float>::from(source.getDir());
         m_emittertype    = EmitterType::from(source.getEmitterType());
         m_texture        = Image2D::from(source.getTexture());
-        m_lens           = Lens<TVector3>::source.getLens();
+        m_lens           = Lens::from(source.getLens());
         m_plane          = TVector2<Float>::from(source.getPlane());
         m_Li             = source.getLi();
         m_halfThetaLimit = source.getHalfThetaLimit();
@@ -74,7 +74,7 @@ protected:
                               m_plane.y/m_texture.getYRes());
         m_pixlesize = TVector2<Float>::from(pixelsize);
 
-		m_ct = cos(m_halfThetaLimit);
+		m_ct = cosf(m_halfThetaLimit);
 
         m_textureSampler = DiscreteDistribution::from(source.getTexture(), _length);
 
@@ -90,36 +90,60 @@ protected:
 	TVector2<Float> *m_plane;
 	Float m_Li;
 	EmitterType *m_emittertype;
-	Lens<TVector3> *m_lens;
+	Lens *m_lens;
 }
 
 class Scene {
 
 public:
 
-    __host__ Scene(Float *host_random, size_t random_size, AreaTexturedSource &source) : m_random(random), m_source(source) {
-        CUDA_CALL(cudaMalloc((void **)&m_random, random_size * sizeof(Float)));
-        CUDA_CALL(cudaMemcpy(m_random, host_random, random_size * sizeof(Float)));
+    __host__ static Scene *from(const scn::Scene &scene, const Float *d_random) {
+        Scene result = Scene(scene, d_random);
+        Scene *d_result;
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Scene)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Scene), cudaMemcpyHostToDevice));
     }
 
-    __host__ ~Scene() {
-        CUDA_CALL(cudaFree(m_random));
+    __host__ Scene(const scn::Scene &scene, const Float *d_random) {
+        m_source = AreaTexturedSource::from(scene.getAreaSource());
+        m_random = d_random;
+
+        // FIXME: Implement US<TVector3> in CUDA code. This also assumes scene is constant.
+        m_us_phi_min = scene.getUSPhi_min();
+        m_us_phi_range = scene.getUSPhi_range();
+        m_us_max_scaling = scene.getUSMaxScaling();
     }
 
-    __device__ bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) {
-        return m_source.sampleRay(pos, dir, sampler, totalDistance);
+    __device__ inline const Float getUSPhi_min() const{
+    	return m_us_phi_min;
+    }
+
+    __device__ inline const Float getUSPhi_range() const{
+    	return m_us_phi_range;
+    }
+
+    __device__ inline const Float getUSMaxScaling() const{
+    	return m_us_max_scaling;
+    }
+
+    __device__ bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, short &uses) {
+        return m_source.sampleRay(pos, dir, totalDistance, uses);
+    }
+
+    /* Sample a random number for this thread and update uses argument for bookkeeping. */
+    __device__ Float sampler(short &uses) {
+        ASSERT(uses < RANDOM_NUMBERS_PER_PHOTON);
+        return m_random[threadIdx.x * RANDOM_NUMBERS_PER_PHOTON + uses++];
     }
 
 private:
-    __device__ Float sampler() {
-        ASSERT(m_sampler_uses < RANDOM_NUMBERS_PER_PHOTON);
-        return m_random[threadIdx.x * RANDOM_NUMBERS_PER_PHOTON + m_sampler_uses++];
-    }
 
-	AreaSource m_source;
+	AreaTexturedSource *m_source;
 
     Float *m_random;
-    short m_sampler_uses = 0;
+    Float m_us_phi_min;
+    Float m_us_phi_range;
+    Float m_us_max_scaling;
 };
 
 
@@ -272,6 +296,145 @@ private:
 	Float m_sum, m_normalization;
 	bool m_normalized;
 }
+
+struct Lens {
+
+    __host__ static Lens *from(const scn::Lens<TVector3> &lens) {
+        Lens result = Lens(lens);
+        Lens *d_result;
+
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Lens)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Lens), cudaMemcpyHostToDevice));
+        return d_result;
+    }
+
+    // TODO: Enable and implement free for other cuda classes
+    // Frees a lens on the device (and all contained fields)
+    //__host__ static void free(Lens *d_lens) {
+    //    Lens *h_lens;
+    //    h_result = (Lens *)malloc(sizeof(Lens));
+    //    CUDA_CALL(cudaMemcpy(h_result, d_lens, sizeof(Lens)));
+    //    CUDA_CALL(cudaFree(d_lens));
+    //    TVector3<Float>::free(h_lens->m_origin);
+    //    free(h_result);
+    //}
+
+    __device__ inline const bool deflect(const TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const {
+        /* Deflection computation:
+         * Point going through the center of lens and parallel to dir is [pos.x, 0, 0]. Ray from this point goes straight
+         * This ray meets focal plane at (pos.x - d[0] * f/d[0], -d[1] * f/d[0], -d[2] * f/d[0]) (assuming -x direction of propagation of light)
+         * Original ray deflects to pass through this point
+         * The negative distance (HACK) travelled by this ray at the lens is -f/d[0] - norm(focalpoint_Pos - original_Pos)
+         */
+    	Float squareDistFromLensOrigin = 0.0f;
+    	for(int i = 1; i < pos.dim; i++)
+    		squareDistFromLensOrigin += pos[i]*pos[i];
+    	if(squareDistFromLensOrigin > m_squareApertureRadius)
+    		return false;
+
+        ASSERT(pos.x == m_origin.x);
+        Float invd = -1/dir[0];
+        dir[0] = -m_focalLength;
+        dir[1] = dir[1]*invd*m_focalLength - pos[1];
+        dir[2] = dir[2]*invd*m_focalLength - pos[2];
+        totalDistance += m_focalLength*invd - dir.length();
+        dir.normalize();
+        return true; // should return additional path length added by the lens.
+    }
+
+public:
+    __device__ inline const bool propagateTillLens(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const {
+        Float dist = -(pos[0]-m_origin[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
+        pos += dist*dir;
+        totalDistance += dist;
+        if(m_active)
+        	return deflect(pos, dir, totalDistance);
+        else
+        	return true;
+    }
+
+    __device__ inline const bool isActive() const {
+        return m_active;
+    }
+
+    __device__ inline TVector3<Float>& getOrigin() const {
+        return m_origin;
+    }
+
+protected:
+    Lens(const scn::Lens<TVector3> &lens) {
+        m_origin = TVector3<Float>::from(lens.getOrigin());
+        m_squareApertureRadius = lens.getSquareApertureRadius();
+        m_focalLength = lens.getFocalLength();
+        m_active = lens.isActive();
+    }
+
+    TVector3<Float> *m_origin;
+    Float m_squareApertureRadius; //radius of the aperture
+    Float m_focalLength;
+    bool m_active; // Is the lens present or absent
+};
+
+struct Medium {
+
+    __host__ static Medium *from(const med::Medium &medium) {
+        Medium result = Medium(medium.getSigmaT(), medium.getAlbedo());
+        Medium *d_result;
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Medium)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Medium), cudaMemcpyHostToDevice));
+    }
+
+	__device__ inline Float getSigmaT() const {
+		return m_sigmaT;
+	}
+
+	__device__ inline Float getSigmaS() const {
+		return m_sigmaS;
+	}
+
+	__device__ inline Float getSigmaA() const {
+		return m_sigmaA;
+	}
+
+	__device__ inline Float getMfp() const {
+		return m_mfp;
+	}
+
+	__device__ inline Float getAlbedo() const {
+		return m_albedo;
+	}
+
+	//inline const pfunc::HenyeyGreenstein *getPhaseFunction() const {
+	//	return m_phase;
+	//}
+
+	__device__ virtual ~Medium() { }
+
+protected:
+    __host__ Medium(const Float sigmaT, const Float albedo)//, pfunc::HenyeyGreenstein *phase)
+		: m_sigmaT(sigmaT),
+		  m_albedo(albedo),
+		  m_sigmaS(albedo * sigmaT),
+		  m_sigmaA((1 - albedo) * sigmaT),
+		  m_mfp(FPCONST(1.0) / sigmaT)
+		  //m_phase(phase)
+    {
+		ASSERT(m_sigmaA >= 0);
+		ASSERT(m_albedo <= 1);
+		if (m_sigmaT <= M_EPSILON) {
+			m_sigmaT = FPCONST(0.0);
+			m_mfp = FPCONST(1.0);
+			m_albedo = FPCONST(0.0);
+		}
+	}
+
+	Float m_sigmaT;
+	Float m_albedo;
+	Float m_sigmaS;
+	Float m_sigmaA;
+	Float m_mfp;
+	//pfunc::HenyeyGreenstein *m_phase;
+};
 
 }
 

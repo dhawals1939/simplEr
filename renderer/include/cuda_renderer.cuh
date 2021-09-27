@@ -18,6 +18,25 @@
 
 namespace cuda {
 
+// Store symbols here so as to avoid long argument list
+// in kernel calls
+struct Constants {
+    Float *image;
+    Float *random;
+    Scene *scene;
+    Medium *medium;
+    Float weight;
+
+    static void free(Constants c) {
+        if (c.image) CUDA_CALL(cudaFree(c.image));
+        if (c.random) CUDA_CALL(cudaFree(c.random));
+        if (scene) Scene::free(scene);
+        if (medium) Medium::free(medium);
+    }
+};
+
+__constant__ Constants d_constants;
+
 typedef unsigned int CudaSeedType;
 
 // TODO: Consider exiting on error instead of just printing error
@@ -38,6 +57,9 @@ public:
 
     void renderImage(image::SmallImage& target, int numPhotons);
 
+    Constants h_constants;
+
+
 private:
 
     void setup(image::SmallImage& target, int numPhotons);
@@ -49,11 +71,6 @@ private:
 
     /* Host memory*/
     float *image;
-
-    /* Device memory*/
-    float *cudaImage;
-    float *cudaRandom;
-
 };
 
 }

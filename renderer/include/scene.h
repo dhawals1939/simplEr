@@ -137,6 +137,14 @@ public:
         return m_origin;
     }
 
+    inline Float getSquareApertureRadius() const {
+        return m_squareApertureRadius;
+    }
+
+    inline Float getFocalLength() const {
+        return m_focalLength;
+    }
+
 protected:
     VectorType<Float> m_origin;
     Float m_squareApertureRadius; //radius of the aperture
