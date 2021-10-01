@@ -11,7 +11,7 @@ template <typename T> struct TVector2 {
 
 	const static int dim = 2;
 
-    __host__ static TVector2 *from(tvec::TVector2<T> vec) {
+    __host__ static TVector2 *from(tvec::TVector2<T> &vec) {
         TVector2 result(vec.x, vec.y);
         TVector2 *d_result;
 
@@ -184,9 +184,9 @@ template <typename T> struct TVector3 {
 	/// Number of dimensions
 	const static int dim = 3;
 
-    __host__ static TVector3 *from(tvec::TVector3<T> vec) {
+    __host__ static TVector3 *from(tvec::TVector3<T>& vec) {
         TVector3 result(vec.x, vec.y, vec.z);
-        TVector2 *d_result;
+        TVector3 *d_result;
 
         CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(TVector3)));
         CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(TVector3), cudaMemcpyHostToDevice));
@@ -338,5 +338,48 @@ template <typename T> struct TVector3 {
 	}
 
 };
+
+template <typename T> __device__ inline std::ostream& operator<<(std::ostream& os, const TVector3<T> &v) {
+    os <<  "Vector" << v.dim << "[" << v.x << ", " << v.y << ", " << v.z << "]" ;
+	return os;
+}
+
+template <typename T> __device__ inline TVector3<T> operator*(T f, const TVector3<T> &v) {
+	return v*f;
+}
+
+template <typename T> __device__ inline T dot(const TVector3<T> &v1, const TVector3<T> &v2) {
+	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+}
+
+template <typename T> __device__ inline T absDot(const TVector3<T> &v1, const TVector3<T> &v2) {
+	return std::abs(dot(v1, v2));
+}
+
+template <typename T> __device__ inline TVector3<T> cross(const TVector3<T> &v1, const TVector3<T> &v2) {
+	/* Left-handed vector cross product */
+	return TVector3<T>(
+		(v1.y * v2.z) - (v1.z * v2.y),
+		(v1.z * v2.x) - (v1.x * v2.z),
+		(v1.x * v2.y) - (v1.y * v2.x)
+	);
+}
+
+template <typename T> __device__ inline TVector3<T> normalize(const TVector3<T> &v) {
+	return v / v.length();
+}
+
+template <> __device__ inline TVector3<int> TVector3<int>::operator/(int s) const {
+	Assert(std::abs(static_cast<Float>(s)) > M_EPSILON);
+	return TVector3(x/s, y/s, z/s);
+}
+
+template <> __device__ inline TVector3<int> &TVector3<int>::operator/=(int s) {
+	Assert(std::abs(static_cast<Float>(s)) > M_EPSILON);
+	x /= s;
+	y /= s;
+	z /= s;
+	return *this;
+}
 
 }

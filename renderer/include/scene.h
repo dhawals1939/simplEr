@@ -291,19 +291,23 @@ struct AreaTexturedSource {
 		return m_plane;
 	}
 
-    inline Float getHalfThetaLimit() const {
+    inline const Float getHalfThetaLimit() const {
         return m_halfThetaLimit;
     }
 
-    inline EmitterType& getEmitterType() const {
+    inline const EmitterType& getEmitterType() const {
         return m_emittertype;
     }
 
-	inline Float getLi() const {
+    inline const image::Texture& getTexture() const {
+        return m_texture;
+    }
+
+	inline const Float getLi() const {
 		return m_Li;
 	}
 
-    inline Lens<VectorType>& getLens() const {
+    inline const Lens<VectorType>& getLens() const {
         return m_lens;
     }
 

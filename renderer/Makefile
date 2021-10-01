@@ -189,7 +189,6 @@ OBJ = \
 	$(SRCDIR)/vmf.o \
 	$(SRCDIR)/bsdf.o
 
-## specify sampler-related options specify RNG to use
 ifeq ($(USE_SFMT), 1)
 	HEADERS += $(INCLUDEDIR)/rng_sse.h $(INCLUDEDIR)/sse.h
 	OBJ += $(SRCDIR)/rng_sse.o
@@ -207,14 +206,11 @@ ifeq ($(USE_CUDA), 1)
 
 	HEADERS += \
 		$(INCLUDEDIR)/cuda_renderer.h \
-		$(INCLUDEDIR)/cuda_image.cuh \
-		$(INCLUDEDIR)/cuda_scene.cuh \
-		$(INCLUDEDIR)/cuda_utils.cuh \
-		$(INCLUDEDIR)/cuda_vector.cuh
 
 	OBJ += \
 		$(SRCDIR)/cuda_renderer.o \
 		$(SRCDIR)/cuda_scene.o
+
 endif
 
 ifeq ($(USE_MATLAB), 1)
@@ -250,8 +246,8 @@ $(MEXDIR)/%.o: $(MEXDIR)/%.cpp \
 	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
 
 # src object files
-$(SRCDIR)/%.o: \
-	$(SRCDIR)/%.cu \
+$(SRCDIR)/cuda_%.o: \
+	$(SRCDIR)/cuda_%.cu \
 	$(HEADERS)
 	$(NVCC) $< $(NVCCFLAGS) -Xcompiler "$(CFLAGS)" $(INCLUDES) -c -o $@
 

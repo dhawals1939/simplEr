@@ -30,12 +30,10 @@ struct Constants {
     static void free(Constants c) {
         if (c.image) CUDA_CALL(cudaFree(c.image));
         if (c.random) CUDA_CALL(cudaFree(c.random));
-        if (scene) Scene::free(scene);
-        if (medium) Medium::free(medium);
+        //if (scene) Scene::free(scene);
+        //if (medium) Medium::free(medium);
     }
 };
-
-__constant__ Constants d_constants;
 
 typedef unsigned int CudaSeedType;
 

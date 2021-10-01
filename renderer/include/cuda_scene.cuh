@@ -15,6 +15,8 @@
 
 namespace cuda {
 
+__constant__ Constants d_constants;
+
 // Currently only supporting AreaTexturedSource (which assumes PROJECTOR flag is on
 // for non-CUDA code).
 class AreaTexturedSource {
@@ -23,7 +25,7 @@ public:
 	enum EmitterType{directional, diffuse}; //diffuse is still not implemented
 
     /* Create a copy AreaTexturedSource on the GPU. */
-    __host__ static AreaTexturedSource *from(const scn::AreaTexturedSource<tvec::TVector3<Float>> &source) {
+    __host__ static AreaTexturedSource *from(const scn::AreaTexturedSource<tvec::TVector3> &source) {
         AreaTexturedSource result = AreaTexturedSource(source);
         AreaTexturedSource *d_result;
         CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(AreaTexturedSource)));
@@ -34,15 +36,15 @@ public:
 	__device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, short &uses) const;
 
 	__device__ inline const TVector3<Float>& getOrigin() const {
-		return m_origin;
+		return *m_origin;
 	}
 
 	__device__ inline const TVector3<Float>& getDir() const {
-		return m_dir;
+		return *m_dir;
 	}
 
 	__device__ inline const TVector2<Float>& getPlane() const {
-		return m_plane;
+		return *m_plane;
 	}
 
 	__device__ inline Float getLi() const {
@@ -57,26 +59,26 @@ public:
 	__host__ virtual ~AreaTexturedSource() { }
 
 protected:
-	__host__ AreaTexturedSource(const scn::AreaTexturedSource<tvec::TVector3<Float>> &source) {
+	__host__ AreaTexturedSource(const scn::AreaTexturedSource<tvec::TVector3> &source) {
 
         m_origin         = TVector3<Float>::from(source.getOrigin());
         m_dir            = TVector3<Float>::from(source.getDir());
-        m_emittertype    = EmitterType::from(source.getEmitterType());
-        m_texture        = Image2D::from(source.getTexture());
+        m_emittertype    = source.getEmitterType();
+        m_texture        = Image2::from(source.getTexture());
         m_lens           = Lens::from(source.getLens());
         m_plane          = TVector2<Float>::from(source.getPlane());
         m_Li             = source.getLi();
         m_halfThetaLimit = source.getHalfThetaLimit();
 
 
-		size_t _length = source.getTexture().getXRes()*source.getTexture().getYRes();
-        tvec::Vec2f pixelsize(m_plane.x/m_texture.getXRes(),
-                              m_plane.y/m_texture.getYRes());
-        m_pixlesize = TVector2<Float>::from(pixelsize);
+		size_t _length = source->getTexture()->getXRes()*source->getTexture()->getYRes();
+        tvec::TVector2<Float> pixelsize(m_plane->x/m_texture->getXRes(),
+                              m_plane->y/m_texture->getYRes());
+        m_pixelsize = TVector2<Float>::from(pixelsize);
 
 		m_ct = cosf(m_halfThetaLimit);
 
-        m_textureSampler = DiscreteDistribution::from(source.getTexture(), _length);
+        m_textureSampler = DiscreteDistribution::from(source->getTexture(), _length);
 
 	}
 
@@ -89,29 +91,30 @@ protected:
 	TVector2<Float> *m_pixelsize;
 	TVector2<Float> *m_plane;
 	Float m_Li;
-	EmitterType *m_emittertype;
+	EmitterType m_emittertype;
 	Lens *m_lens;
-}
+};
 
 class Scene {
 
 public:
 
-    __host__ static Scene *from(const scn::Scene &scene, const Float *d_random) {
+    __host__ static Scene *from(const scn::Scene<TVector3> &scene, const Float *d_random) {
         Scene result = Scene(scene, d_random);
         Scene *d_result;
         CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Scene)));
         CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Scene), cudaMemcpyHostToDevice));
+        return d_result;
     }
 
-    __host__ Scene(const scn::Scene &scene, const Float *d_random) {
-        m_source = AreaTexturedSource::from(scene.getAreaSource());
+    __host__ Scene(const scn::Scene<TVector3> &scene, const Float *d_random) {
+        m_source = AreaTexturedSource::from(scene->getAreaSource());
         m_random = d_random;
 
         // FIXME: Implement US<TVector3> in CUDA code. This also assumes scene is constant.
-        m_us_phi_min = scene.getUSPhi_min();
-        m_us_phi_range = scene.getUSPhi_range();
-        m_us_max_scaling = scene.getUSMaxScaling();
+        m_us_phi_min = scene->getUSPhi_min();
+        m_us_phi_range = scene->getUSPhi_range();
+        m_us_max_scaling = scene->getUSMaxScaling();
     }
 
     __device__ inline const Float getUSPhi_min() const{
@@ -127,7 +130,7 @@ public:
     }
 
     __device__ bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, short &uses) {
-        return m_source.sampleRay(pos, dir, totalDistance, uses);
+        return m_source->sampleRay(pos, dir, totalDistance, uses);
     }
 
     /* Sample a random number for this thread and update uses argument for bookkeeping. */
@@ -140,17 +143,17 @@ private:
 
 	AreaTexturedSource *m_source;
 
-    Float *m_random;
+    const Float *m_random;
     Float m_us_phi_min;
     Float m_us_phi_range;
     Float m_us_max_scaling;
 };
 
 
-struct DiscreteDistribution {
+class DiscreteDistribution {
 
     /* Return a discreteDistribution on the GPU. */
-    __host__ static DiscreteDistribution* from(const image::Image2<T> &texture, size_t length) {
+    __host__ static DiscreteDistribution* from(const image::Image2<Float> &texture, size_t length) {
         DiscreteDistribution result = DiscreteDistribution(texture, length);
         DiscreteDistribution *d_result;
 
@@ -159,7 +162,7 @@ struct DiscreteDistribution {
         return d_result;
     }
 
-    __host__ DiscreteDistribution(const image::Image2<T> &texture, size_t length) {
+    __host__ DiscreteDistribution(const image::Image2<Float> &texture, size_t length) {
         m_cdf_length = length;
         m_cdf_capacity = 0;
         reserve(length);
@@ -194,7 +197,7 @@ struct DiscreteDistribution {
 	__device__ inline void reserve(size_t nEntries) {
         ASSERT(nEntries >= m_cdf_capacity);
         m_cdf_capacity = nEntries+1;
-        Float *temp = malloc((nEntries+1) * sizeof(Float));
+        Float *temp = (Float *)malloc((nEntries+1) * sizeof(Float));
         if (m_cdf) {
             memcpy(temp, m_cdf, m_cdf_length * sizeof(Float));
             free(m_cdf);
@@ -217,10 +220,10 @@ struct DiscreteDistribution {
 //		return m_cdf.size()-1;
 //	}
 //
-//	inline Float operator[](size_t entry) const {
-//		return m_cdf[entry+1] - m_cdf[entry];
-//	}
-//
+	__device__ inline Float operator[](size_t entry) const {
+		return m_cdf[entry+1] - m_cdf[entry];
+	}
+
 	__host__ __device__ inline bool isNormalized() const {
 		return m_normalized;
 	}
@@ -250,8 +253,8 @@ struct DiscreteDistribution {
 
 	__device__ inline size_t sample(Float sampleValue) const {
         // First elements is dummy 0.0f. Account for it.
-        size_t index = min(m_cdf_length-2,
-                           max(cdf_lower_bound(value)-1, (size_t) 0));
+        size_t index = fminf(m_cdf_length-2,
+                           fmaxf(cdf_lower_bound(sampleValue)-1, (size_t) 0));
 
 		/* Handle a rare corner-case where a entry has probability 0
 		   but is sampled nonetheless */
@@ -295,11 +298,12 @@ private:
 
 	Float m_sum, m_normalization;
 	bool m_normalized;
-}
+};
 
-struct Lens {
+class Lens {
 
-    __host__ static Lens *from(const scn::Lens<TVector3> &lens) {
+public:
+    __host__ static Lens *from(const scn::Lens<tvec::TVector3> &lens) {
         Lens result = Lens(lens);
         Lens *d_result;
 
@@ -332,7 +336,7 @@ struct Lens {
     	if(squareDistFromLensOrigin > m_squareApertureRadius)
     		return false;
 
-        ASSERT(pos.x == m_origin.x);
+        ASSERT(pos.x == m_origin->x);
         Float invd = -1/dir[0];
         dir[0] = -m_focalLength;
         dir[1] = dir[1]*invd*m_focalLength - pos[1];
@@ -342,7 +346,6 @@ struct Lens {
         return true; // should return additional path length added by the lens.
     }
 
-public:
     __device__ inline const bool propagateTillLens(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const {
         Float dist = -(pos[0]-m_origin[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
         pos += dist*dir;
@@ -358,11 +361,11 @@ public:
     }
 
     __device__ inline TVector3<Float>& getOrigin() const {
-        return m_origin;
+        return *m_origin;
     }
 
 protected:
-    Lens(const scn::Lens<TVector3> &lens) {
+    Lens(const scn::Lens<tvec::TVector3> &lens) {
         m_origin = TVector3<Float>::from(lens.getOrigin());
         m_squareApertureRadius = lens.getSquareApertureRadius();
         m_focalLength = lens.getFocalLength();
@@ -382,6 +385,7 @@ struct Medium {
         Medium *d_result;
         CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Medium)));
         CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Medium), cudaMemcpyHostToDevice));
+        return d_result;
     }
 
 	__device__ inline Float getSigmaT() const {
