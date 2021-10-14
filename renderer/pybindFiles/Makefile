@@ -19,7 +19,7 @@ CFLAGS = -g -fPIC -W -Wall -Wextra -pedantic -std=c++14 -march=native -O3
 CFLAGS += -ffast-math -fopenmp -pthread
 CFLAGS += -DNDEBUG -DUSE_GCC -DUSE_SFMT -DUSE_DOUBLE_PRECISION -DUSE_PIXEL_SHARING
 
-PY_CFLAGS = -O3 -Wall -shared -std=c++11 -fPIC -march=native
+PY_CFLAGS = -O3 -Wall -shared -std=c++14 -fPIC -march=native
 PY_CFLAGS += -ffast-math -fopenmp -pthread
 PY_CFLAGS += -DNDEBUG -DUSE_GCC -DUSE_SFMT -DUSE_DOUBLE_PRECISION -DUSE_PIXEL_SHARING
 

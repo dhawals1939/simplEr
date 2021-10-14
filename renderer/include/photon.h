@@ -76,8 +76,8 @@ public:
 		return -medium.getMfp() * std::log(sampler());
 	}
 
-	inline Float getWeight(const med::Medium &, const scn::Scene<VectorType> &scene,
-						const int64 numPhotons) const {
+	static inline Float getWeight(const med::Medium &, const scn::Scene<VectorType> &scene,
+						const int64 numPhotons) {
 		return scene.getAreaSource().getLi() * scene.getFresnelTrans()
 				/ static_cast<Float>(numPhotons);
 	}

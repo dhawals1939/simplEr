@@ -15,10 +15,4 @@
     printf("Error at %s:%d\n",__FILE__,__LINE__);\
     }} while(0)
 
-namespace cuda {
-
-__constant__ Constants d_constants;
-
-}
-
 #endif /* CUDA_UTILS_H_ */

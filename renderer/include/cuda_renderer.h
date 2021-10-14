@@ -18,23 +18,6 @@
 
 namespace cuda {
 
-// Store symbols here so as to avoid long argument list
-// in kernel calls
-struct Constants {
-    Float *image;
-    Float *random;
-    Scene *scene;
-    Medium *medium;
-    Float weight;
-
-    static void free(Constants c) {
-        if (c.image) CUDA_CALL(cudaFree(c.image));
-        if (c.random) CUDA_CALL(cudaFree(c.random));
-        //if (scene) Scene::free(scene);
-        //if (medium) Medium::free(medium);
-    }
-};
-
 typedef unsigned int CudaSeedType;
 
 // TODO: Consider exiting on error instead of just printing error
@@ -53,14 +36,21 @@ public:
 
     ~CudaRenderer();
 
-    void renderImage(image::SmallImage& target, int numPhotons);
-
-    Constants h_constants;
-
+    void renderImage(image::SmallImage& target, const med::Medium &medium, const scn::Scene<tvec::TVector3> &scene, int numPhotons);
 
 private:
 
-    void setup(image::SmallImage& target, int numPhotons);
+    Float *cudaImage;
+    Float *cudaRandom;
+    Scene *cudaScene;
+    Medium *cudaMedium;
+
+    inline Float getWeight(const med::Medium &, const scn::Scene<tvec::TVector3> &scene,
+                            const int64 numPhotons) {
+        return scene.getAreaSource().getLi() * scene.getFresnelTrans()
+                / static_cast<Float>(numPhotons);
+    }
+    void setup(image::SmallImage& target, const med::Medium &medium, const scn::Scene<tvec::TVector3> &scene, int numPhotons);
     void cleanup();
     void genDeviceRandomNumbers(int num, CudaSeedType seed = CudaSeedType(5489));
     unsigned int requiredRandomNumbers(int numPhotons);

@@ -15,8 +15,8 @@ public:
 
     /* Create a cuda::Image2 on the GPU. */
     __host__ static Image2* from(const image::Image2<T> &image) {
-        Image2 cuda_image = new Image2(image.getXRes(), image.getYRes());
-        cuda_image.setPixels(image.getImage(), image.getXRes(), image.getYRes());
+        Image2 cuda_image = Image2(image.getXRes(), image.getYRes());
+        cuda_image.setPixels(image.getImage(), image.getXRes() * image.getYRes());
 
         Image2 *d_cuda_image;
         CUDA_CALL(cudaMalloc((void **)&d_cuda_image, sizeof(Image2)));

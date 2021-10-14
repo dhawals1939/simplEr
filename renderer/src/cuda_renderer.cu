@@ -11,6 +11,18 @@
 
 namespace cuda {
 
+// Store symbols here so as to avoid long argument list
+// in kernel calls
+struct Constants {
+    Float *image;
+    Float *random;
+    Scene *scene;
+    Medium *medium;
+    Float weight;
+};
+
+__constant__ Constants d_constants;
+
 __device__ void scatter() {
 //	Assert(scene.getMediumBlock().inside(p));
 //
@@ -57,8 +69,8 @@ __device__ void scatter() {
 }
 
 __global__ void renderPhotons() {
-    int i = threadIdx.x;
-    int num_threads = blockDim.x;
+    //int i = threadIdx.x;
+    //int num_threads = blockDim.x;
 
     // TODO: Zero out constants.image
 
@@ -67,27 +79,25 @@ __global__ void renderPhotons() {
     Float totalDistance;
     short uses = 0;
 
-    Float weight = d_constants.weight;
+    //Float weight = d_constants.weight;
     Scene *scene = d_constants.scene;
 
-    if (scene.genRay(pos, dir, totalDistance, uses)) {
-		  float scaling = max(min(sinf(scene.getUSPhi_min() + scene.getUSPhi_range()*scene.sampler(uses)), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
-          (void)scaling;
+    if (scene->genRay(pos, dir, totalDistance, uses)) {
+		  float scaling = max(min(sinf(scene->getUSPhi_min() + scene->getUSPhi_range()*scene->sample(uses)), scene->getUSMaxScaling()), -scene->getUSMaxScaling());
     //    Assert(!m_useDirect);
     //    if(m_useDirect)
     //        directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
     //    scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance, *costFunctions[id], problem[id], initializations+id*3);
     }
-
 }
 
-void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &medium, const scn::Scene &scene, int numPhotons) {
+void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &medium, const scn::Scene<tvec::TVector3> &scene, int numPhotons) {
     setup(target, medium, scene, numPhotons);
 
     renderPhotons<<<1,numPhotons>>>();
     CUDA_CALL(cudaDeviceSynchronize());
 
-    CUDA_CALL(cudaMemcpy(image, h_constants.cudaImage,
+    CUDA_CALL(cudaMemcpy(image, cudaImage,
                          target.getXRes()*target.getYRes()*target.getZRes()*sizeof(float),
                          cudaMemcpyDeviceToHost));
 
@@ -98,25 +108,27 @@ void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &med
 
 /* Allocates host and device data and sets up RNG. */
 //TODO: introduce medium
-void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, const scn::Scene &scene, int numPhotons) {
+void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, const scn::Scene<tvec::TVector3> &scene, int numPhotons) {
     /* Allocate host memory */
     image = new float[target.getXRes()*target.getYRes()*target.getZRes()*sizeof(float)];
 
     /* Allocate device memory*/
-    float* cudaImage, cudaRandom;
     CUDA_CALL(cudaMalloc((void **)&cudaImage,
                          target.getXRes()*target.getYRes()*target.getZRes()*sizeof(float)));
     CUDA_CALL(cudaMalloc((void **)&cudaRandom, requiredRandomNumbers(numPhotons) * sizeof(float)));
+    cudaScene = Scene::from(scene, cudaRandom, requiredRandomNumbers(numPhotons) * sizeof(float));
+    cudaMedium = Medium::from(medium);
 
     /* Setup generator. */
     CURAND_CALL(curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_MT19937));
 
-    /* Send in parameters to device */
+    /* Send in parameter pointers to device */
+    Constants h_constants;
     h_constants.image = cudaImage;
     h_constants.random = cudaRandom;
-    h_constants.scene = Scene::from(scene);
-    h_constants.medium = Medium::from(medium);
-    h_constants.weight = photon::getWeight(medium, scene, numPhotons);
+    h_constants.scene = cudaScene;
+    h_constants.medium = cudaMedium;
+    h_constants.weight = getWeight(medium, scene, numPhotons);
 
     CUDA_CALL(cudaMemcpyToSymbol(d_constants, &h_constants, sizeof(Constants)));
 
@@ -148,7 +160,7 @@ void CudaRenderer::cleanup() {
 
     if (generator) CURAND_CALL(curandDestroyGenerator(generator));
 
-    Constants::free(h_constants);
+    // TODO: Free cudaImage, cudaRandom, cudaScene, cudaMedium
 }
 
 CudaRenderer::~CudaRenderer() {}

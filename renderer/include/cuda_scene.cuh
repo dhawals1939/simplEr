@@ -15,143 +15,8 @@
 
 namespace cuda {
 
-__constant__ Constants d_constants;
-
-// Currently only supporting AreaTexturedSource (which assumes PROJECTOR flag is on
-// for non-CUDA code).
-class AreaTexturedSource {
-public:
-
-	enum EmitterType{directional, diffuse}; //diffuse is still not implemented
-
-    /* Create a copy AreaTexturedSource on the GPU. */
-    __host__ static AreaTexturedSource *from(const scn::AreaTexturedSource<tvec::TVector3> &source) {
-        AreaTexturedSource result = AreaTexturedSource(source);
-        AreaTexturedSource *d_result;
-        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(AreaTexturedSource)));
-        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(AreaTexturedSource), cudaMemcpyHostToDevice));
-        return d_result;
-    }
-
-	__device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, short &uses) const;
-
-	__device__ inline const TVector3<Float>& getOrigin() const {
-		return *m_origin;
-	}
-
-	__device__ inline const TVector3<Float>& getDir() const {
-		return *m_dir;
-	}
-
-	__device__ inline const TVector2<Float>& getPlane() const {
-		return *m_plane;
-	}
-
-	__device__ inline Float getLi() const {
-		return m_Li;
-	}
-
-	__device__ inline const bool propagateTillMedium(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const{
-		//propagate till lens
-		return m_lens.propagateTillLens(pos, dir, totalDistance);
-	}
-
-	__host__ virtual ~AreaTexturedSource() { }
-
-protected:
-	__host__ AreaTexturedSource(const scn::AreaTexturedSource<tvec::TVector3> &source) {
-
-        m_origin         = TVector3<Float>::from(source.getOrigin());
-        m_dir            = TVector3<Float>::from(source.getDir());
-        m_emittertype    = source.getEmitterType();
-        m_texture        = Image2::from(source.getTexture());
-        m_lens           = Lens::from(source.getLens());
-        m_plane          = TVector2<Float>::from(source.getPlane());
-        m_Li             = source.getLi();
-        m_halfThetaLimit = source.getHalfThetaLimit();
-
-
-		size_t _length = source->getTexture()->getXRes()*source->getTexture()->getYRes();
-        tvec::TVector2<Float> pixelsize(m_plane->x/m_texture->getXRes(),
-                              m_plane->y/m_texture->getYRes());
-        m_pixelsize = TVector2<Float>::from(pixelsize);
-
-		m_ct = cosf(m_halfThetaLimit);
-
-        m_textureSampler = DiscreteDistribution::from(source->getTexture(), _length);
-
-	}
-
-	TVector3<Float> *m_origin;
-	TVector3<Float> *m_dir;
-	Float m_halfThetaLimit;
-	Float m_ct;
-    Image2<Float> *m_texture;
-	DiscreteDistribution *m_textureSampler;
-	TVector2<Float> *m_pixelsize;
-	TVector2<Float> *m_plane;
-	Float m_Li;
-	EmitterType m_emittertype;
-	Lens *m_lens;
-};
-
-class Scene {
-
-public:
-
-    __host__ static Scene *from(const scn::Scene<TVector3> &scene, const Float *d_random) {
-        Scene result = Scene(scene, d_random);
-        Scene *d_result;
-        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Scene)));
-        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Scene), cudaMemcpyHostToDevice));
-        return d_result;
-    }
-
-    __host__ Scene(const scn::Scene<TVector3> &scene, const Float *d_random) {
-        m_source = AreaTexturedSource::from(scene->getAreaSource());
-        m_random = d_random;
-
-        // FIXME: Implement US<TVector3> in CUDA code. This also assumes scene is constant.
-        m_us_phi_min = scene->getUSPhi_min();
-        m_us_phi_range = scene->getUSPhi_range();
-        m_us_max_scaling = scene->getUSMaxScaling();
-    }
-
-    __device__ inline const Float getUSPhi_min() const{
-    	return m_us_phi_min;
-    }
-
-    __device__ inline const Float getUSPhi_range() const{
-    	return m_us_phi_range;
-    }
-
-    __device__ inline const Float getUSMaxScaling() const{
-    	return m_us_max_scaling;
-    }
-
-    __device__ bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, short &uses) {
-        return m_source->sampleRay(pos, dir, totalDistance, uses);
-    }
-
-    /* Sample a random number for this thread and update uses argument for bookkeeping. */
-    __device__ Float sampler(short &uses) {
-        ASSERT(uses < RANDOM_NUMBERS_PER_PHOTON);
-        return m_random[threadIdx.x * RANDOM_NUMBERS_PER_PHOTON + uses++];
-    }
-
-private:
-
-	AreaTexturedSource *m_source;
-
-    const Float *m_random;
-    Float m_us_phi_min;
-    Float m_us_phi_range;
-    Float m_us_max_scaling;
-};
-
-
 class DiscreteDistribution {
-
+public:
     /* Return a discreteDistribution on the GPU. */
     __host__ static DiscreteDistribution* from(const image::Image2<Float> &texture, size_t length) {
         DiscreteDistribution result = DiscreteDistribution(texture, length);
@@ -194,7 +59,7 @@ class DiscreteDistribution {
 	}
 
     // TODO: This might be inneficient
-	__device__ inline void reserve(size_t nEntries) {
+	__host__ __device__ inline void reserve(size_t nEntries) {
         ASSERT(nEntries >= m_cdf_capacity);
         m_cdf_capacity = nEntries+1;
         Float *temp = (Float *)malloc((nEntries+1) * sizeof(Float));
@@ -289,7 +154,7 @@ private:
     size_t m_cdf_length;
     size_t m_cdf_capacity;
 
-    __host__ __device__ size_t cdf_lower_bound(Float value) {
+    __host__ __device__ size_t cdf_lower_bound(Float value) const {
         for (size_t i=0; i < m_cdf_length; i++) {
             if (m_cdf[i] >= value) return i;
         }
@@ -298,6 +163,29 @@ private:
 
 	Float m_sum, m_normalization;
 	bool m_normalized;
+};
+
+class Sampler {
+public:
+
+    /* Random should be a host pointer */
+    __host__ static Sampler *from(const Float *d_random, size_t size) {
+        Sampler result = Sampler(d_random, size);
+        Sampler *d_result;
+
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Sampler)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Sampler), cudaMemcpyHostToDevice));
+        return d_result;
+    }
+
+    /* Sample a random number for this thread and update uses argument for bookkeeping. */
+    __device__ Float sample(short &uses) const;
+
+private:
+
+    __host__ Sampler(const Float *d_random, size_t size) : m_random(d_random), m_size(size) { }
+    size_t m_size;
+    const Float *m_random;
 };
 
 class Lens {
@@ -323,7 +211,7 @@ public:
     //    free(h_result);
     //}
 
-    __device__ inline const bool deflect(const TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const {
+    __device__ inline bool deflect(const TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const {
         /* Deflection computation:
          * Point going through the center of lens and parallel to dir is [pos.x, 0, 0]. Ray from this point goes straight
          * This ray meets focal plane at (pos.x - d[0] * f/d[0], -d[1] * f/d[0], -d[2] * f/d[0]) (assuming -x direction of propagation of light)
@@ -346,8 +234,8 @@ public:
         return true; // should return additional path length added by the lens.
     }
 
-    __device__ inline const bool propagateTillLens(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const {
-        Float dist = -(pos[0]-m_origin[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
+    __device__ inline bool propagateTillLens(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const {
+        Float dist = -(pos[0] - (*m_origin)[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
         pos += dist*dir;
         totalDistance += dist;
         if(m_active)
@@ -356,16 +244,16 @@ public:
         	return true;
     }
 
-    __device__ inline const bool isActive() const {
+    __device__ inline bool isActive() const {
         return m_active;
     }
 
-    __device__ inline TVector3<Float>& getOrigin() const {
+    __device__ inline const TVector3<Float>& getOrigin() const {
         return *m_origin;
     }
 
 protected:
-    Lens(const scn::Lens<tvec::TVector3> &lens) {
+    __host__ Lens(const scn::Lens<tvec::TVector3> &lens) {
         m_origin = TVector3<Float>::from(lens.getOrigin());
         m_squareApertureRadius = lens.getSquareApertureRadius();
         m_focalLength = lens.getFocalLength();
@@ -377,6 +265,137 @@ protected:
     Float m_focalLength;
     bool m_active; // Is the lens present or absent
 };
+
+// Currently only supporting AreaTexturedSource (which assumes PROJECTOR flag is on
+// for non-CUDA code).
+class AreaTexturedSource {
+
+public:
+
+    typedef scn::AreaTexturedSource<tvec::TVector3>::EmitterType EmitterType;
+
+    /* Create a copy AreaTexturedSource on the GPU. */
+    __host__ static AreaTexturedSource *from(const scn::AreaTexturedSource<tvec::TVector3> &source) {
+        AreaTexturedSource result = AreaTexturedSource(source);
+        AreaTexturedSource *d_result;
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(AreaTexturedSource)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(AreaTexturedSource), cudaMemcpyHostToDevice));
+        return d_result;
+    }
+
+	__device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, Sampler *sampler, short &samplerUses) const;
+
+	__device__ inline const TVector3<Float>& getOrigin() const {
+		return *m_origin;
+	}
+
+	__device__ inline const TVector3<Float>& getDir() const {
+		return *m_dir;
+	}
+
+	__device__ inline const TVector2<Float>& getPlane() const {
+		return *m_plane;
+	}
+
+	__device__ inline Float getLi() const {
+		return m_Li;
+	}
+
+	__device__ inline bool propagateTillMedium(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const{
+		//propagate till lens
+		return m_lens->propagateTillLens(pos, dir, totalDistance);
+	}
+
+	__host__ virtual ~AreaTexturedSource() { }
+
+protected:
+	__host__ AreaTexturedSource(const scn::AreaTexturedSource<tvec::TVector3> &source)
+        : m_emittertype(source.getEmitterType()) {
+        m_origin         = TVector3<Float>::from(source.getOrigin());
+        m_dir            = TVector3<Float>::from(source.getDir());
+        m_texture        = Image2<Float>::from(source.getTexture());
+        m_lens           = Lens::from(source.getLens());
+        m_plane          = TVector2<Float>::from(source.getPlane());
+        m_Li             = source.getLi();
+        m_halfThetaLimit = source.getHalfThetaLimit();
+
+		size_t _length = source.getTexture().getXRes()*source.getTexture().getYRes();
+        tvec::TVector2<Float> pixelsize(m_plane->x/m_texture->getXRes(),
+                                        m_plane->y/m_texture->getYRes());
+        m_pixelsize = TVector2<Float>::from(pixelsize);
+
+		m_ct = cosf(m_halfThetaLimit);
+
+        m_textureSampler = DiscreteDistribution::from(source.getTexture(), _length);
+
+	}
+
+	TVector3<Float> *m_origin;
+	TVector3<Float> *m_dir;
+	Float m_halfThetaLimit;
+	Float m_ct;
+    Image2<Float> *m_texture;
+	DiscreteDistribution *m_textureSampler;
+	TVector2<Float> *m_pixelsize;
+	TVector2<Float> *m_plane;
+	Float m_Li;
+	Lens *m_lens;
+	const EmitterType m_emittertype;
+};
+
+class Scene {
+
+public:
+
+    __host__ static Scene *from(const scn::Scene<tvec::TVector3> &scene, const Float *d_random, size_t random_size) {
+        Scene result = Scene(scene, d_random, random_size);
+        Scene *d_result;
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Scene)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Scene), cudaMemcpyHostToDevice));
+        return d_result;
+    }
+
+    __device__ inline Float getUSPhi_min() const{
+    	return m_us_phi_min;
+    }
+
+    __device__ inline Float getUSPhi_range() const{
+    	return m_us_phi_range;
+    }
+
+    __device__ inline Float getUSMaxScaling() const{
+    	return m_us_max_scaling;
+    }
+
+    __device__ bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, short &samplerUses) {
+        return m_source->sampleRay(pos, dir, totalDistance, m_sampler, samplerUses);
+    }
+
+    __device__ Float sample(short &uses) const{
+        return m_sampler->sample(uses);
+    }
+
+private:
+
+    __host__ Scene(const scn::Scene<tvec::TVector3> &scene, const Float *d_random, size_t random_size) {
+        m_source = AreaTexturedSource::from(scene.getAreaSource());
+        m_sampler = Sampler::from(d_random, random_size);
+
+        // FIXME: Implement US<TVector3> in CUDA code. This also assumes scene is constant.
+        m_us_phi_min = scene.getUSPhi_min();
+        m_us_phi_range = scene.getUSPhi_range();
+        m_us_max_scaling = scene.getUSMaxScaling();
+    }
+
+
+	AreaTexturedSource *m_source;
+    Float m_us_phi_min;
+    Float m_us_phi_range;
+    Float m_us_max_scaling;
+    Sampler *m_sampler;
+};
+
+
 
 struct Medium {
 
@@ -412,7 +431,7 @@ struct Medium {
 	//	return m_phase;
 	//}
 
-	__device__ virtual ~Medium() { }
+	__host__ virtual ~Medium() { }
 
 protected:
     __host__ Medium(const Float sigmaT, const Float albedo)//, pfunc::HenyeyGreenstein *phase)

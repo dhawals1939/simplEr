@@ -201,15 +201,15 @@ ifeq ($(USE_CUDA), 1)
 	LIBS+= -L/opt/cuda/lib64/ -lcudart -lcurand
 	INCLUDES+=-I/opt/cuda/include/
 
-	NVCCFLAGS=-O0 -m64 -ccbin /usr/bin/g++ -std=c++14 -arch=compute_61
+	NVCCFLAGS=-O0 -m64 -ccbin /usr/bin/g++ -std=c++14 -arch=sm_61
 	NVCC=nvcc
 
 	HEADERS += \
 		$(INCLUDEDIR)/cuda_renderer.h \
 
 	OBJ += \
-		$(SRCDIR)/cuda_renderer.o \
-		$(SRCDIR)/cuda_scene.o
+		$(SRCDIR)/cuda_scene.o \
+		$(SRCDIR)/cuda_renderer.o
 
 endif
 

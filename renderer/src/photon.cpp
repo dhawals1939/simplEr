@@ -272,7 +272,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 
 #ifdef USE_CUDA
 	cuda::CudaRenderer cuRenderer = cuda::CudaRenderer();
-	cuRenderer.renderImage(img0, numPhotons);
+	cuRenderer.renderImage(img0, medium, scene, numPhotons);
 #else
 #ifdef USE_THREADED
 	int numThreads = omp_get_num_procs();

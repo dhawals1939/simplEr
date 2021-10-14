@@ -1,3 +1,6 @@
+#ifndef CUDA_VECTOR_H_
+#define CUDA_VECTOR_H_
+
 #include "cuda_utils.cuh"
 #include "constants.h"
 #include "tvector.h"
@@ -11,7 +14,7 @@ template <typename T> struct TVector2 {
 
 	const static int dim = 2;
 
-    __host__ static TVector2 *from(tvec::TVector2<T> &vec) {
+    __host__ static TVector2 *from(const tvec::TVector2<T> &vec) {
         TVector2 result(vec.x, vec.y);
         TVector2 *d_result;
 
@@ -26,10 +29,10 @@ template <typename T> struct TVector2 {
 
 	__device__ explicit TVector2(T val) : x(val), y(val) { }
 
-	__device__ template <typename T2> explicit TVector2(const TVector2<T2> &v)
+	template <typename T2> __device__ explicit TVector2(const TVector2<T2> &v)
 		: x((T) v.x), y((T) v.y) { }
 
-	__device__ template <typename T2> explicit TVector2(const T2 *v, const int size) {
+	template <typename T2> __device__ explicit TVector2(const T2 *v, const int size) {
 		ASSERT(size == dim);
 		x = static_cast<T>(v[0]);
 		y = static_cast<T>(v[1]);
@@ -162,19 +165,19 @@ __device__ inline TVector2<T> normalize(const TVector2<T> &v) {
 	return v / v.length();
 }
 
-template <>
-__device__ inline TVector2<int> TVector2<int>::operator/(int s) const {
-	ASSERT(fabsf(static_cast<Float>(s)) > M_EPSILON);
-	return TVector2(x/s, y/s);
-}
-
-template <>
-__device__ inline TVector2<int> &TVector2<int>::operator/=(int s) {
-	ASSERT(fabsf(static_cast<Float>(s)) > M_EPSILON);
-	x /= s;
-	y /= s;
-	return *this;
-}
+//template <>
+//__device__ inline TVector2<int> TVector2<int>::operator/(int s) const {
+//	ASSERT(fabsf(static_cast<Float>(s)) > M_EPSILON);
+//	return TVector2(x/s, y/s);
+//}
+//
+//template <>
+//__device__ inline TVector2<int> &TVector2<int>::operator/=(int s) {
+//	ASSERT(fabsf(static_cast<Float>(s)) > M_EPSILON);
+//	x /= s;
+//	y /= s;
+//	return *this;
+//}
 
 
 // Adapted from Mitsuba's TVector3 class
@@ -184,7 +187,7 @@ template <typename T> struct TVector3 {
 	/// Number of dimensions
 	const static int dim = 3;
 
-    __host__ static TVector3 *from(tvec::TVector3<T>& vec) {
+    __host__ static TVector3 *from(const tvec::TVector3<T>& vec) {
         TVector3 result(vec.x, vec.y, vec.z);
         TVector3 *d_result;
 
@@ -383,3 +386,5 @@ template <> __device__ inline TVector3<int> &TVector3<int>::operator/=(int s) {
 }
 
 }
+
+#endif /* CUDA_VECTOR_H_ */

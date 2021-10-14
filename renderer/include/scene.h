@@ -133,15 +133,15 @@ public:
         return m_active;
     }
 
-    inline VectorType<Float>& getOrigin() const {
+    inline const VectorType<Float>& getOrigin() const {
         return m_origin;
     }
 
-    inline Float getSquareApertureRadius() const {
+    inline const Float getSquareApertureRadius() const {
         return m_squareApertureRadius;
     }
 
-    inline Float getFocalLength() const {
+    inline const Float getFocalLength() const {
         return m_focalLength;
     }
 
