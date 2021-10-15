@@ -148,13 +148,13 @@ void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &med
 //TODO: introduce medium
 void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, const scn::Scene<tvec::TVector3> &scene, int numPhotons) {
     /* Allocate host memory */
-    image = new float[target.getXRes()*target.getYRes()*target.getZRes()*sizeof(float)];
+    image = new Float[target.getXRes()*target.getYRes()*target.getZRes()*sizeof(Float)];
 
     /* Allocate device memory*/
     CUDA_CALL(cudaMalloc((void **)&cudaImage,
-                         target.getXRes()*target.getYRes()*target.getZRes()*sizeof(float)));
-    CUDA_CALL(cudaMalloc((void **)&cudaRandom, requiredRandomNumbers(numPhotons) * sizeof(float)));
-    cudaScene = Scene::from(scene, cudaRandom, requiredRandomNumbers(numPhotons) * sizeof(float));
+                         target.getXRes()*target.getYRes()*target.getZRes()*sizeof(Float)));
+    CUDA_CALL(cudaMalloc((void **)&cudaRandom, requiredRandomNumbers(numPhotons) * sizeof(Float)));
+    cudaScene = Scene::from(scene, cudaRandom, requiredRandomNumbers(numPhotons) * sizeof(Float));
     cudaMedium = Medium::from(medium);
 
     /* Setup generator. */
