@@ -363,10 +363,10 @@ public:
 	Float k_r;
     int   mode;         // Order of the bessel function or mode of the ultrasound
 
-    TVector3<Float> axis_uz;          // Ultrasound axis
-    TVector3<Float> axis_ux;          // Ultrasound x-axis. Need to compute angle as mode > 0 is a function of phi
+    TVector3<Float> *axis_uz;          // Ultrasound axis
+    TVector3<Float> *axis_ux;          // Ultrasound x-axis. Need to compute angle as mode > 0 is a function of phi
 
-    TVector3<Float> p_u;             // A point on the ultra sound axis
+    TVector3<Float> *p_u;             // A point on the ultra sound axis
 
     Float tol;
     Float rrWeight;
@@ -399,11 +399,11 @@ public:
     //}
 
     __device__ inline double bessel_RIF(const TVector3<Float> &p, Float scaling) const{
-        TVector3<Float> p_axis = p_u + dot(p - p_u , axis_uz)*axis_uz; // point on the axis closest to p
+        TVector3<Float> p_axis = *p_u + dot(p - p_u , *axis_uz)*(*axis_uz); // point on the axis closest to p
 
         Float r    = (p-p_axis).length();
-        Float dotp = dot(p-p_axis, axis_ux);
-        Float detp = dot(cross(axis_ux, p-p_axis), axis_uz);
+        Float dotp = dot(p-p_axis, *axis_ux);
+        Float detp = dot(cross(*axis_ux, p-p_axis), *axis_uz);
         Float phi  = atan2f(detp, dotp);
 
         return n_o + n_max * scaling * jn(mode, k_r*r) * cosf(mode*phi);
@@ -411,13 +411,13 @@ public:
 
     __device__ const TVector3<Float> bessel_dRIF(const TVector3<Float> &q, Float scaling) const{
 
-        TVector3<Float> p_axis = p_u + dot(q - p_u, axis_uz)*axis_uz; // point on the axis closest to p
+        TVector3<Float> p_axis = *p_u + dot(q - *p_u, *axis_uz)*(*axis_uz); // point on the axis closest to p
 
         TVector3<Float> p      = q - p_axis; // acts like p in case of axis aligned
 
         Float r    = p.length();
-        Float dotp = dot(p, axis_ux);
-        Float detp = dot(cross(axis_ux, p), axis_uz);
+        Float dotp = dot(p, *axis_ux);
+        Float detp = dot(cross(*axis_ux, p), *axis_uz);
         Float phi  = atan2f(detp, dotp);
 
         if(r < M_EPSILON)
@@ -481,9 +481,9 @@ protected:
 		k_r            = us.k_r;
 		mode           = us.mode;
 
-		axis_uz        = us.axis_uz;
-		axis_ux        = us.axis_ux;
-		p_u            = us.p_u;
+		axis_uz        = TVector3<Float>::from(us.axis_uz);
+		axis_ux        = TVector3<Float>::from(us.axis_ux);
+		p_u            = TVector3<Float>::from(us.p_u);
 
 		er_stepsize    = us.er_stepsize;
 
@@ -524,15 +524,15 @@ public:
     }
 
     __device__ inline Float getUSPhi_min() const{
-    	return m_us_phi_min;
+    	return m_us->phi_min;
     }
 
     __device__ inline Float getUSPhi_range() const{
-    	return m_us_phi_range;
+    	return m_us->phi_max - m_us->phi_min;
     }
 
     __device__ inline Float getUSMaxScaling() const{
-    	return m_us_max_scaling;
+    	return m_us->n_maxScaling;
     }
 
     __device__ bool movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float dist,
@@ -543,7 +543,6 @@ public:
 
     __device__ void er_step(TVector3<Float> &p, TVector3<Float> &d, Float stepSize, Float scaling) const;
 
-
 	__device__ inline TVector3<Float> dP(const TVector3<Float> d) const{
         #ifnedf OMEGA_TRACKING
         ASSERT(false);
@@ -552,12 +551,12 @@ public:
 	}
 
 	inline TVector3<Float> dV(const TVector3<Float> &p, const TVector3<Float> &d, Float scaling) const{
-		return m_us.dRIF(p, scaling);
+		return m_us->dRIF(p, scaling);
 	}
 
 	inline TVector3<Float> dOmega(const TVector3<Float> p, const TVector3<Float> d, Float scaling) const{
-		TVector3<Float> dn = m_us.dRIF(p, scaling);
-		Float            n = m_us.RIF(p, scaling);
+		TVector3<Float> dn = m_us->dRIF(p, scaling);
+		Float            n = m_us->RIF(p, scaling);
 
 		return (dn - dot(d, dn)*d)/n;
 	}
@@ -569,23 +568,11 @@ private:
         m_sampler = Sampler::from(d_random, random_size);
         m_block   = Block::from(scene.getMediumBlock());
         m_us      = US::from(scene.m_us);
-
-        // FIXME: Implement US<TVector3> in CUDA code.
-        // TODO: Remove these
-        m_us_phi_min = scene.getUSPhi_min();
-        m_us_phi_range = scene.getUSPhi_range();
-        m_us_max_scaling = scene.getUSMaxScaling();
-        m_us_er_stepsize = scene.m_us.er_stepsize;
-        m_us_precision = scene.m_us.getPrecision();
     }
 
+    US *m_us;
     Block *m_block;
 	AreaTexturedSource *m_source;
-    Float m_us_phi_min;
-    Float m_us_phi_range;
-    Float m_us_max_scaling;
-    Float m_us_er_stepsize;
-    Float m_us_precision;
     Sampler *m_sampler;
 };
 

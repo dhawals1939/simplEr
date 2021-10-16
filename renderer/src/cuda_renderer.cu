@@ -69,7 +69,7 @@ __device__ inline Float getMoveStep(const Medium *medium, short &uses) const{
 __device__ void Scene::er_step(TVector3<Float> &p, TVector3<Float> &d, Float stepSize, Float scaling) const{
 #ifndef OMEGA_TRACKING
     d += HALF * stepSize * dV(p, d, scaling);
-    p +=        stepSize * d/m_us.RIF(p, scaling);
+    p +=        stepSize * d/m_us->RIF(p, scaling);
     d += HALF * stepSize * dV(p, d, scaling);
 #else
     Float two = 2; // To avoid type conversion
@@ -93,13 +93,12 @@ __device__ void Scene::er_step(TVector3<Float> &p, TVector3<Float> &d, Float ste
 
 // TODO: Implement traceTillBlock
 __device__ void Scene::traceTillBlock(TVector3<Float> &p, TVector3<Float> &d, Float dist, Float &disx, Float &disy, Float &totalOpticalDistance, Float scaling) const{
-
 	TVector3<Float> oldp, oldd;
 
     Float distance = 0;
-    long int maxsteps = dist/m_us_er_stepsize + 1, i, precision = m_us_precision;
+    long int maxsteps = dist/m_us->er_stepsize + 1, i, precision = m_us->getPrecision();
 
-    Float current_stepsize = m_us_er_stepsize;
+    Float current_stepsize = m_us->er_stepsize;
 
     for(i = 0; i < maxsteps; i++){
     	oldp = p;
