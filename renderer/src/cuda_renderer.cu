@@ -136,7 +136,7 @@ void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &med
     CUDA_CALL(cudaDeviceSynchronize());
 
     CUDA_CALL(cudaMemcpy(image, cudaImage,
-                         target.getXRes()*target.getYRes()*target.getZRes()*sizeof(float),
+                         target.getXRes()*target.getYRes()*target.getZRes()*sizeof(Float),
                          cudaMemcpyDeviceToHost));
 
     target.copyImage(image, target.getXRes()*target.getYRes()*target.getZRes());

@@ -212,7 +212,6 @@ ifeq ($(USE_CUDA), 1)
 		$(INCLUDEDIR)/cuda_vector.cuh
 
 	OBJ += \
-		$(SRCDIR)/cuda_scene.o \
 		$(SRCDIR)/cuda_renderer.o
 
 endif
