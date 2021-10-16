@@ -348,6 +348,157 @@ protected:
 	const EmitterType m_emittertype;
 };
 
+class US {
+public:
+	Float    f_u;          // Ultrasound frequency (1/s or Hz)
+	Float    speed_u;      // Ultrasound speed (m/s)
+	Float    wavelength_u; // (m)
+
+	Float n_o;          // Baseline refractive index
+	Float n_max;        // Max refractive index variation
+	Float n_clip;        // Clipped refractive index variation
+	Float n_maxScaling;  // =n_clip/n_max
+	Float phi_min;        // Min Phase
+	Float phi_max;        // Max Phase
+	Float k_r;
+    int   mode;         // Order of the bessel function or mode of the ultrasound
+
+    TVector3<Float> axis_uz;          // Ultrasound axis
+    TVector3<Float> axis_ux;          // Ultrasound x-axis. Need to compute angle as mode > 0 is a function of phi
+
+    TVector3<Float> p_u;             // A point on the ultra sound axis
+
+    Float tol;
+    Float rrWeight;
+    Float invrrWeight;
+
+    Float er_stepsize;
+    int m_precision;
+    Float m_EgapEndLocX;
+    Float m_SgapBeginLocX;
+
+    bool m_useInitializationHack;
+
+
+    __device__ inline Float RIF(const TVector3<Float> &p, const Float &scaling) const{
+        if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
+            return n_o;
+    	return bessel_RIF(p, scaling);
+    }
+
+    __device__ inline const TVector3<Float> dRIF(const VectorType<Float> &q, const Float &scaling) const{
+        if(q.x > m_EgapEndLocX || q.x < m_SgapBeginLocX)
+            return TVector3<Float>(0.0);
+    	return bessel_dRIF(q, scaling);
+    }
+
+    //inline const Matrix3x3 HessianRIF(const VectorType<Float> &p, const Float &scaling) const{
+    //    if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
+    //        return Matrix3x3(0.0);
+    //	return bessel_HessianRIF(p, scaling);
+    //}
+
+    __device__ inline double bessel_RIF(const TVector3<Float> &p, Float scaling) const{
+        TVector3<Float> p_axis = p_u + dot(p - p_u , axis_uz)*axis_uz; // point on the axis closest to p
+
+        Float r    = (p-p_axis).length();
+        Float dotp = dot(p-p_axis, axis_ux);
+        Float detp = dot(cross(axis_ux, p-p_axis), axis_uz);
+        Float phi  = atan2f(detp, dotp);
+
+        return n_o + n_max * scaling * jn(mode, k_r*r) * cosf(mode*phi);
+    }
+
+    __device__ const TVector3<Float> bessel_dRIF(const TVector3<Float> &q, Float scaling) const{
+
+        TVector3<Float> p_axis = p_u + dot(q - p_u, axis_uz)*axis_uz; // point on the axis closest to p
+
+        TVector3<Float> p      = q - p_axis; // acts like p in case of axis aligned
+
+        Float r    = p.length();
+        Float dotp = dot(p, axis_ux);
+        Float detp = dot(cross(axis_ux, p), axis_uz);
+        Float phi  = atan2f(detp, dotp);
+
+        if(r < M_EPSILON)
+            p.y = M_EPSILON;
+        if(r < M_EPSILON)
+            p.z = M_EPSILON;
+        if(r < M_EPSILON)
+            r = M_EPSILON;
+
+        Float krr = k_r * r;
+
+        Float besselj   = jn(mode, krr);
+
+        Float dbesselj  = mode/(krr) * besselj - jn(mode+1, krr);
+
+        Float invr  = 1.0/r;
+        Float invr2 = invr * invr;
+
+        Float cosmp  = cosf(mode * phi);
+        Float sinmp  = sinf(mode * phi);
+
+        TVector3<Float> dn(0.0,
+                           n_max * scaling * (dbesselj * k_r * p.y * invr * cosmp - besselj*mode*sinmp*p.z*invr2),
+                           n_max * scaling * (dbesselj * k_r * p.z * invr * cosmp + besselj*mode*sinmp*p.y*invr2));
+        return dn;
+    }
+    //inline const VectorType<Float> bessel_dRIF(const VectorType<Float> &q, const Float &scaling) const;
+
+    //inline const Matrix3x3 bessel_HessianRIF(const VectorType<Float> &p, const Float &scaling) const;
+
+    inline const Float getStepSize() const{return er_stepsize;}
+
+    inline const Float getTol2() const{return tol*tol;}
+
+    inline const Float getrrWeight() const{return rrWeight;}
+
+    inline const Float getInvrrWeight() const{return invrrWeight;}
+
+    inline const int getPrecision()  const{return m_precision;}
+
+    __host__ static US* from(scn::US<tvec::TVector3> us) {
+        US result(us);
+        US *d_result;
+
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(US)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(US), cudaMemcpyHostToDevice));
+        return d_result;
+    }
+
+protected:
+    US(const scn::US<tvec::TVector3>& us) {
+        f_u            = us.f_u;
+		speed_u        = us.speed_u;
+		wavelength_u   = us.wavelength_u;
+		n_o            = us.n_o;
+		n_max          = us.n_max;
+		n_clip         = us.n_clip;
+		n_maxScaling   = us.n_maxScaling;
+		phi_min        = us.phi_min;
+		phi_max        = us.phi_max;
+		k_r            = us.k_r;
+		mode           = us.mode;
+
+		axis_uz        = us.axis_uz;
+		axis_ux        = us.axis_ux;
+		p_u            = us.p_u;
+
+		er_stepsize    = us.er_stepsize;
+
+		tol 		   = us.tol;
+		rrWeight       = us.rrWeight;
+		invrrWeight    = us.invrrWeight;
+		m_precision    = us.m_precision;
+        m_EgapEndLocX  = us.m_EgapEndLocX;
+        m_SgapBeginLocX= us.m_SgapBeginLocX;
+
+        m_useInitializationHack = us.m_useInitializationHack;
+    }
+};
+
+
 class Scene {
 
 public:
@@ -358,6 +509,18 @@ public:
         CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Scene)));
         CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Scene), cudaMemcpyHostToDevice));
         return d_result;
+    }
+
+    __device__ bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, short &samplerUses) {
+        return m_source->sampleRay(pos, dir, totalDistance, m_sampler, samplerUses);
+    }
+
+    __device__ Float sample(short &uses) const{
+        return m_sampler->sample(uses);
+    }
+
+    __device__ inline Block *getMediumBlock() const{
+        return m_block;
     }
 
     __device__ inline Float getUSPhi_min() const{
@@ -372,35 +535,114 @@ public:
     	return m_us_max_scaling;
     }
 
-    __device__ bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, short &samplerUses) {
-        return m_source->sampleRay(pos, dir, totalDistance, m_sampler, samplerUses);
-    }
+    __device__ bool movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float dist,
+                               Float &totalOpticalDistance, short &uses, Float scaling) const;
 
-    __device__ Float sample(short &uses) const{
-        return m_sampler->sample(uses);
-    }
+    __device__ void traceTillBlock(TVector3<Float> &p, TVector3<Float> &d, Float dist, Float &disx,
+                                   Float &disy, Float &totalOpticalDistance, Float scaling) const;
+
+    __device__ void er_step(TVector3<Float> &p, TVector3<Float> &d, Float stepSize, Float scaling) const;
+
+
+	__device__ inline TVector3<Float> dP(const TVector3<Float> d) const{
+        #ifnedf OMEGA_TRACKING
+        ASSERT(false);
+        #endif /* OMEGA_TRACKING */
+		return d;
+	}
+
+	inline TVector3<Float> dV(const TVector3<Float> &p, const TVector3<Float> &d, Float scaling) const{
+		return m_us.dRIF(p, scaling);
+	}
+
+	inline TVector3<Float> dOmega(const TVector3<Float> p, const TVector3<Float> d, Float scaling) const{
+		TVector3<Float> dn = m_us.dRIF(p, scaling);
+		Float            n = m_us.RIF(p, scaling);
+
+		return (dn - dot(d, dn)*d)/n;
+	}
 
 private:
 
     __host__ Scene(const scn::Scene<tvec::TVector3> &scene, const Float *d_random, size_t random_size) {
-        m_source = AreaTexturedSource::from(scene.getAreaSource());
+        m_source  = AreaTexturedSource::from(scene.getAreaSource());
         m_sampler = Sampler::from(d_random, random_size);
+        m_block   = Block::from(scene.getMediumBlock());
+        m_us      = US::from(scene.m_us);
 
-        // FIXME: Implement US<TVector3> in CUDA code. This also assumes scene is constant.
+        // FIXME: Implement US<TVector3> in CUDA code.
+        // TODO: Remove these
         m_us_phi_min = scene.getUSPhi_min();
         m_us_phi_range = scene.getUSPhi_range();
         m_us_max_scaling = scene.getUSMaxScaling();
+        m_us_er_stepsize = scene.m_us.er_stepsize;
+        m_us_precision = scene.m_us.getPrecision();
     }
 
-
+    Block *m_block;
 	AreaTexturedSource *m_source;
     Float m_us_phi_min;
     Float m_us_phi_range;
     Float m_us_max_scaling;
+    Float m_us_er_stepsize;
+    Float m_us_precision;
     Sampler *m_sampler;
 };
 
+class Block {
+    public:
 
+    __host__ static Block *from(const scn::Block<tvec::TVector3> &block) {
+        Block result = Block(block.getBlockL(), block.getBlockR());
+        Block *d_result;
+
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Block)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Block), cudaMemcpyHostToDevice));
+        return d_result;
+    }
+
+	/*
+	 * TODO: Maybe replace these with comparisons to FPCONST(0.0)?
+	 */
+	__device__ inline bool inside(const TVector3<Float> &p) const {
+		bool result = true;
+		for (int iter = 0; iter < p.dim; ++iter) {
+			result = result
+				&& (p[iter] - (*m_blockL)[iter] > -M_EPSILON)
+				&& ((*m_blockR)[iter] - p[iter] > -M_EPSILON);
+			/*
+			 * TODO: Maybe remove this check, it may be slowing performance down
+			 * due to the branching.
+			 */
+			if (!result) {
+				break;
+			}
+		}
+		return result;
+	}
+
+	//bool intersect(const VectorType<Float> &p, const VectorType<Float> &d,
+	//			Float &disx, Float &disy) const;
+
+
+	__device__ inline const VectorType<Float>& getBlockL() const {
+		return m_blockL;
+	}
+
+	__device__ inline const VectorType<Float>& getBlockR() const {
+		return m_blockR;
+	}
+
+protected:
+	__host__ Block(const TVector3<Float> &blockL, const TVector3<Float> &blockR)
+		: m_blockL(blockL),
+		  m_blockR(blockR) { }
+
+	virtual ~Block() { }
+
+	TVector3<Float> *m_blockL;
+	TVector3<Float> *m_blockR;
+};
 
 struct Medium {
 

@@ -61,14 +61,161 @@ __device__ bool AreaTexturedSource::sampleRay(TVector3<Float> &pos, TVector3<Flo
 	return propagateTillMedium(pos, dir, totalDistance);
 }
 
-__device__ void scatter() {
-//	Assert(scene.getMediumBlock().inside(p));
+
+__device__ inline Float getMoveStep(const Medium *medium, short &uses) const{
+    return -medium->getMfp() * logf(d_constants.scene->sample(uses));
+}
+
+__device__ void Scene::er_step(TVector3<Float> &p, TVector3<Float> &d, Float stepSize, Float scaling) const{
+#ifndef OMEGA_TRACKING
+    d += HALF * stepSize * dV(p, d, scaling);
+    p +=        stepSize * d/m_us.RIF(p, scaling);
+    d += HALF * stepSize * dV(p, d, scaling);
+#else
+    Float two = 2; // To avoid type conversion
+
+    TVector3<Float> K1P = stepSize * dP(d);
+    TVector3<Float> K1O = stepSize * dOmega(p, d);
+
+    TVector3<Float> K2P = stepSize * dP(d + HALF*K1O);
+    TVector3<Float> K2O = stepSize * dOmega(p + HALF*K1P, d + HALF*K1O);
+
+    TVector3<Float> K3P = stepSize * dP(d + HALF*K2O);
+    TVector3<Float> K3O = stepSize * dOmega(p + HALF*K2P, d + HALF*K2O);
+
+    TVector3<Float> K4P = stepSize * dP(d + K3O);
+    TVector3<Float> K4O = stepSize * dOmega(p + K3P, d + K3O);
+
+    p = p + ONE_SIXTH * (K1P + two*K2P + two*K3P + K4P);
+    d = d + ONE_SIXTH * (K1O + two*K2O + two*K3O + K4O);
+#endif
+}
+
+// TODO: Implement traceTillBlock
+__device__ void Scene::traceTillBlock(TVector3<Float> &p, TVector3<Float> &d, Float dist, Float &disx, Float &disy, Float &totalOpticalDistance, Float scaling) const{
+
+	TVector3<Float> oldp, oldd;
+
+    Float distance = 0;
+    long int maxsteps = dist/m_us_er_stepsize + 1, i, precision = m_us_precision;
+
+    Float current_stepsize = m_us_er_stepsize;
+
+    for(i = 0; i < maxsteps; i++){
+    	oldp = p;
+    	oldd = d;
+
+    	er_step(p, d, current_stepsize, scaling);
+
+//    	// check if we are at the intersection or crossing the sampled dist, then, estimate the distance and keep going more accurately towards the boundary or sampled dist
+//    	if(!m_block.inside(p) || (distance + current_stepsize) > dist){
+//    		precision--;
+//    		if(precision < 0)
+//    			break;
+//    		p = oldp;
+//    		d = oldd;
+//    		current_stepsize = current_stepsize / 10;
+//    		i  = 0;
+//    		maxsteps = 11;
+//    	}else{
+//    		distance += current_stepsize;
+//#if !USE_SIMPLIFIED_TIMING
+//    		totalOpticalDistance += current_stepsize * m_us.RIF(p, scaling);
+//#endif
+//    	}
+    }
 //
-//	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
-//		VectorType<Float> pos(p), dir(d);
+//    Assert(i < maxsteps);
+//    disx = 0;
+//    disy = distance;
+
+}
+
+__device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float dist,
+                                  Float &totalOpticalDistance, short &uses, Float scaling) const{
+
+	// Algorithm
+	// 1. Move till you reach the boundary or till the distance is reached.
+	// 2. If you reached the boundary, reflect with probability and keep progressing TODO: change to weight
+
+
+	Float disx, disy;
+	TVector3<Float> d1, norm;
+//	traceTillBlock(p, d, dist, disx, disy, totalOpticalDistance, scaling);
 //
-//		Float dist = getMoveStep(medium, sampler);
-//		if (!scene.movePhoton(pos, dir, dist, totalOpticalDistance, sampler, scaling)) {
+//	dist -= static_cast<Float>(disy);
+//
+//	while(dist > M_EPSILON){
+//		int i;
+//		norm.zero();
+//		for (i = 0; i < p.dim; ++i) {
+//			if (std::abs(m_block.getBlockL()[i] - p[i]) < M_EPSILON) {
+//				norm[i] = -FPCONST(1.0);
+//				break;
+//			}
+//			else if (std::abs(m_block.getBlockR()[i] - p[i]) < M_EPSILON) {
+//				norm[i] = FPCONST(1.0);
+//				break;
+//			}
+//		}
+//		Assert(i < p.dim);
+//
+//		Float minDiff = M_MAX;
+//		Float minDir = FPCONST(0.0);
+//		TVector3<Float> normalt;
+//		normalt.zero();
+//		int chosenI = p.dim;
+//		for (i = 0; i < p.dim; ++i) {
+//			Float diff = std::abs(m_block.getBlockL()[i] - p[i]);
+//			if (diff < minDiff) {
+//				minDiff = diff;
+//				chosenI = i;
+//				minDir = -FPCONST(1.0);
+//			}
+//			diff = std::abs(m_block.getBlockR()[i] - p[i]);
+//			if (diff < minDiff) {
+//				minDiff = diff;
+//				chosenI = i;
+//				minDir = FPCONST(1.0);
+//			}
+//		}
+//		normalt[chosenI] = minDir;
+//		Assert(normalt == norm);
+//		norm = normalt;
+//
+//		/*
+//		 * TODO: I think that, because we always return to same medium (we ignore
+//		 * refraction), there is no need to adjust radiance by eta*eta.
+//		 */
+//		Float magnitude = d.length();
+//#ifdef PRINT_DEBUGLOG
+//		std::cout << "Before BSDF sample, d: (" << d.x/magnitude << ", " << d.y/magnitude <<  ", " << d.z/magnitude << "); \n "
+//				"norm: (" << norm.x << ", " << norm.y << ", " << norm.z << ");" << "A Sampler: " << sampler() << "\n";
+//#endif
+//        m_bsdf.sample(d/magnitude, norm, sampler, d1);
+//        if (tvec::dot(d1, norm) < FPCONST(0.0)) {
+//			// re-enter the medium through reflection
+//			d = d1*magnitude;
+//		} else {
+//			return false;
+//		}
+//
+//    	traceTillBlock(p, d, dist, disx, disy, totalOpticalDistance, scaling);
+//    	dist -= static_cast<Float>(disy);
+//	}
+//	return true;
+}
+
+__device__ void scatter(TVector3<Float> &pos, TVector3<Float> &dir, Float scaling, Float &totalDistance, short &uses) {
+    Scene *scene = d_constants.scene;
+    Medium *medium = d_constants.medium;
+	ASSERT(scene->getMediumBlock()->inside(p));
+
+	if ((medium->getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (scene->sample(uses) < medium.getAlbedo()))) {
+		TVector3<Float> pos(p), dir(d);
+
+		Float dist = getMoveStep(medium, uses);
+//		if (!scene->movePhoton(pos, dir, dist, totalOpticalDistance, sampler, scaling)) {
 //			return;
 //		}
 //
@@ -103,7 +250,7 @@ __device__ void scatter() {
 //#endif
 //			++depth;
 //		}
-//	}
+	}
 }
 
 __global__ void renderPhotons() {
@@ -117,15 +264,13 @@ __global__ void renderPhotons() {
     Float totalDistance;
     short uses = 0;
 
-    //Float weight = d_constants.weight;
     Scene *scene = d_constants.scene;
 
     if (scene->genRay(pos, dir, totalDistance, uses)) {
-		  float scaling = max(min(sinf(scene->getUSPhi_min() + scene->getUSPhi_range()*scene->sample(uses)), scene->getUSMaxScaling()), -scene->getUSMaxScaling());
-    //    Assert(!m_useDirect);
-    //    if(m_useDirect)
-    //        directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
-    //    scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance, *costFunctions[id], problem[id], initializations+id*3);
+        float scaling = max(min(sinf(scene->getUSPhi_min() + scene->getUSPhi_range()*scene->sample(uses)), scene->getUSMaxScaling()), -scene->getUSMaxScaling());
+        // TODO: Implement direct tracing, and check useDirect before using it
+        // directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
+        scatter(pos, dir, scaling, totalDistance);
     }
 }
 
