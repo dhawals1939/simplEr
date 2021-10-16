@@ -1,4 +1,8 @@
-function D = readpfm3d(filename_pfm)
+function D = readpfm3d(filename_pfm, precision)
+
+if(nargin == 1)
+  precision = 'double';
+end
 
 fid = fopen(filename_pfm);
 
@@ -16,7 +20,7 @@ fscanf(fid,'%c',1);
 D = zeros(rows, cols, depths);
 
 for i=1:depths
-    D(:,:,i) = fread(fid,[cols,rows],'double')';
+    D(:,:,i) = fread(fid,[cols,rows],precision)';
 end
 
 D(D == Inf) = 0;
