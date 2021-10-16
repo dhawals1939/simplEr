@@ -30,6 +30,7 @@ public:
     __host__ DiscreteDistribution(const image::Image2<Float> &texture, size_t length) {
         m_cdf_length = length;
         m_cdf_capacity = 0;
+        m_cdf = NULL;
         reserve(length);
         clear();
 		for(int i=0; i<length; i++){
@@ -76,7 +77,7 @@ public:
         if (m_cdf_length == m_cdf_capacity) {
             reserve(m_cdf_capacity ? m_cdf_capacity * 2 : 1);
         }
-        m_cdf[m_cdf_length] = m_cdf[m_cdf_length-1] + pdfValue;
+        m_cdf[m_cdf_length] = m_cdf_length ? m_cdf[m_cdf_length-1] + pdfValue : pdfValue;
         m_cdf_length++;
         ASSERT(m_cdf_length <= m_cdf_capacity);
 	}
@@ -319,9 +320,13 @@ protected:
         m_Li             = source.getLi();
         m_halfThetaLimit = source.getHalfThetaLimit();
 
-		size_t _length = source.getTexture().getXRes()*source.getTexture().getYRes();
-        tvec::TVector2<Float> pixelsize(m_plane->x/m_texture->getXRes(),
-                                        m_plane->y/m_texture->getYRes());
+        float textureXRes = source.getTexture().getXRes();
+        float textureYRes = source.getTexture().getYRes();
+        float planeX = source.getPlane().x;
+        float planeY = source.getPlane().y;
+		size_t _length = textureXRes * textureYRes;
+        tvec::TVector2<Float> pixelsize(planeX/textureXRes,
+                                        planeY/textureYRes);
         m_pixelsize = TVector2<Float>::from(pixelsize);
 
 		m_ct = cosf(m_halfThetaLimit);

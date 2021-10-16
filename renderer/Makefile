@@ -206,9 +206,12 @@ ifeq ($(USE_CUDA), 1)
 
 	HEADERS += \
 		$(INCLUDEDIR)/cuda_renderer.h \
+		$(INCLUDEDIR)/cuda_image.cuh \
+		$(INCLUDEDIR)/cuda_scene.cuh \
+		$(INCLUDEDIR)/cuda_utils.cuh \
+		$(INCLUDEDIR)/cuda_vector.cuh
 
 	OBJ += \
-		$(SRCDIR)/cuda_scene.o \
 		$(SRCDIR)/cuda_renderer.o
 
 endif
