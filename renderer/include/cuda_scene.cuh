@@ -15,6 +15,37 @@
 
 namespace cuda {
 
+class SmoothDielectric {
+public:
+    __host__ static SmoothDielectric *from(const bsdf::SmoothDielectric<tvec::TVector3> &in) {
+        SmoothDielectric result = SmoothDielectric(in);
+        SmoothDielectric *d_result;
+
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(SmoothDielectric)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(SmoothDielectric), cudaMemcpyHostToDevice));
+        return d_result;
+    }
+
+    __device__ void sample(const TVector3<Float> &in, const TVector3<Float> &n,
+				Sampler &sampler, TVector3<Float> &out, short &uses) const;
+
+	__device__ inline Float getIor1() const {
+		return m_ior1;
+	}
+
+	__device__ inline Float getIor2() const {
+		return m_ior2;
+	}
+private:
+	__host__ SmoothDielectric(Float ior1, Float ior2) :
+		m_ior1(ior1),
+		m_ior2(ior2) { }
+
+	__host__ SmoothDielectric(const bsdf::SmoothDielectric<tvec::TVector3> &in) {
+		m_ior1 = in.getIor1(); m_ior2 = in.getIor2();
+	}
+}
+
 class DiscreteDistribution {
 public:
     /* Return a discreteDistribution on the GPU. */
@@ -180,9 +211,12 @@ public:
     }
 
     /* Sample a random number for this thread and update uses argument for bookkeeping. */
-    __device__ Float sample(short &uses) const;
-
+    __device__ inline operator()(short &uses) {
+        return sample(uses);
+    }
 private:
+
+    __device__ Float sample(short &uses) const;
 
     __host__ Sampler(const Float *d_random, size_t size) : m_random(d_random), m_size(size) { }
     size_t m_size;
@@ -627,12 +661,8 @@ public:
         return d_result;
     }
 
-    __device__ bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, short &samplerUses) {
-        return m_source->sampleRay(pos, dir, totalDistance, m_sampler, samplerUses);
-    }
-
-    __device__ Float sample(short &uses) const{
-        return m_sampler->sample(uses);
+    __device__ inline bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, short &samplerUses) {
+        return m_source->sampleRay(pos, dir, totalDistance, samplerUses);
     }
 
     __device__ inline Block *getMediumBlock() const{
@@ -650,6 +680,9 @@ public:
     __device__ inline Float getUSMaxScaling() const{
     	return m_us->n_maxScaling;
     }
+
+	__device__ void addEnergyInParticle(const TVector3<Float> &p, const TVector3<Float> &d, Float distTravelled,
+                                        int &depth, Float val, Sampler &sampler, const Float &scaling, short &uses) const;
 
     __device__ bool movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float dist,
                                Float &totalOpticalDistance, short &uses, Float scaling) const;
@@ -677,19 +710,21 @@ public:
 		return (dn - dot(d, dn)*d)/n;
 	}
 
+    Sampler *sampler;
 private:
 
     __host__ Scene(const scn::Scene<tvec::TVector3> &scene, const Float *d_random, size_t random_size) {
         m_source  = AreaTexturedSource::from(scene.getAreaSource());
-        m_sampler = Sampler::from(d_random, random_size);
+        sampler   = Sampler::from(d_random, random_size);
         m_block   = Block::from(scene.getMediumBlock());
         m_us      = US::from(scene.m_us);
+        m_bsdf    = SmoothDielectric::from(scene.getBSDF());
     }
 
+    SmoothDielectric *m_bsdf;
     US *m_us;
     Block *m_block;
 	AreaTexturedSource *m_source;
-    Sampler *m_sampler;
 };
 
 }

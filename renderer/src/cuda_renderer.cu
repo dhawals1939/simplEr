@@ -20,6 +20,8 @@ struct Constants {
     Scene *scene;
     Medium *medium;
     Float weight;
+
+    // TODO: Add maxDepth, maxPathlength, useDirect, useAngularSampling
 };
 
 __constant__ Constants d_constants;
@@ -30,29 +32,100 @@ __device__ Float Sampler::sample(short &uses) const{
     return m_random[threadIdx.x * RANDOM_NUMBERS_PER_PHOTON + uses++];
 }
 
+__device__ inline Float safeSqrt(Float x) {
+    return x > FPCONST(0.0) ? sqrtf(x) : FPCONST(0.0);
+}
+
+__device__ inline bool reflect(const TVector3<Float> &a, const TVector3<Float> &n,
+                               TVector3<Float> &b) {
+    b = -FPCONST(2.0)*dot(a, n)*n + a;
+}
+
+__device__ inline bool refract(const TVector3<Float> &a, const TVector3<Float> &n,
+                        Float eta, TVector3<Float> &b) {
+    TVector3<Float> q = dot(a,n)*n;
+    TVector3<Float> p = (a-q)/eta;
+
+    if (p.length() > FPCONST(1.0)) {
+        reflect(a, n, b);
+        return false;
+    } else {
+        q.normalize();
+        q *= safeSqrt(FPCONST(1.0) - p.lengthSquared());
+        b = p + q;
+        return true;
+    }
+}
+
+__device__ inline Float fresnelDielectric(Float cosThetaI, Float cosThetaT, Float eta) {
+	if (fabsf(eta - FPCONST(1.0)) < M_EPSILON * max(FPCONST(1.0), fabsf(eta))) {
+		return FPCONST(0.0);
+	} else {
+		Float Rs = (cosThetaI - eta * cosThetaT) / (cosThetaI + eta * cosThetaT);
+		Float Rp = (cosThetaT - eta * cosThetaI) / (cosThetaT + eta * cosThetaI);
+
+		return FPCONST(0.5) * Rs * Rs + Rp * Rp;
+	}
+}
+
+__device__ inline void SmoothDielectric::sample(const TVector3<Float> &in, const TVector3<Float> &n,
+				Sampler &sampler, TVector3<Float> &out, short &samplerUses) const {
+	if (fabsf(m_ior1 - m_ior2) < M_EPSILON) {
+		// index matched
+		out = in;
+	} else {
+		Float eta;
+		if (dot(in, n) < -M_EPSILON) {
+			// entering ior2 from ior1
+			eta = m_ior2/m_ior1;
+		}
+		else {
+			// entering ior1 from ior2
+			eta = m_ior1/m_ior2;
+		}
+
+		VectorType<Float> outT;
+		if (!refract(in, n, eta, outT)) {
+			// TIR
+			out = outT;
+		} else {
+			VectorType<Float> outR;
+			reflect(in, n, outR);
+
+			Float cosI = absDot(n, in), cosT = absDot(n, outT);
+			Float fresnelR = fresnelDielectric(cosI, cosT, eta);
+
+			// return either refracted or reflected direction based on the Fresnel term
+			out = (sampler(samplerUses) < fresnelR ? outR : outT);
+		}
+	}
+}
+
 // Sample random ray
 __device__ bool AreaTexturedSource::sampleRay(TVector3<Float> &pos, TVector3<Float> &dir,
-                                      Float &totalDistance, Sampler *sampler, short &samplerUses) const{
+                                      Float &totalDistance, short &samplerUses) const{
     pos = *m_origin;
 
+    Sampler *sampler = d_constants.scene->sampler;
+
     // sample pixel position first
-	int pixel = m_textureSampler->sample(sampler->sample(samplerUses));
+	int pixel = m_textureSampler->sample(sampler(samplerUses));
 	int p[2];
 	m_texture->ind2sub(pixel, p[0], p[1]);
 
 	// Now find a random location on the pixel
 	for (int iter = 1; iter < m_origin->dim; ++iter) {
 		pos[iter] += - (*m_plane)[iter - 1] / FPCONST(2.0) +
-            p[iter - 1] * (*m_pixelsize)[iter-1] + sampler->sample(samplerUses) * (*m_pixelsize)[iter - 1];
+            p[iter - 1] * (*m_pixelsize)[iter-1] + sampler(samplerUses) * (*m_pixelsize)[iter - 1];
 	}
 
 	dir = *m_dir;
 
 	//FIXME: Hack: Works only for m_dir = [-1 0 0]
-	Float z   = sampler->sample(samplerUses)*(1-m_ct) + m_ct;
+	Float z   = sampler(samplerUses)*(1-m_ct) + m_ct;
 	Float zt  = sqrtf(FPCONST(1.0)-z*z);
     // FIXME: FPCONST(M_PI) might be generating complaints here
-	Float phi = sampler->sample(samplerUses)*2*M_PI;
+	Float phi = sampler(samplerUses)*2*M_PI;
     // FIXME: operator[] overload here might be causing issues
 	dir[0] = -z;
 	dir[1] = zt*cosf(phi);
@@ -63,7 +136,7 @@ __device__ bool AreaTexturedSource::sampleRay(TVector3<Float> &pos, TVector3<Flo
 
 
 __device__ inline Float getMoveStep(const Medium *medium, short &uses) {
-    return -medium->getMfp() * logf(d_constants.scene->sample(uses));
+    return -medium->getMfp() * logf(d_constants.scene->sampler(uses));
 }
 
 __device__ void Scene::er_step(TVector3<Float> &p, TVector3<Float> &d, Float stepSize, Float scaling) const{
@@ -128,6 +201,85 @@ __device__ void Scene::traceTillBlock(TVector3<Float> &p, TVector3<Float> &d, Fl
     disy = distance;
 }
 
+__device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVector3<Float> &d, Float distTravelled,
+                                           int &depth, Float val, Sampler &sampler, const Float &scaling, short &uses) const {
+
+	TVector3<Float> p1 = p;
+
+	TVector3<Float> dirToSensor;
+
+//	if( (p.x-m_camera.getOrigin().x) < 1e-4) // Hack to get rid of inf problems for direct connection
+//		return;
+//
+//	sampleRandomDirection(dirToSensor, sampler); // Samples by assuming that the sensor is in +x direction.
+//
+////	if(m_camera.getOrigin().x < m_source.getOrigin().x) // Direction to sensor is flipped. Compensate
+////		dirToSensor.x = -dirToSensor.x;
+//
+//#ifdef PRINT_DEBUGLOG
+//	std::cout << "dirToSensor: (" << dirToSensor.x << ", " << dirToSensor.y << ", " << dirToSensor.z << ") \n";
+//#endif
+//
+//
+//#ifndef OMEGA_TRACKING
+//	dirToSensor *= getMediumIor(p1, scaling);
+//#endif
+//
+//	Float distToSensor;
+//	if(!movePhotonTillSensor(p1, dirToSensor, distToSensor, distTravelled, sampler, scaling))
+//		return;
+//
+////#ifdef OMEGA_TRACKING
+//	dirToSensor.normalize();
+////#endif
+//
+//	VectorType<Float> refrDirToSensor = dirToSensor;
+//	Float fresnelWeight = FPCONST(1.0);
+//	Float ior = getMediumIor(p1, scaling);
+//
+//	if (ior > FPCONST(1.0)) {
+//		refrDirToSensor.x = refrDirToSensor.x/ior;
+//		refrDirToSensor.normalize();
+//#ifdef PRINT_DEBUGLOG
+//        std::cout << "refrDir: (" << refrDirToSensor[0] << ", " <<  refrDirToSensor[1] << ", " << refrDirToSensor[2] << ");" << std::endl;
+//#endif
+//#ifndef USE_NO_FRESNEL
+//		fresnelWeight = (FPCONST(1.0) -
+//		util::fresnelDielectric(dirToSensor.x, refrDirToSensor.x,
+//			FPCONST(1.0) / ior))
+//			/ ior / ior;
+//#endif
+//	}
+//	Float foreshortening = dot(refrDirToSensor, m_camera.getDir())/dot(dirToSensor, m_camera.getDir());
+//	Assert(foreshortening >= FPCONST(0.0));
+//
+//#if USE_SIMPLIFIED_TIMING
+//	Float totalOpticalDistance = (distTravelled + distToSensor) * m_ior;
+//#else
+//	Float totalOpticalDistance = distTravelled;
+//#endif
+//
+//	Float distanceToSensor = 0;
+//	if(!m_camera.propagateTillSensor(p1, refrDirToSensor, distanceToSensor))
+//		return;
+//	totalOpticalDistance += distanceToSensor;
+//
+//	Float totalPhotonValue = val*(2*M_PI)
+//			* std::exp(-medium.getSigmaT() * distToSensor)
+//			* medium.getPhaseFunction()->f(d/d.length(), dirToSensor) // FIXME: Should be refractive index
+//			* foreshortening
+//			* fresnelWeight;
+//	addEnergyToImage(img, p1, totalOpticalDistance, depth, totalPhotonValue);
+//#ifdef PRINT_DEBUGLOG
+//    std::cout << "Added Energy:" << totalPhotonValue << " to (" << p1.x << ", " << p1.y << ", " << p1.z << ") at time:" << totalOpticalDistance << std::endl;
+//    std::cout << "val term:" << val << std::endl;
+//    std::cout << "exp term:" << std::exp(-medium.getSigmaT() * distToSensor) << std::endl;
+//    std::cout << "phase function term:" << medium.getPhaseFunction()->f(d/d.length(), dirToSensor) << std::endl;
+//    std::cout << "fresnel weight:" << fresnelWeight << std::endl;
+//#endif
+}
+
+// Move photon and return true if still in medium, false otherwise
 __device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float dist,
                                   Float &totalOpticalDistance, short &uses, Float scaling) const{
 
@@ -140,7 +292,7 @@ __device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float 
 	TVector3<Float> d1, norm;
 	traceTillBlock(p, d, dist, disx, disy, totalOpticalDistance, scaling);
 
-	dist -= static_cast<Float>(disy);
+	dist -= disy;
 
 	while(dist > M_EPSILON){
 		int i;
@@ -189,18 +341,23 @@ __device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float 
 		std::cout << "Before BSDF sample, d: (" << d.x/magnitude << ", " << d.y/magnitude <<  ", " << d.z/magnitude << "); \n "
 				"norm: (" << norm.x << ", " << norm.y << ", " << norm.z << ");" << "A Sampler: " << sampler() << "\n";
 #endif
-        //m_bsdf.sample(d/magnitude, norm, m_sampler, d1);
-        //if (dot(d1, norm) < FPCONST(0.0)) {
-		//	// re-enter the medium through reflection
-		//	d = d1*magnitude;
-		//} else {
-		//	return false;
-		//}
+        m_bsdf.sample(d/magnitude, norm, m_sampler, d1, uses);
+        if (dot(d1, norm) < FPCONST(0.0)) {
+			// re-enter the medium through reflection
+			d = d1*magnitude;
+		} else {
+			return false;
+		}
 
-    	//traceTillBlock(p, d, dist, disx, disy, totalOpticalDistance, scaling);
-    	//dist -= static_cast<Float>(disy);
+    	traceTillBlock(p, d, dist, disx, disy, totalOpticalDistance, scaling);
+    	dist -= disy;
 	}
 	return true;
+}
+
+__device__ void scatterOnce(TVector3<Float> &p, TVector3<Float> &d, Float &dist,
+						Float &totalOpticalDistance, const Float &scaling) {
+
 }
 
 __device__ void scatter(TVector3<Float> &p, TVector3<Float> &d, Float scaling, Float &totalOpticalDistance, short &uses) {
@@ -208,25 +365,21 @@ __device__ void scatter(TVector3<Float> &p, TVector3<Float> &d, Float scaling, F
     Medium *medium = d_constants.medium;
 	ASSERT(scene->getMediumBlock()->inside(p));
 
-	if ((medium->getAlbedo() > FPCONST(0.0)) && ((medium->getAlbedo() >= FPCONST(1.0)) || (scene->sample(uses) < medium->getAlbedo()))) {
+	if ((medium->getAlbedo() > FPCONST(0.0)) && ((medium->getAlbedo() >= FPCONST(1.0)) || (scene->sampler(uses) < medium->getAlbedo()))) {
 		TVector3<Float> pos(p), dir(d);
 
 		Float dist = getMoveStep(medium, uses);
-//		if (!scene->movePhoton(pos, dir, dist, totalOpticalDistance, uses, scaling)) {
-//			return;
-//		}
-//
-//#ifdef PRINT_DEBUGLOG
-//		std::cout << "dist: " << dist << "\n";
-//		std::cout << "pos: (" << pos.x << ", " << pos.y << ", " << pos.z << ") " << "\n";
-//		std::cout << "dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ") " << "\n";
-//#endif
-//		int depth = 1;
-//		Float totalDist = dist;
+		if (!scene->movePhoton(pos, dir, dist, totalOpticalDistance, uses, scaling)) {
+			return;
+		}
+
+		int depth = 1;
+		Float totalDist = dist;
 //		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
 //				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
+//          ASSERT(m_useAngularSampling);
 //			if(m_useAngularSampling)
-//                scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, depth, weight, medium, sampler, scaling);
+//              scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, depth, weight, medium, sampler, scaling);
 //			else
 //				scene.addEnergy(img, pos, dir, totalOpticalDistance, depth, weight, medium, sampler, scaling, costFunction, problem, initialization);
 //			if (!scatterOnce(pos, dir, dist, scene, medium, totalOpticalDistance, sampler, scaling)){
@@ -264,7 +417,7 @@ __global__ void renderPhotons() {
     Scene *scene = d_constants.scene;
 
     if (scene->genRay(pos, dir, totalDistance, uses)) {
-        float scaling = max(min(sinf(scene->getUSPhi_min() + scene->getUSPhi_range()*scene->sample(uses)), scene->getUSMaxScaling()), -scene->getUSMaxScaling());
+        float scaling = max(min(sinf(scene->getUSPhi_min() + scene->getUSPhi_range()*scene->sampler(uses)), scene->getUSMaxScaling()), -scene->getUSMaxScaling());
         // TODO: Implement direct tracing, and check useDirect before using it
         // directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
         scatter(pos, dir, scaling, totalDistance, uses);
