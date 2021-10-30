@@ -216,6 +216,10 @@ struct Camera {
 		return m_useBounceDecomposition;
 	}
 
+    inline const Lens<VectorType>& getLens() const {
+        return m_lens;
+    }
+
 	inline const bool propagateTillSensor(VectorType<Float> &pos, VectorType<Float> &dir, Float &totalDistance) const{
 		//propagate till lens
 		if(m_lens.isActive() && !m_lens.deflect(pos, dir, totalDistance))

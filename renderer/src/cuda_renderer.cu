@@ -36,7 +36,7 @@ __device__ inline Float safeSqrt(Float x) {
     return x > FPCONST(0.0) ? sqrtf(x) : FPCONST(0.0);
 }
 
-__device__ inline bool reflect(const TVector3<Float> &a, const TVector3<Float> &n,
+__device__ inline void reflect(const TVector3<Float> &a, const TVector3<Float> &n,
                                TVector3<Float> &b) {
     b = -FPCONST(2.0)*dot(a, n)*n + a;
 }
@@ -84,12 +84,12 @@ __device__ inline void SmoothDielectric::sample(const TVector3<Float> &in, const
 			eta = m_ior1/m_ior2;
 		}
 
-		VectorType<Float> outT;
+		TVector3<Float> outT;
 		if (!refract(in, n, eta, outT)) {
 			// TIR
 			out = outT;
 		} else {
-			VectorType<Float> outR;
+			TVector3<Float> outR;
 			reflect(in, n, outR);
 
 			Float cosI = absDot(n, in), cosT = absDot(n, outT);
@@ -103,10 +103,8 @@ __device__ inline void SmoothDielectric::sample(const TVector3<Float> &in, const
 
 // Sample random ray
 __device__ bool AreaTexturedSource::sampleRay(TVector3<Float> &pos, TVector3<Float> &dir,
-                                      Float &totalDistance, short &samplerUses) const{
+                                              Float &totalDistance, Sampler& sampler, short &samplerUses) const{
     pos = *m_origin;
-
-    Sampler *sampler = d_constants.scene->sampler;
 
     // sample pixel position first
 	int pixel = m_textureSampler->sample(sampler(samplerUses));
@@ -136,7 +134,8 @@ __device__ bool AreaTexturedSource::sampleRay(TVector3<Float> &pos, TVector3<Flo
 
 
 __device__ inline Float getMoveStep(const Medium *medium, short &uses) {
-    return -medium->getMfp() * logf(d_constants.scene->sampler(uses));
+    Sampler &sampler = *d_constants.scene->sampler;
+    return -medium->getMfp() * logf(sampler(uses));
 }
 
 __device__ void Scene::er_step(TVector3<Float> &p, TVector3<Float> &d, Float stepSize, Float scaling) const{
@@ -341,7 +340,7 @@ __device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float 
 		std::cout << "Before BSDF sample, d: (" << d.x/magnitude << ", " << d.y/magnitude <<  ", " << d.z/magnitude << "); \n "
 				"norm: (" << norm.x << ", " << norm.y << ", " << norm.z << ");" << "A Sampler: " << sampler() << "\n";
 #endif
-        m_bsdf.sample(d/magnitude, norm, m_sampler, d1, uses);
+        m_bsdf->sample(d/magnitude, norm, *sampler, d1, uses);
         if (dot(d1, norm) < FPCONST(0.0)) {
 			// re-enter the medium through reflection
 			d = d1*magnitude;
@@ -355,17 +354,35 @@ __device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float 
 	return true;
 }
 
-__device__ void scatterOnce(TVector3<Float> &p, TVector3<Float> &d, Float &dist,
-						Float &totalOpticalDistance, const Float &scaling) {
+__device__ bool scatterOnce(TVector3<Float> &p, TVector3<Float> &d, Float &dist,
+						Float &totalOpticalDistance, const Float &scaling, short &samplerUses) {
+    Medium *medium = d_constants.medium;
+    Scene *scene = d_constants.scene;
+    Sampler &sampler = *scene->sampler;
 
+	if ((medium->getAlbedo() > FPCONST(0.0)) && ((medium->getAlbedo() >= FPCONST(1.0)) || (sampler(samplerUses) < medium->getAlbedo()))) {
+		TVector3<Float> d1;
+		Float magnitude = d.length();
+		medium->getPhaseFunction()->sample(d/magnitude, sampler, samplerUses, d1);
+		d = magnitude*d1;
+		dist = getMoveStep(medium, samplerUses);
+#ifdef PRINT_DEBUGLOG
+		std::cout << "sampler before move photon:" << sampler() << "\n";
+#endif
+		return scene->movePhoton(p, d, dist, totalOpticalDistance, samplerUses, scaling);
+	} else {
+		dist = FPCONST(0.0);
+		return false;
+	}
 }
 
 __device__ void scatter(TVector3<Float> &p, TVector3<Float> &d, Float scaling, Float &totalOpticalDistance, short &uses) {
     Scene *scene = d_constants.scene;
     Medium *medium = d_constants.medium;
+    Sampler &sampler = *scene->sampler;
 	ASSERT(scene->getMediumBlock()->inside(p));
 
-	if ((medium->getAlbedo() > FPCONST(0.0)) && ((medium->getAlbedo() >= FPCONST(1.0)) || (scene->sampler(uses) < medium->getAlbedo()))) {
+	if ((medium->getAlbedo() > FPCONST(0.0)) && ((medium->getAlbedo() >= FPCONST(1.0)) || (sampler(uses) < medium->getAlbedo()))) {
 		TVector3<Float> pos(p), dir(d);
 
 		Float dist = getMoveStep(medium, uses);
@@ -415,9 +432,10 @@ __global__ void renderPhotons() {
     short uses = 0;
 
     Scene *scene = d_constants.scene;
+    Sampler &sampler = *scene->sampler;
 
     if (scene->genRay(pos, dir, totalDistance, uses)) {
-        float scaling = max(min(sinf(scene->getUSPhi_min() + scene->getUSPhi_range()*scene->sampler(uses)), scene->getUSMaxScaling()), -scene->getUSMaxScaling());
+        float scaling = max(min(sinf(scene->getUSPhi_min() + scene->getUSPhi_range() * sampler(uses)), scene->getUSMaxScaling()), -scene->getUSMaxScaling());
         // TODO: Implement direct tracing, and check useDirect before using it
         // directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
         scatter(pos, dir, scaling, totalDistance, uses);

@@ -15,36 +15,31 @@
 
 namespace cuda {
 
-class SmoothDielectric {
+class Sampler {
 public:
-    __host__ static SmoothDielectric *from(const bsdf::SmoothDielectric<tvec::TVector3> &in) {
-        SmoothDielectric result = SmoothDielectric(in);
-        SmoothDielectric *d_result;
 
-        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(SmoothDielectric)));
-        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(SmoothDielectric), cudaMemcpyHostToDevice));
+    /* Random should be a host pointer */
+    __host__ static Sampler *from(const Float *d_random, size_t size) {
+        Sampler result = Sampler(d_random, size);
+        Sampler *d_result;
+
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Sampler)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Sampler), cudaMemcpyHostToDevice));
         return d_result;
     }
 
-    __device__ void sample(const TVector3<Float> &in, const TVector3<Float> &n,
-				Sampler &sampler, TVector3<Float> &out, short &uses) const;
-
-	__device__ inline Float getIor1() const {
-		return m_ior1;
-	}
-
-	__device__ inline Float getIor2() const {
-		return m_ior2;
-	}
+    /* Sample a random number for this thread and update uses argument for bookkeeping. */
+    __device__ Float inline operator()(short &uses) {
+        return sample(uses);
+    }
 private:
-	__host__ SmoothDielectric(Float ior1, Float ior2) :
-		m_ior1(ior1),
-		m_ior2(ior2) { }
 
-	__host__ SmoothDielectric(const bsdf::SmoothDielectric<tvec::TVector3> &in) {
-		m_ior1 = in.getIor1(); m_ior2 = in.getIor2();
-	}
-}
+    __device__ Float sample(short &uses) const;
+
+    __host__ Sampler(const Float *d_random, size_t size) : m_random(d_random), m_size(size) { }
+    size_t m_size;
+    const Float *m_random;
+};
 
 class DiscreteDistribution {
 public:
@@ -197,31 +192,40 @@ private:
 	bool m_normalized;
 };
 
-class Sampler {
+class SmoothDielectric {
 public:
+    __host__ static SmoothDielectric *from(const bsdf::SmoothDielectric<tvec::TVector3> &in) {
+        SmoothDielectric result = SmoothDielectric(in);
+        SmoothDielectric *d_result;
 
-    /* Random should be a host pointer */
-    __host__ static Sampler *from(const Float *d_random, size_t size) {
-        Sampler result = Sampler(d_random, size);
-        Sampler *d_result;
-
-        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Sampler)));
-        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Sampler), cudaMemcpyHostToDevice));
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(SmoothDielectric)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(SmoothDielectric), cudaMemcpyHostToDevice));
         return d_result;
     }
 
-    /* Sample a random number for this thread and update uses argument for bookkeeping. */
-    __device__ inline operator()(short &uses) {
-        return sample(uses);
-    }
+    __device__ void sample(const TVector3<Float> &in, const TVector3<Float> &n,
+				Sampler &sampler, TVector3<Float> &out, short &uses) const;
+
+	__device__ inline Float getIor1() const {
+		return m_ior1;
+	}
+
+	__device__ inline Float getIor2() const {
+		return m_ior2;
+	}
 private:
+    Float m_ior1;
+    Float m_ior2;
 
-    __device__ Float sample(short &uses) const;
+	__host__ SmoothDielectric(Float ior1, Float ior2) :
+		m_ior1(ior1),
+		m_ior2(ior2) { }
 
-    __host__ Sampler(const Float *d_random, size_t size) : m_random(d_random), m_size(size) { }
-    size_t m_size;
-    const Float *m_random;
+	__host__ SmoothDielectric(const bsdf::SmoothDielectric<tvec::TVector3> &in) {
+		m_ior1 = in.getIor1(); m_ior2 = in.getIor2();
+	}
 };
+
 
 class Lens {
 
@@ -301,6 +305,100 @@ protected:
     bool m_active; // Is the lens present or absent
 };
 
+class Camera {
+public:
+
+    __host__ static Camera *from(const scn::Camera<tvec::TVector3>& camera) {
+        Camera result = Camera(camera);
+        Camera *d_result;
+
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Camera)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Camera), cudaMemcpyHostToDevice));
+        return d_result;
+    }
+
+	__device__ inline bool samplePosition(TVector3<Float> &pos, Sampler &sampler, short &uses) const {
+        pos = *m_origin;
+        for (int iter = 1; iter < m_origin->dim; ++iter) {
+            pos[iter] += - (*m_plane)[iter - 1] / FPCONST(2.0) + sampler(uses) * (*m_plane)[iter - 1];
+        }
+        return true;
+    }
+
+	__device__ inline const TVector3<Float>& getOrigin() const {
+		return *m_origin;
+	}
+
+	__device__ inline const TVector3<Float>& getDir() const {
+		return *m_dir;
+	}
+
+	__device__ inline const TVector3<Float>& getHorizontal() const {
+		return *m_horizontal;
+	}
+
+	__device__ inline const TVector3<Float>& getVertical() const {
+		return *m_vertical;
+	}
+
+	__device__ inline const TVector2<Float>& getPlane() const {
+		return *m_plane;
+	}
+
+	__device__ inline const TVector2<Float>& getPathlengthRange() const {
+		return *m_pathlengthRange;
+	}
+
+	__device__ inline const bool& isBounceDecomposition() const {
+		return m_useBounceDecomposition;
+	}
+
+	__device__ inline const bool propagateTillSensor(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const{
+		//propagate till lens
+		if (m_lens->isActive() && !m_lens->deflect(pos, dir, totalDistance))
+			return false;
+		//propagate from lens to sensor
+		Float dist = ((*m_origin)[0]-pos[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
+		pos += dist*dir;
+#ifdef PRINT_DEBUGLOG
+		if (dist < -1e-4){
+			std::cout << "Propagation till sensor failed; dying" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+#endif
+
+		totalDistance += dist;
+		return true;
+	}
+
+	__host__ ~Camera() { }
+
+private:
+
+	__host__ Camera(const scn::Camera<tvec::TVector3>& camera) {
+
+        m_origin     = TVector3<Float>::from(camera.getOrigin());
+        m_dir        = TVector3<Float>::from(camera.getDir());
+        m_horizontal = TVector3<Float>::from(camera.getHorizontal());
+        m_vertical   = TVector3<Float>::from(camera.getVertical());
+
+        m_plane            = TVector2<Float>::from(camera.getPlane());
+        m_pathlengthRange  = TVector2<Float>::from(camera.getPathlengthRange());
+
+        m_useBounceDecomposition = camera.isBounceDecomposition();
+
+        m_lens = Lens::from(camera.getLens());
+	}
+	TVector3<Float> *m_origin;
+	TVector3<Float> *m_dir;
+	TVector3<Float> *m_horizontal;
+	TVector3<Float> *m_vertical;
+	TVector2<Float> *m_plane;
+	TVector2<Float> *m_pathlengthRange;
+	bool m_useBounceDecomposition;
+	Lens *m_lens;
+};
+
 // Currently only supporting AreaTexturedSource (which assumes PROJECTOR flag is on
 // for non-CUDA code).
 class AreaTexturedSource {
@@ -318,7 +416,7 @@ public:
         return d_result;
     }
 
-	__device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, Sampler *sampler, short &samplerUses) const;
+	__device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, Sampler& sampler, short &samplerUses) const;
 
 	__device__ inline const TVector3<Float>& getOrigin() const {
 		return *m_origin;
@@ -532,10 +630,115 @@ protected:
     }
 };
 
+class HenyeyGreenstein {
+public:
+
+    __host__ static HenyeyGreenstein *from(const pfunc::HenyeyGreenstein* func) {
+        HenyeyGreenstein result = HenyeyGreenstein(func->getG());
+        HenyeyGreenstein *d_result;
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(HenyeyGreenstein)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(HenyeyGreenstein), cudaMemcpyHostToDevice));
+        return d_result;
+    }
+
+	__host__ ~HenyeyGreenstein() { }
+
+	__device__ Float f(const TVector3<Float> &in, const TVector3<Float> &out) const {
+        Float cosTheta = dot(in, out);
+        return static_cast<Float>(FPCONST(1.0) / (2.0 * M_PI)) * (FPCONST(1.0) - m_g * m_g)
+            / (FPCONST(1.0) + m_g * m_g - FPCONST(2.0) * m_g * cosTheta);
+    }
+
+	__device__ Float derivf(const TVector3<Float> &in, const TVector3<Float> &out) const {
+        Float cosTheta = dot(in, out);
+        Float denominator = FPCONST(1.0) + m_g * m_g - FPCONST(2.0) * m_g * cosTheta;
+        return static_cast<Float>(FPCONST(1.0) / M_PI) *
+            (cosTheta + cosTheta * m_g * m_g - FPCONST(2.0) * m_g)
+            / denominator / denominator;
+    }
+
+	__device__ Float score(const TVector3<Float> &in, const TVector3<Float> &out) const {
+        Float cosTheta = dot(in, out);
+        return (cosTheta + cosTheta * m_g * m_g - FPCONST(2.0) * m_g) * FPCONST(2.0)
+                / (FPCONST(1.0) - m_g * m_g)
+                / (FPCONST(1.0) + m_g * m_g - FPCONST(2.0) * m_g * cosTheta);
+    }
+
+
+    __device__ Float sample(const TVector3<Float> &in, Sampler &sampler, short& uses, TVector3<Float> &out) const {
+
+        Float samplex = sampler(uses);
+        Float sampley = sampler(uses);
+
+        Float cosTheta;
+        if (fabsf(m_g) < M_EPSILON) {
+            cosTheta = 1 - 2 * samplex;
+        } else {
+            Float sqrTerm = (1 - m_g * m_g) / (1 - m_g + 2 * m_g * samplex);
+            cosTheta = (1 + m_g * m_g - sqrTerm * sqrTerm) / (2 * m_g);
+        }
+
+        Float sinTheta = sqrtf(fmaxf(FPCONST(0.0), FPCONST(1.0) - cosTheta * cosTheta));
+        Float phi = static_cast<Float>(FPCONST(2.0) * M_PI) * sampley;
+        Float sinPhi, cosPhi;
+        sinPhi = sinf(phi);
+        cosPhi = cosf(phi);
+
+        TVector3<Float> axisX, axisY;
+        coordinateSystem(in, axisX, axisY);
+
+        out = (sinTheta * cosPhi) * axisX + (sinTheta * sinPhi) * axisY + cosTheta * in;
+        return cosTheta;
+    }
+
+	__device__ Float sample(const TVector2<Float> &in, Sampler &sampler, short &uses,
+                            TVector2<Float> &out)  const {
+        Float sampleVal = FPCONST(1.0) - FPCONST(2.0) * sampler(uses);
+
+        Float theta;
+        if (fabsf(m_g) < M_EPSILON) {
+            theta = M_PI * sampleVal;
+        } else {
+            theta = FPCONST(2.0) * atanf((FPCONST(1.0) - m_g) / (FPCONST(1.0) + m_g)
+                                * tanf(M_PI / FPCONST(2.0) * sampleVal));
+        }
+        Float cosTheta = cosf(theta);
+        Float sinTheta = sinf(theta);
+
+        TVector2<Float> axisY;
+        axisY = TVector2<Float>(in.y, -in.x); // coordinate system
+
+        out = sinTheta * axisY + cosTheta * in;
+        return cosTheta;
+    }
+
+	__device__ inline Float getG() const {
+		return m_g;
+	}
+
+private:
+
+    __device__ static inline void coordinateSystem(const TVector3<Float> &a, TVector3<Float> &b, TVector3<Float> &c) {
+	if (fabsf(a.x) > fabsf(a.y)) {
+		Float invLen = FPCONST(1.0) / sqrtf(a.x * a.x + a.z *a.z);
+		c = TVector3<Float>(a.z * invLen, FPCONST(0.0), -a.x * invLen);
+	} else {
+		Float invLen = FPCONST(1.0) / sqrtf(a.y * a.y + a.z * a.z);
+		c = TVector3<Float>(FPCONST(0.0), a.z * invLen, -a.y * invLen);
+	}
+	b = cross(c, a);
+}
+
+	__host__ HenyeyGreenstein(const Float g)
+					: m_g(g) {	}
+
+	Float m_g;
+};
+
 class Medium {
 public:
     __host__ static Medium *from(const med::Medium &medium) {
-        Medium result = Medium(medium.getSigmaT(), medium.getAlbedo());
+        Medium result = Medium(medium.getSigmaT(), medium.getAlbedo(), medium.getPhaseFunction());
         Medium *d_result;
         CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Medium)));
         CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Medium), cudaMemcpyHostToDevice));
@@ -562,20 +765,19 @@ public:
 		return m_albedo;
 	}
 
-	//inline const pfunc::HenyeyGreenstein *getPhaseFunction() const {
-	//	return m_phase;
-	//}
+	__device__ inline const HenyeyGreenstein *getPhaseFunction() const {
+		return m_phase;
+	}
 
 	__host__ virtual ~Medium() { }
 
 protected:
-    __host__ Medium(const Float sigmaT, const Float albedo)//, pfunc::HenyeyGreenstein *phase)
+    __host__ Medium(const Float sigmaT, const Float albedo, const pfunc::HenyeyGreenstein *phase)
 		: m_sigmaT(sigmaT),
 		  m_albedo(albedo),
 		  m_sigmaS(albedo * sigmaT),
 		  m_sigmaA((1 - albedo) * sigmaT),
 		  m_mfp(FPCONST(1.0) / sigmaT)
-		  //m_phase(phase)
     {
 		ASSERT(m_sigmaA >= 0);
 		ASSERT(m_albedo <= 1);
@@ -584,6 +786,7 @@ protected:
 			m_mfp = FPCONST(1.0);
 			m_albedo = FPCONST(0.0);
 		}
+        m_phase = HenyeyGreenstein::from(phase);
 	}
 
 	Float m_sigmaT;
@@ -591,7 +794,7 @@ protected:
 	Float m_sigmaS;
 	Float m_sigmaA;
 	Float m_mfp;
-	//pfunc::HenyeyGreenstein *m_phase;
+	HenyeyGreenstein *m_phase;
 };
 
 class Block {
@@ -662,7 +865,7 @@ public:
     }
 
     __device__ inline bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, short &samplerUses) {
-        return m_source->sampleRay(pos, dir, totalDistance, samplerUses);
+        return m_source->sampleRay(pos, dir, totalDistance, *sampler, samplerUses);
     }
 
     __device__ inline Block *getMediumBlock() const{
