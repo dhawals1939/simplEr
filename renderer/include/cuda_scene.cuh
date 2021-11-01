@@ -891,7 +891,7 @@ public:
     __device__ void addEnergyToImage(const TVector3<Float> &p, Float pathlength, int &depth, Float val) const;
 
 	__device__ void addEnergyInParticle(const TVector3<Float> &p, const TVector3<Float> &d, Float distTravelled,
-                                        int &depth, Float val, Sampler &sampler, const Float &scaling, short &uses) const;
+                                        int &depth, Float val, Sampler &sampler, short &uses, const Float &scaling) const;
 
     __device__ bool movePhotonTillSensor(TVector3<Float> &p, TVector3<Float> &d, Float &distToSensor, Float &totalOpticalDistance,
                                             Sampler &sampler, short&uses, const Float& scaling) const;
@@ -921,6 +921,10 @@ public:
 
 		return (dn - dot(d, dn)*d)/n;
 	}
+
+    __device__ inline const Camera &getCamera() {
+        return *m_camera;
+    }
 
     Sampler *sampler;
 private:

@@ -224,7 +224,7 @@ __device__ void sampleRandomDirection(TVector3<Float> &randDirection, Sampler &s
 }
 
 __device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVector3<Float> &d, Float distTravelled,
-                                           int &depth, Float val, Sampler &sampler, const Float &scaling, short &uses) const {
+                                           int &depth, Float val, Sampler &sampler, short &uses, const Float &scaling) const {
 
 	TVector3<Float> p1 = p;
 
@@ -508,10 +508,9 @@ __device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float 
 }
 
 __device__ bool scatterOnce(TVector3<Float> &p, TVector3<Float> &d, Float &dist,
-                            Float &totalOpticalDistance, const Float &scaling, short &samplerUses) {
+                            Float &totalOpticalDistance, Sampler &sampler, short &samplerUses, const Float &scaling) {
     Medium *medium = d_constants.medium;
     Scene *scene = d_constants.scene;
-    Sampler &sampler = *scene->sampler;
 
 	if ((medium->getAlbedo() > FPCONST(0.0)) && ((medium->getAlbedo() >= FPCONST(1.0)) || (sampler(samplerUses) < medium->getAlbedo()))) {
 		TVector3<Float> d1;
@@ -527,6 +526,55 @@ __device__ bool scatterOnce(TVector3<Float> &p, TVector3<Float> &d, Float &dist,
 		dist = FPCONST(0.0);
 		return false;
 	}
+}
+
+__device__ void directTracing(const TVector3<Float> &p, const TVector3<Float> &d, Sampler &sampler, short &uses, const Float &scaling, Float &totalOpticalDistance) {
+
+    const Camera &camera = d_constants.scene->getCamera();
+
+	TVector3<Float> p1 = p;
+	TVector3<Float> d1 = d;
+
+	Float distToSensor;
+	if(!d_constants.scene->movePhotonTillSensor(p1, d1, distToSensor, totalOpticalDistance, sampler, uses, scaling))
+		return;
+	Float fresnelWeight = FPCONST(1.0);
+
+#ifndef OMEGA_TRACKING
+	d1.normalize();
+#endif
+	Float ior = d_constants.scene->getMediumIor(p1, scaling);
+	TVector3<Float> refrDirToSensor = d1;
+
+	if (ior > FPCONST(1.0)) {
+		refrDirToSensor.x = refrDirToSensor.x/ior;
+		refrDirToSensor.normalize();
+#ifndef USE_NO_FRESNEL
+		fresnelWeight = (FPCONST(1.0) -
+		fresnelDielectric(d1.x, refrDirToSensor.x,
+			FPCONST(1.0) / ior))
+			/ ior / ior;
+#endif
+	}
+
+	Float foreshortening = dot(refrDirToSensor, camera.getDir())/dot(d1, camera.getDir());
+	ASSERT(foreshortening >= FPCONST(0.0));
+
+#if USE_SIMPLIFIED_TIMING
+	totalDistance = (distToSensor) * ior;
+#endif
+
+	Float distanceToSensor = 0;
+	if(!camera.propagateTillSensor(p1, refrDirToSensor, distanceToSensor))
+		return;
+	totalOpticalDistance += distanceToSensor;
+
+
+	Float totalPhotonValue = d_constants.weight
+			* expf(-d_constants.medium->getSigmaT() * distToSensor)
+			* fresnelWeight;
+	int depth = 0;
+	d_constants.scene->addEnergyToImage(p1, totalOpticalDistance, depth, totalPhotonValue);
 }
 
 __device__ void scatter(TVector3<Float> &p, TVector3<Float> &d, Float scaling, Float &totalOpticalDistance, short &uses) {
@@ -545,19 +593,19 @@ __device__ void scatter(TVector3<Float> &p, TVector3<Float> &d, Float scaling, F
 
 		int depth = 1;
 		Float totalDist = dist;
-//		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
-//				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
-//          ASSERT(m_useAngularSampling);
-//			if(m_useAngularSampling)
-//              scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, depth, weight, medium, sampler, scaling);
+		while ((d_constants.maxDepth < 0 || depth <= d_constants.maxDepth) &&
+				(d_constants.maxPathlength < 0 || totalDist <= d_constants.maxPathlength)) {
+            ASSERT(d_constants.useAngularSampling);
+			if(d_constants.useAngularSampling)
+                scene->addEnergyInParticle(pos, dir, totalOpticalDistance, depth, d_constants.weight, sampler, uses, scaling);
 //			else
 //				scene.addEnergy(img, pos, dir, totalOpticalDistance, depth, weight, medium, sampler, scaling, costFunction, problem, initialization);
-//			if (!scatterOnce(pos, dir, dist, scene, medium, totalOpticalDistance, sampler, scaling)){
+			if (!scatterOnce(pos, dir, dist, totalOpticalDistance, sampler, uses, scaling)){
 //#ifdef PRINT_DEBUGLOG
 //				std::cout << "sampler after failing scatter once:" << sampler() << std::endl;
 //#endif
-//				break;
-//			}
+				break;
+			}
 //#ifdef PRINT_DEBUGLOG
 //			std::cout << "sampler after succeeding scatter once:" << sampler() << std::endl;
 //
@@ -565,20 +613,15 @@ __device__ void scatter(TVector3<Float> &p, TVector3<Float> &d, Float scaling, F
 //			std::cout << "pos: (" << pos.x << ", " << pos.y << ", " << pos.z << ", " << "\n";
 //			std::cout << "dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ", " << "\n";
 //#endif
-//#if USE_SIMPLIFIED_TIMING
-//			totalOpticalDistance += dist;
-//#endif
-//			++depth;
-//		}
+#if USE_SIMPLIFIED_TIMING
+			totalOpticalDistance += dist;
+#endif
+			++depth;
+		}
 	}
 }
 
 __global__ void renderPhotons() {
-    //int i = threadIdx.x;
-    //int num_threads = blockDim.x;
-
-    // TODO: Zero out constants.image
-
     TVector3<Float> pos;
     TVector3<Float> dir;
     Float totalDistance;
@@ -589,8 +632,8 @@ __global__ void renderPhotons() {
 
     if (scene->genRay(pos, dir, totalDistance, uses)) {
         float scaling = max(min(sinf(scene->getUSPhi_min() + scene->getUSPhi_range() * sampler(uses)), scene->getUSMaxScaling()), -scene->getUSMaxScaling());
-        // TODO: Implement direct tracing, and check useDirect before using it
-        // directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
+        if (d_constants.useDirect)
+            directTracing(pos, dir, sampler, uses, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
         scatter(pos, dir, scaling, totalDistance, uses);
     }
 }
@@ -598,7 +641,12 @@ __global__ void renderPhotons() {
 void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &medium, const scn::Scene<tvec::TVector3> &scene, int numPhotons) {
     setup(target, medium, scene, numPhotons);
 
-    renderPhotons<<<1,numPhotons>>>();
+    dim3 threadsPerBlock(16, 16); // Arbitrary choice
+    int width = 100; // Arbitrary as well
+
+    // N + (N - 1) / W, to ensure we have enough threads as division rounds down
+    dim3 numBlocks((numPhotons / width + (numPhotons / width - 1)) / threadsPerBlock.x, (width + width - 1) / threadsPerBlock.y);
+    renderPhotons<<<numBlocks,threadsPerBlock>>>();
     CUDA_CALL(cudaDeviceSynchronize());
 
     CUDA_CALL(cudaMemcpy(image, cudaImage,
@@ -619,6 +667,7 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
     /* Allocate device memory*/
     CUDA_CALL(cudaMalloc((void **)&cudaImage,
                          target.getXRes()*target.getYRes()*target.getZRes()*sizeof(Float)));
+    CUDA_CALL(cudaMemset(cudaImage, 0, target.getXRes()*target.getYRes()*target.getZRes()*sizeof(Float))); // zero out image
     CUDA_CALL(cudaMalloc((void **)&cudaRandom, requiredRandomNumbers(numPhotons) * sizeof(Float)));
     cudaScene = Scene::from(scene, cudaRandom, requiredRandomNumbers(numPhotons) * sizeof(Float));
     cudaMedium = Medium::from(medium);
