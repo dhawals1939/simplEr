@@ -271,7 +271,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 				const int64 numPhotons) const {
 
 #ifdef USE_CUDA
-	cuda::CudaRenderer cuRenderer = cuda::CudaRenderer();
+	cuda::CudaRenderer cuRenderer = cuda::CudaRenderer(m_maxDepth, m_maxPathlength, m_useDirect, m_useAngularSampling);
 	cuRenderer.renderImage(img0, medium, scene, numPhotons);
 #else
 #ifdef USE_THREADED

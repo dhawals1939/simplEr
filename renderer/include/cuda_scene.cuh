@@ -872,6 +872,10 @@ public:
         return m_block;
     }
 
+    __device__ inline Float getMediumIor(const TVector3<Float> &p, const Float &scaling) const {
+        return m_us->RIF(p, scaling);
+    }
+
     __device__ inline Float getUSPhi_min() const{
     	return m_us->phi_min;
     }
@@ -884,8 +888,13 @@ public:
     	return m_us->n_maxScaling;
     }
 
+    __device__ void addEnergyToImage(const TVector3<Float> &p, Float pathlength, int &depth, Float val) const;
+
 	__device__ void addEnergyInParticle(const TVector3<Float> &p, const TVector3<Float> &d, Float distTravelled,
                                         int &depth, Float val, Sampler &sampler, const Float &scaling, short &uses) const;
+
+    __device__ bool movePhotonTillSensor(TVector3<Float> &p, TVector3<Float> &d, Float &distToSensor, Float &totalOpticalDistance,
+                                            Sampler &sampler, short&uses, const Float& scaling) const;
 
     __device__ bool movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float dist,
                                Float &totalOpticalDistance, short &uses, Float scaling) const;
@@ -922,8 +931,10 @@ private:
         m_block   = Block::from(scene.getMediumBlock());
         m_us      = US::from(scene.m_us);
         m_bsdf    = SmoothDielectric::from(scene.getBSDF());
+        m_camera  = Camera::from(scene.getCamera());
     }
 
+    Camera *m_camera;
     SmoothDielectric *m_bsdf;
     US *m_us;
     Block *m_block;

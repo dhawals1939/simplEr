@@ -32,7 +32,11 @@ class CudaRenderer {
 
 public:
 
-    CudaRenderer() {};
+    CudaRenderer(const int maxDepth, const Float maxPathlength, const bool useDirect, const bool useAngularSampling) :
+			maxDepth(maxDepth),
+			maxPathlength(maxPathlength),
+			useDirect(useDirect),
+			useAngularSampling(useAngularSampling) {};
 
     ~CudaRenderer();
 
@@ -58,7 +62,11 @@ private:
     curandGenerator_t generator;
 
     /* Host memory*/
-    float *image;
+    Float *image;
+
+    int maxDepth;
+    Float maxPathlength;
+    bool useDirect, useAngularSampling;
 };
 
 }

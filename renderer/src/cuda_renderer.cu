@@ -16,12 +16,19 @@ namespace cuda {
 // in kernel calls
 struct Constants {
     Float *image;
+    int x_res;
+    int y_res;
+    int z_res;
+
     Float *random;
     Scene *scene;
     Medium *medium;
     Float weight;
 
-    // TODO: Add maxDepth, maxPathlength, useDirect, useAngularSampling
+    int maxDepth;
+    Float maxPathlength;
+    bool useDirect;
+    bool useAngularSampling;
 };
 
 __constant__ Constants d_constants;
@@ -200,6 +207,22 @@ __device__ void Scene::traceTillBlock(TVector3<Float> &p, TVector3<Float> &d, Fl
     disy = distance;
 }
 
+__device__ TVector3<Float> squareToUniformHemisphere(const TVector2<Float> &sample) {
+	Float z = sample.y;
+	Float r = sqrtf(FPCONST(1.0) - z*z);
+	Float sinPhi, cosPhi;
+	sincosf(FPCONST(2.0) * M_PI * sample.x, &sinPhi, &cosPhi);
+	return TVector3<Float>(r * cosPhi, r * sinPhi, z);
+}
+
+__device__ void sampleRandomDirection(TVector3<Float> &randDirection, Sampler &sampler, short &uses){
+	randDirection = squareToUniformHemisphere(TVector2<Float>(sampler(uses), sampler(uses))); // this sampling is done in z=1 direction. need to compensate for it.
+	Float temp = randDirection.x;
+	randDirection.x =-randDirection.z; // compensating that the direction of photon propagation is -x
+	randDirection.z = randDirection.y;
+	randDirection.y = temp;
+}
+
 __device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVector3<Float> &d, Float distTravelled,
                                            int &depth, Float val, Sampler &sampler, const Float &scaling, short &uses) const {
 
@@ -207,68 +230,66 @@ __device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVect
 
 	TVector3<Float> dirToSensor;
 
-//	if( (p.x-m_camera.getOrigin().x) < 1e-4) // Hack to get rid of inf problems for direct connection
-//		return;
-//
-//	sampleRandomDirection(dirToSensor, sampler); // Samples by assuming that the sensor is in +x direction.
-//
-////	if(m_camera.getOrigin().x < m_source.getOrigin().x) // Direction to sensor is flipped. Compensate
-////		dirToSensor.x = -dirToSensor.x;
-//
+	if( (p.x-m_camera->getOrigin().x) < 1e-4) // Hack to get rid of inf problems for direct connection
+		return;
+
+	sampleRandomDirection(dirToSensor, sampler, uses); // Samples by assuming that the sensor is in +x direction.
+
 //#ifdef PRINT_DEBUGLOG
 //	std::cout << "dirToSensor: (" << dirToSensor.x << ", " << dirToSensor.y << ", " << dirToSensor.z << ") \n";
 //#endif
-//
-//
-//#ifndef OMEGA_TRACKING
-//	dirToSensor *= getMediumIor(p1, scaling);
+
+#ifndef OMEGA_TRACKING
+	dirToSensor *= getMediumIor(p1, scaling);
+#endif
+
+	Float distToSensor;
+	if(!movePhotonTillSensor(p1, dirToSensor, distToSensor, distTravelled, sampler, uses, scaling))
+		return;
+
+//#ifdef OMEGA_TRACKING
+	dirToSensor.normalize();
 //#endif
-//
-//	Float distToSensor;
-//	if(!movePhotonTillSensor(p1, dirToSensor, distToSensor, distTravelled, sampler, scaling))
-//		return;
-//
-////#ifdef OMEGA_TRACKING
-//	dirToSensor.normalize();
-////#endif
-//
-//	VectorType<Float> refrDirToSensor = dirToSensor;
-//	Float fresnelWeight = FPCONST(1.0);
-//	Float ior = getMediumIor(p1, scaling);
-//
-//	if (ior > FPCONST(1.0)) {
-//		refrDirToSensor.x = refrDirToSensor.x/ior;
-//		refrDirToSensor.normalize();
+
+	TVector3<Float> refrDirToSensor = dirToSensor;
+	Float fresnelWeight = FPCONST(1.0);
+	Float ior = getMediumIor(p1, scaling);
+
+	if (ior > FPCONST(1.0)) {
+		refrDirToSensor.x = refrDirToSensor.x/ior;
+		refrDirToSensor.normalize();
 //#ifdef PRINT_DEBUGLOG
 //        std::cout << "refrDir: (" << refrDirToSensor[0] << ", " <<  refrDirToSensor[1] << ", " << refrDirToSensor[2] << ");" << std::endl;
 //#endif
-//#ifndef USE_NO_FRESNEL
-//		fresnelWeight = (FPCONST(1.0) -
-//		util::fresnelDielectric(dirToSensor.x, refrDirToSensor.x,
-//			FPCONST(1.0) / ior))
-//			/ ior / ior;
-//#endif
-//	}
-//	Float foreshortening = dot(refrDirToSensor, m_camera.getDir())/dot(dirToSensor, m_camera.getDir());
-//	Assert(foreshortening >= FPCONST(0.0));
-//
-//#if USE_SIMPLIFIED_TIMING
-//	Float totalOpticalDistance = (distTravelled + distToSensor) * m_ior;
-//#else
-//	Float totalOpticalDistance = distTravelled;
-//#endif
-//
-//	Float distanceToSensor = 0;
-//	if(!m_camera.propagateTillSensor(p1, refrDirToSensor, distanceToSensor))
-//		return;
-//	totalOpticalDistance += distanceToSensor;
-//
-//	Float totalPhotonValue = val*(2*M_PI)
-//			* std::exp(-medium.getSigmaT() * distToSensor)
-//			* medium.getPhaseFunction()->f(d/d.length(), dirToSensor) // FIXME: Should be refractive index
-//			* foreshortening
-//			* fresnelWeight;
-//	addEnergyToImage(img, p1, totalOpticalDistance, depth, totalPhotonValue);
+#ifndef USE_NO_FRESNEL
+		fresnelWeight = (FPCONST(1.0) -
+		fresnelDielectric(dirToSensor.x, refrDirToSensor.x,
+			FPCONST(1.0) / ior))
+			/ ior / ior;
+#endif
+	}
+	Float foreshortening = dot(refrDirToSensor, m_camera->getDir())/dot(dirToSensor, m_camera->getDir());
+	ASSERT(foreshortening >= FPCONST(0.0));
+
+#if USE_SIMPLIFIED_TIMING
+	Float totalOpticalDistance = (distTravelled + distToSensor) * m_ior;
+#else
+	Float totalOpticalDistance = distTravelled;
+#endif
+
+	Float distanceToSensor = 0;
+	if(!m_camera->propagateTillSensor(p1, refrDirToSensor, distanceToSensor))
+		return;
+	totalOpticalDistance += distanceToSensor;
+
+    Medium *medium = d_constants.medium;
+
+	Float totalPhotonValue = val*(2*M_PI)
+			* expf(-medium->getSigmaT() * distToSensor)
+			* medium->getPhaseFunction()->f(d/d.length(), dirToSensor) // FIXME: Should be refractive index
+			* foreshortening
+			* fresnelWeight;
+	addEnergyToImage(p1, totalOpticalDistance, depth, totalPhotonValue);
 //#ifdef PRINT_DEBUGLOG
 //    std::cout << "Added Energy:" << totalPhotonValue << " to (" << p1.x << ", " << p1.y << ", " << p1.z << ") at time:" << totalOpticalDistance << std::endl;
 //    std::cout << "val term:" << val << std::endl;
@@ -276,6 +297,138 @@ __device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVect
 //    std::cout << "phase function term:" << medium.getPhaseFunction()->f(d/d.length(), dirToSensor) << std::endl;
 //    std::cout << "fresnel weight:" << fresnelWeight << std::endl;
 //#endif
+}
+
+__device__ bool Scene::movePhotonTillSensor(TVector3<Float> &p, TVector3<Float> &d, Float &distToSensor, Float &totalOpticalDistance,
+                                            Sampler &sampler, short& uses, const Float& scaling) const {
+
+	Float LargeDist = FPCONST(10000.0);
+
+	Float disx, disy;
+	TVector3<Float> d1, norm;
+	traceTillBlock(p, d, LargeDist, disx, disy, totalOpticalDistance, scaling);
+	distToSensor = disy;
+	LargeDist -= disy;
+	while(true){
+		if(LargeDist < 0){
+			//std::cout << "Error in movePhotonTillSensorCode; Large distance is not large enough" << std::endl;
+			return false;
+		}
+		int i;
+		norm.zero();
+		for (i = 0; i < p.dim; ++i) {
+			if (fabsf(m_block->getBlockL()[i] - p[i]) < 2*M_EPSILON) {
+				norm[i] = -FPCONST(1.0);
+				break;
+			}
+			else if (fabsf(m_block->getBlockR()[i] - p[i]) < 2*M_EPSILON) {
+				norm[i] = FPCONST(1.0);
+				break;
+			}
+		}
+		ASSERT(i < p.dim);
+
+		Float minDiff = M_MAX;
+		Float minDir = FPCONST(0.0);
+		TVector3<Float> normalt;
+		normalt.zero();
+		int chosenI = p.dim;
+		for (i = 0; i < p.dim; ++i) {
+			Float diff = fabsf(m_block->getBlockL()[i] - p[i]);
+			if (diff < minDiff) {
+				minDiff = diff;
+				chosenI = i;
+				minDir = -FPCONST(1.0);
+			}
+			diff = fabsf(m_block->getBlockR()[i] - p[i]);
+			if (diff < minDiff) {
+				minDiff = diff;
+				chosenI = i;
+				minDir = FPCONST(1.0);
+			}
+		}
+		normalt[chosenI] = minDir;
+		ASSERT(normalt == norm);
+		norm = normalt; // A HACK
+
+        // check if we hit the sensor plane
+		if(fabsf(m_camera->getDir().x - norm.x) < M_EPSILON &&
+				fabsf(m_camera->getDir().y - norm.y) < M_EPSILON &&
+				fabsf(m_camera->getDir().z - norm.z) < M_EPSILON)
+			return true;
+
+		// if not, routine
+        m_bsdf->sample(d, norm, sampler, d1, uses);
+		if (dot(d1, norm) < FPCONST(0.0)) {
+			// re-enter the medium through reflection
+			d = d1;
+		} else {
+			return false;
+		}
+
+    	traceTillBlock(p, d, LargeDist, disx, disy, totalOpticalDistance, scaling);
+    	distToSensor += disy;
+    	LargeDist -= disy;
+	}
+
+	return true;
+}
+
+__device__ inline void addPixel(int x, int y, int z, Float val) {
+    Float *image = d_constants.image;
+    int x_res = d_constants.x_res;
+    int y_res = d_constants.y_res;
+    int z_res = d_constants.z_res;
+
+    if (x >= 0 && x < x_res && y >= 0 && y < y_res &&
+        z >= 0 && z < z_res) {
+        // atomicAdd is atomic within compute device.
+        // For coherence with CPU/multiple GPUs, use atomicAdd_system
+        atomicAdd(image + (z * x_res * y_res + y * y_res + x), val);
+    }
+}
+
+__device__ void Scene::addEnergyToImage(const TVector3<Float> &p, Float pathlength, int &depth, Float val) const {
+
+	Float x = dot(m_camera->getHorizontal(), p) - m_camera->getOrigin().y;
+	Float y = dot(m_camera->getVertical(), p) - m_camera->getOrigin().z;
+
+	ASSERT(((fabsf(x) < FPCONST(0.5) * m_camera->getPlane().x)
+				&& (fabsf(y) < FPCONST(0.5) * m_camera->getPlane().y)));
+	if (((m_camera->getPathlengthRange().x == -1) && (m_camera->getPathlengthRange().y == -1)) ||
+		((pathlength > m_camera->getPathlengthRange().x) && (pathlength < m_camera->getPathlengthRange().y))) {
+		x = (x / m_camera->getPlane().x + FPCONST(0.5)) * static_cast<Float>(d_constants.x_res);
+		y = (y / m_camera->getPlane().y + FPCONST(0.5)) * static_cast<Float>(d_constants.y_res);
+
+		int ix = static_cast<int>(floorf(x));
+		int iy = static_cast<int>(floorf(y));
+
+		int iz;
+		if(m_camera->isBounceDecomposition()){
+			iz = depth;
+		}
+		else{
+			if ((m_camera->getPathlengthRange().x == -1) && (m_camera->getPathlengthRange().y == -1)) {
+				iz = 0;
+			} else {
+				Float z = pathlength - m_camera->getPathlengthRange().x;
+				Float range = m_camera->getPathlengthRange().y - m_camera->getPathlengthRange().x;
+				z = (z / range) * static_cast<Float>(d_constants.z_res);
+				iz = static_cast<int>(floorf(z));
+			}
+		}
+#ifdef USE_PIXEL_SHARING
+		Float fx = x - floorf(x);
+		Float fy = y - floorf(y);
+
+		addPixel(ix, iy, iz, val*(FPCONST(1.0) - fx)*(FPCONST(1.0) - fy));
+		addPixel(ix + 1, iy, iz, val*fx*(FPCONST(1.0) - fy));
+		addPixel(ix, iy + 1, iz, val*(FPCONST(1.0) - fx)*fy);
+		addPixel(ix + 1, iy + 1, iz, val*fx*fy);
+#else
+		addPixel(ix, iy, iz, val);
+#endif
+    }
 }
 
 // Move photon and return true if still in medium, false otherwise
@@ -355,7 +508,7 @@ __device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float 
 }
 
 __device__ bool scatterOnce(TVector3<Float> &p, TVector3<Float> &d, Float &dist,
-						Float &totalOpticalDistance, const Float &scaling, short &samplerUses) {
+                            Float &totalOpticalDistance, const Float &scaling, short &samplerUses) {
     Medium *medium = d_constants.medium;
     Scene *scene = d_constants.scene;
     Sampler &sampler = *scene->sampler;
@@ -474,12 +627,20 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
     CURAND_CALL(curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_MT19937));
 
     /* Send in parameter pointers to device */
-    Constants h_constants;
-    h_constants.image = cudaImage;
-    h_constants.random = cudaRandom;
-    h_constants.scene = cudaScene;
-    h_constants.medium = cudaMedium;
-    h_constants.weight = getWeight(medium, scene, numPhotons);
+    Constants h_constants = {
+        .image              = cudaImage,
+        .x_res              = target.getXRes(),
+        .y_res              = target.getYRes(),
+        .z_res              = target.getZRes(),
+        .random             = cudaRandom,
+        .scene              = cudaScene,
+        .medium             = cudaMedium,
+        .weight             = getWeight(medium, scene, numPhotons),
+        .maxDepth           = maxDepth,
+        .maxPathlength      = maxPathlength,
+        .useDirect          = useDirect,
+        .useAngularSampling = useAngularSampling
+    };
 
     CUDA_CALL(cudaMemcpyToSymbol(d_constants, &h_constants, sizeof(Constants)));
 
