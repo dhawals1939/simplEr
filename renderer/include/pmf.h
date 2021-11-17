@@ -122,6 +122,10 @@ public:
 		return index;
 	}
 
+	inline const std::vector<Float> &getCDF() const {
+		return m_cdf;
+	}
+
 	/**
 	 * \brief %Transform a uniformly distributed sample to the stored distribution
 	 *

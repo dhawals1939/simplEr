@@ -52,7 +52,7 @@ public:
 	void scatter(const VectorType<Float> &p, const VectorType<Float> &d,
 				const scn::Scene<VectorType> &scene, const med::Medium &medium,
 				smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance,
-				scn::NEECostFunction<VectorType> &costFunction, Problem &problem, Float *initialization) const;
+				scn::NEECostFunction<VectorType> &costFunction, Problem &problem, double *initialization) const;
 
 	void scatterDeriv(const VectorType<Float> &p, const VectorType<Float> &d,
 					const scn::Scene<VectorType> &scene, const med::Medium &medium,

@@ -79,7 +79,6 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 		return;
 	totalOpticalDistance += distanceToSensor;
 
-
 	Float totalPhotonValue = weight
 			* std::exp(-medium.getSigmaT() * distToSensor)
 			* fresnelWeight;
@@ -91,7 +90,7 @@ template <template <typename> class VectorType>
 void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<Float> &d,
 					const scn::Scene<VectorType> &scene, const med::Medium &medium,
 					smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance,
-					scn::NEECostFunction<VectorType> &costFunction, Problem &problem, Float *initialization) const {
+					scn::NEECostFunction<VectorType> &costFunction, Problem &problem, double *initialization) const {
 
 	Assert(scene.getMediumBlock().inside(p));
 
@@ -282,16 +281,19 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 #else
 	int numThreads = 1;
 #endif /* USE_THREADED */
+
+// FIXME: Re-enable ifdef or find better solution
+//#ifdef USE_DOUBLE_PRECISION
 	/* Set-up least squares problem for doing next event estimation */
 	Problem *problem = new Problem[numThreads];
 	scn::NEECostFunction<tvec::TVector3> *costFunctions[numThreads];
-	Float *initializations = new Float[numThreads*3]; // The initial parameter values (3 dimensional for x,y,z)
+	double *initializations = new double[numThreads*3]; // The initial parameter values (3 dimensional for x,y,z)
 
-	// TODO: Get rid of this in CUDA impl
 	for(int i=0; i<numThreads; i++){
 		costFunctions[i] = new scn::NEECostFunction<tvec::TVector3>(&scene);
 		problem[i].AddResidualBlock((CostFunction*)costFunctions[i], NULL, initializations +i*3);
 	}
+//#endif /* USE_DOUBLE_PRECISION */
 
 #ifndef NDEBUG
 	std::cout << "numthreads = " << numThreads << std::endl;
@@ -326,25 +328,20 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 		VectorType<Float> pos, dir;
 		Float totalDistance = 0;
 		if (scene.genRay(pos, dir, sampler[id], totalDistance)) {
-
 			/*
 			 * TODO: Direct energy computation is not implemented.
 			 */
-#ifdef PRINT_DEBUGLOG
-			std::cout << "Intial pos: (" << pos.x << ", " << pos.y << ", " << pos.z << ") \n";
-			std::cout << "Intial dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ") \n";
-#endif
 
 #ifdef PRINT_DEBUGLOG
-		Float scaling = 1; //Hack to match the logs.
+			Float scaling = 1; //Hack to match the logs.
 #else
-		Float scaling = std::max(std::min(std::sin(scene.getUSPhi_min() + scene.getUSPhi_range()*sampler[id]()), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
+			Float scaling = std::max(std::min(std::sin(scene.getUSPhi_min() + scene.getUSPhi_range()*sampler[id]()), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
 #endif
+
 
 #ifndef OMEGA_TRACKING
 			dir *= scene.getMediumIor(pos, scaling);
 #endif
-			Assert(!m_useDirect);
 			if(m_useDirect)
 				directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
 			scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance, *costFunctions[id], problem[id], initializations+id*3);
@@ -352,13 +349,14 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 	}
 
 	img.mergeImages(img0);
-
-
+// FIXME: Re-enable ifdef?
+//#ifdef USE_DOUBLE_PRECISION
 	for(int i=0; i<numThreads; i++){
 		delete costFunctions[i];
 	}
 	delete[] initializations;
 //	delete[] problem;
+//#endif /* USE_DOUBLE_PRECISION */
 #endif /* USE_CUDA */
 }
 

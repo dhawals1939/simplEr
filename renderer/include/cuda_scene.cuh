@@ -44,8 +44,8 @@ private:
 class DiscreteDistribution {
 public:
     /* Return a discreteDistribution on the GPU. */
-    __host__ static DiscreteDistribution* from(const image::Image2<Float> &texture, size_t length) {
-        DiscreteDistribution result = DiscreteDistribution(texture, length);
+    __host__ static DiscreteDistribution* from(const std::vector<Float> &cdf) {
+        DiscreteDistribution result = DiscreteDistribution(cdf.data(), cdf.size());
         DiscreteDistribution *d_result;
 
         CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(DiscreteDistribution)));
@@ -53,40 +53,40 @@ public:
         return d_result;
     }
 
-    __host__ DiscreteDistribution(const image::Image2<Float> &texture, size_t length) {
-        m_cdf_length = length;
-        m_cdf_capacity = 0;
-        m_cdf = NULL;
-        reserve(length);
-        clear();
-		for(int i=0; i<length; i++){
-			append(texture.getPixel(i));
-		}
-		normalize();
+    //__host__ DiscreteDistribution(const image::Image2<Float> &texture, size_t length) {
+    //    m_cdf_length = 0;
+    //    m_cdf_capacity = 0;
+    //    m_cdf = NULL;
+    //    reserve(length);
+    //    clear();
+	//	for(int i=0; i<length; i++){
+	//		append(texture.getPixel(i));
+	//	}
+	//	normalize();
 
-        // Copy m_cdf to GPU
-        Float *temp;
-        CUDA_CALL(cudaMalloc((void **)&temp, (length+1) * sizeof(Float)));
-        CUDA_CALL(cudaMemcpy(temp, m_cdf, (length+1) * sizeof(Float), cudaMemcpyHostToDevice));
-        free(m_cdf);
-        m_cdf = temp;
-    }
+    //    // Copy m_cdf to GPU
+    //    Float *temp;
+    //    CUDA_CALL(cudaMalloc((void **)&temp, (length+1) * sizeof(Float)));
+    //    CUDA_CALL(cudaMemcpy(temp, m_cdf, (length+1) * sizeof(Float), cudaMemcpyHostToDevice));
+    //    free(m_cdf);
+    //    m_cdf = temp;
+    //}
 
-	__device__ explicit inline DiscreteDistribution(size_t nEntries = 0) {
-        m_cdf_length = 0;
-        m_cdf_capacity = 0;
-		reserve(nEntries);
-        clear();
-	}
+	//__device__ explicit inline DiscreteDistribution(size_t nEntries = 0) {
+    //    m_cdf_length = 0;
+    //    m_cdf_capacity = 0;
+	//	reserve(nEntries);
+    //    clear();
+	//}
 
-	__host__ __device__ inline void clear() {
+	__device__ inline void clear() {
 		m_cdf_length = 0;
 		append(0.0f);
 		m_normalized = false;
 	}
 
     // TODO: This might be inneficient
-	__host__ __device__ inline void reserve(size_t nEntries) {
+	__device__ inline void reserve(size_t nEntries) {
         ASSERT(nEntries >= m_cdf_capacity);
         m_cdf_capacity = nEntries+1;
         Float *temp = (Float *)malloc((nEntries+1) * sizeof(Float));
@@ -99,11 +99,15 @@ public:
 	}
 
     // TODO: Is this efficient?
-	__host__ __device__ inline void append(Float pdfValue) {
+	__device__ inline void append(Float pdfValue) {
         if (m_cdf_length == m_cdf_capacity) {
             reserve(m_cdf_capacity ? m_cdf_capacity * 2 : 1);
         }
-        m_cdf[m_cdf_length] = m_cdf_length ? m_cdf[m_cdf_length-1] + pdfValue : pdfValue;
+        if (m_cdf_length == 0)
+            m_cdf[m_cdf_length] = pdfValue;
+        else
+            m_cdf[m_cdf_length] = m_cdf[m_cdf_length-1] + pdfValue;
+
         m_cdf_length++;
         ASSERT(m_cdf_length <= m_cdf_capacity);
 	}
@@ -116,7 +120,7 @@ public:
 		return m_cdf[entry+1] - m_cdf[entry];
 	}
 
-	__host__ __device__ inline bool isNormalized() const {
+	__device__ inline bool isNormalized() const {
 		return m_normalized;
 	}
 //
@@ -128,7 +132,7 @@ public:
 //		return m_normalization;
 //	}
 //
-	__host__ __device__ inline Float normalize() {
+	__device__ inline Float normalize() {
 		ASSERT(m_cdf_length > 1);
 		m_sum = m_cdf[m_cdf_length-1];
 		if (m_sum > 0) {
@@ -143,7 +147,7 @@ public:
 		return m_sum;
 	}
 
-	__device__ inline size_t sample(Float sampleValue) const {
+	__device__ inline size_t sample(Float sampleValue) { // TODO: Make this const
         // First elements is dummy 0.0f. Account for it.
         size_t index = fminf(m_cdf_length-2,
                            fmaxf(cdf_lower_bound(sampleValue)-1, (size_t) 0));
@@ -181,7 +185,16 @@ private:
     size_t m_cdf_length;
     size_t m_cdf_capacity;
 
-    __host__ __device__ size_t cdf_lower_bound(Float value) const {
+    /* cdf is a pointer to the host */
+    __host__ DiscreteDistribution(const Float *cdf, size_t length) {
+        CUDA_CALL(cudaMalloc((void **)&m_cdf, length * sizeof(Float)));
+        CUDA_CALL(cudaMemcpy(m_cdf, cdf, length * sizeof(Float), cudaMemcpyHostToDevice));
+        m_cdf_length = length;
+        m_cdf_capacity = length;
+        m_normalized = false;
+    }
+
+    __device__ size_t cdf_lower_bound(Float value) const {
         for (size_t i=0; i < m_cdf_length; i++) {
             if (m_cdf[i] >= value) return i;
         }
@@ -274,7 +287,7 @@ public:
     }
 
     __device__ inline bool propagateTillLens(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const {
-        Float dist = -(pos[0] - (*m_origin)[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
+        Float dist = -(pos[0] - (*m_origin)[0])/dir[0];
         pos += dist*dir;
         totalDistance += dist;
         if(m_active)
@@ -456,14 +469,13 @@ protected:
         float textureYRes = source.getTexture().getYRes();
         float planeX = source.getPlane().x;
         float planeY = source.getPlane().y;
-		size_t _length = textureXRes * textureYRes;
         tvec::TVector2<Float> pixelsize(planeX/textureXRes,
                                         planeY/textureYRes);
         m_pixelsize = TVector2<Float>::from(pixelsize);
 
 		m_ct = cosf(m_halfThetaLimit);
 
-        m_textureSampler = DiscreteDistribution::from(source.getTexture(), _length);
+        m_textureSampler = DiscreteDistribution::from(source.textureSamplerCDF());
 
 	}
 

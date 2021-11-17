@@ -9,6 +9,9 @@
 #include "cuda_vector.cuh"
 #include "cuda_utils.cuh"
 #include "cuda_scene.cuh"
+#include <iostream>
+#include <stdio.h>
+#include <chrono>
 
 namespace cuda {
 
@@ -29,14 +32,17 @@ struct Constants {
     Float maxPathlength;
     bool useDirect;
     bool useAngularSampling;
+    int numPhotons;
 };
 
 __constant__ Constants d_constants;
 
 __device__ Float Sampler::sample(short &uses) const{
-    ASSERT(uses < RANDOM_NUMBERS_PER_PHOTON);
-    ASSERT(threadIdx.x * RANDOM_NUMBERS_PER_PHOTON + uses + 1 < m_size);
-    return m_random[threadIdx.x * RANDOM_NUMBERS_PER_PHOTON + uses++];
+    int idx = gridDim.x * blockDim.x * blockDim.y * blockIdx.y + gridDim.x * blockDim.x * threadIdx.y
+        + blockDim.x * blockIdx.x + threadIdx.x;
+    //ASSERT(uses < RANDOM_NUMBERS_PER_PHOTON);
+    ASSERT(idx * RANDOM_NUMBERS_PER_PHOTON + uses < m_size);
+    return m_random[idx * RANDOM_NUMBERS_PER_PHOTON + uses++];
 }
 
 __device__ inline Float safeSqrt(Float x) {
@@ -129,13 +135,10 @@ __device__ bool AreaTexturedSource::sampleRay(TVector3<Float> &pos, TVector3<Flo
 	//FIXME: Hack: Works only for m_dir = [-1 0 0]
 	Float z   = sampler(samplerUses)*(1-m_ct) + m_ct;
 	Float zt  = sqrtf(FPCONST(1.0)-z*z);
-    // FIXME: FPCONST(M_PI) might be generating complaints here
 	Float phi = sampler(samplerUses)*2*M_PI;
-    // FIXME: operator[] overload here might be causing issues
 	dir[0] = -z;
 	dir[1] = zt*cosf(phi);
 	dir[2] = zt*sinf(phi);
-
 	return propagateTillMedium(pos, dir, totalDistance);
 }
 
@@ -202,7 +205,7 @@ __device__ void Scene::traceTillBlock(TVector3<Float> &p, TVector3<Float> &d, Fl
     	}
     }
 
-    ASSERT(i < maxsteps);
+    //ASSERT(i < maxsteps);
     disx = 0;
     disy = distance;
 }
@@ -384,11 +387,13 @@ __device__ inline void addPixel(int x, int y, int z, Float val) {
         z >= 0 && z < z_res) {
         // atomicAdd is atomic within compute device.
         // For coherence with CPU/multiple GPUs, use atomicAdd_system
-        atomicAdd(image + (z * x_res * y_res + y * y_res + x), val);
+        atomicAdd(image + (z * x_res * y_res + y * x_res + x), val);
     }
 }
 
 __device__ void Scene::addEnergyToImage(const TVector3<Float> &p, Float pathlength, int &depth, Float val) const {
+
+    //printf("Running addEnergyToImage(p = (%.2f, %.2f, %.2f), pathlength = %.2f, depth = %d, val = %.2f)\n", p.x, p.y, p.z, pathlength, depth, val);
 
 	Float x = dot(m_camera->getHorizontal(), p) - m_camera->getOrigin().y;
 	Float y = dot(m_camera->getVertical(), p) - m_camera->getOrigin().z;
@@ -518,9 +523,6 @@ __device__ bool scatterOnce(TVector3<Float> &p, TVector3<Float> &d, Float &dist,
 		medium->getPhaseFunction()->sample(d/magnitude, sampler, samplerUses, d1);
 		d = magnitude*d1;
 		dist = getMoveStep(medium, samplerUses);
-#ifdef PRINT_DEBUGLOG
-		std::cout << "sampler before move photon:" << sampler() << "\n";
-#endif
 		return scene->movePhoton(p, d, dist, totalOpticalDistance, samplerUses, scaling);
 	} else {
 		dist = FPCONST(0.0);
@@ -568,7 +570,6 @@ __device__ void directTracing(const TVector3<Float> &p, const TVector3<Float> &d
 	if(!camera.propagateTillSensor(p1, refrDirToSensor, distanceToSensor))
 		return;
 	totalOpticalDistance += distanceToSensor;
-
 
 	Float totalPhotonValue = d_constants.weight
 			* expf(-d_constants.medium->getSigmaT() * distToSensor)
@@ -624,38 +625,80 @@ __device__ void scatter(TVector3<Float> &p, TVector3<Float> &d, Float scaling, F
 __global__ void renderPhotons() {
     TVector3<Float> pos;
     TVector3<Float> dir;
-    Float totalDistance;
+    Float totalDistance = 0;
+    Float scaling = 0;
     short uses = 0;
 
     Scene *scene = d_constants.scene;
     Sampler &sampler = *scene->sampler;
 
-    if (scene->genRay(pos, dir, totalDistance, uses)) {
-        float scaling = max(min(sinf(scene->getUSPhi_min() + scene->getUSPhi_range() * sampler(uses)), scene->getUSMaxScaling()), -scene->getUSMaxScaling());
-        if (d_constants.useDirect)
-            directTracing(pos, dir, sampler, uses, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
-        scatter(pos, dir, scaling, totalDistance, uses);
+    int idx = gridDim.x * blockDim.x * blockDim.y * blockIdx.y + gridDim.x * blockDim.x * threadIdx.y + blockDim.x * blockIdx.x + threadIdx.x;
+
+    // Checking for numPhotons limit is not necessary as the more photons the merrier.
+    if (idx < d_constants.numPhotons) {
+        if (scene->genRay(pos, dir, totalDistance, uses)) {
+            scaling = max(min(sinf(scene->getUSPhi_min() + scene->getUSPhi_range() * sampler(uses)), scene->getUSMaxScaling()), -scene->getUSMaxScaling());
+#ifndef OMEGA_TRACKING
+			dir *= scene->getMediumIor(pos, scaling);
+#endif
+            if (d_constants.useDirect)
+                directTracing(pos, dir, sampler, uses, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
+            scatter(pos, dir, scaling, totalDistance, uses);
+        }
     }
 }
 
 void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &medium, const scn::Scene<tvec::TVector3> &scene, int numPhotons) {
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration_cast;
+    using std::chrono::duration;
+    using std::chrono::milliseconds;
+
+    auto t1 = high_resolution_clock::now();
     setup(target, medium, scene, numPhotons);
+    auto t2 = high_resolution_clock::now();
 
-    dim3 threadsPerBlock(16, 16); // Arbitrary choice
-    int width = 100; // Arbitrary as well
+    auto setup_duration = duration_cast<milliseconds>(t2 - t1);
+    std::cout << "Setup: " << setup_duration.count() << "ms\n";
 
-    // N + (N - 1) / W, to ensure we have enough threads as division rounds down
-    dim3 numBlocks((numPhotons / width + (numPhotons / width - 1)) / threadsPerBlock.x, (width + width - 1) / threadsPerBlock.y);
-    renderPhotons<<<numBlocks,threadsPerBlock>>>();
+    dim3 threadGrid(16, 16); // Arbitrary choice, total can go up to 1024 on most architectures, 2048 or 4096 on newer ones.
+    int threadsPerBlock = threadGrid.x * threadGrid.y;
+    int numBlocks = (numPhotons + threadsPerBlock - 1) / (threadsPerBlock);
+    int width = 32; // Arbitrary as well
+
+    // N + (W - 1) / W, to ensure we have enough threads as division rounds down
+    dim3 blockGrid((numBlocks + width -1) / width, width);
+
+    std::cout << "Calling renderPhotons with " << blockGrid.x * blockGrid.y * threadGrid.x * threadGrid.y << "\n";
+
+    auto t3 = high_resolution_clock::now();
+    renderPhotons<<<blockGrid,threadGrid>>>();
     CUDA_CALL(cudaDeviceSynchronize());
+    auto t4 = high_resolution_clock::now();
 
+    auto kernel_duration = duration_cast<milliseconds>(t4 - t3);
+    std::cout << "Kernel: " << kernel_duration.count() << "ms\n";
+
+    auto t5 = high_resolution_clock::now();
     CUDA_CALL(cudaMemcpy(image, cudaImage,
                          target.getXRes()*target.getYRes()*target.getZRes()*sizeof(Float),
                          cudaMemcpyDeviceToHost));
 
-    target.copyImage(image, target.getXRes()*target.getYRes()*target.getZRes());
+    // Copy back to target. TODO: Just create a class method set pixels that does memcpy
+    for (int x=0; x < target.getXRes(); ++x) {
+        for (int y=0; y < target.getYRes(); ++y) {
+            for (int z=0; z < target.getZRes(); ++z) {
+                // Same calculation as addPixel (aka image.addEnergy)
+                target.setPixel(x, y, z, image[z * target.getXRes() * target.getYRes() + y * target.getXRes() + x]);
+            }
+        }
+    }
 
     cleanup();
+    auto t6 = high_resolution_clock::now();
+
+    auto cleanup_duration = duration_cast<milliseconds>(t6 - t5);
+    std::cout << "Cleanup: " << cleanup_duration.count() << "ms\n";
 }
 
 /* Allocates host and device data and sets up RNG. */
@@ -688,25 +731,28 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
         .maxDepth           = maxDepth,
         .maxPathlength      = maxPathlength,
         .useDirect          = useDirect,
-        .useAngularSampling = useAngularSampling
+        .useAngularSampling = useAngularSampling,
+        .numPhotons         = numPhotons
     };
 
     CUDA_CALL(cudaMemcpyToSymbol(d_constants, &h_constants, sizeof(Constants)));
 
     /* Generate random numbers to be used by each thread */
     genDeviceRandomNumbers(requiredRandomNumbers(numPhotons));
+
+    CUDA_CALL(cudaDeviceSynchronize());
 }
 
 /* Generates random numbers on the device. */
 // TODO: currently sequential, compare to result produced by sequential renderer (as opposed to threaded)
 void CudaRenderer::genDeviceRandomNumbers(int num, CudaSeedType seed) {
     smp::SamplerSet sampler(1, 0);
-    float *random = new float[num];
+    Float *random = new Float[num];
     for (int i = 0; i < num; i++) {
         random[i] = sampler[0]();
     }
 
-    CUDA_CALL(cudaMemcpy(cudaRandom, random, sizeof(float)*num, cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(cudaRandom, random, sizeof(Float)*num, cudaMemcpyHostToDevice));
 
     delete[] random;
 

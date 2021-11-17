@@ -44,11 +44,11 @@ public:
 		/* Trick from MTGP: generate an uniformly distributed
 		   single precision number in [1,2) and subtract 1. */
 		union {
-			uint32_t u;
-			float f;
+			uint64_t u;
+			double d;
 		} x;
-		x.u = ((nextULong() & 0xFFFFFFFF) >> 9) | 0x3f800000UL;
-		return x.f - 1.0f;
+		x.u = (nextULong() >> 12) | 0x3ff0000000000000ULL;
+		return static_cast<float>(x.d - 1.0);
 #endif
 	}
 

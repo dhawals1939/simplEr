@@ -335,7 +335,7 @@ public:
 	inline void addEnergy(const int x, const int y, const int z, const T val) {
 		Assert(x >= 0 && x < m_xRes && y >= 0 && y < m_yRes && z >= 0 && z < m_zRes);
 //		Assert(val >= 0);
-		m_pixels[z * m_xRes * m_yRes + y * m_yRes + x] += val;
+		m_pixels[z * m_xRes * m_yRes + y * m_xRes + x] += val;
 	}
 
 	inline int getXRes() const {

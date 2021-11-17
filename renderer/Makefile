@@ -40,8 +40,10 @@ CFLAGS =
 LDFLAGS =
 
 # Use floats with cuda as doubles are very slow
+# TODO: Enable print_debuglog in CUDA
 ifeq ($(USE_CUDA), 1)
 	USE_DOUBLE_PRECISION = 0
+	PRINT_DEBUGLOG = 0
 endif
 
 ## specify compiler, adds to CFLAGS

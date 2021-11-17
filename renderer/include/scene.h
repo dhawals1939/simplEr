@@ -315,6 +315,10 @@ struct AreaTexturedSource {
         return m_lens;
     }
 
+    inline const std::vector<Float> &textureSamplerCDF() const {
+        return m_textureSampler.getCDF();
+    }
+
 	inline const bool propagateTillMedium(VectorType<Float> &pos, VectorType<Float> &dir, Float &totalDistance) const{
 		//propagate till lens
 		if(!m_lens.propagateTillLens(pos, dir, totalDistance))
@@ -860,7 +864,7 @@ public:
 	 */
 	bool makeSurfaceDirectConnection(const VectorType<Float> &p1, const VectorType<Float> &p2, const Float &scaling, smp::Sampler &sampler,
 															Float &distTravelled, VectorType<Float> &dirToSensor, Float &distToSensor, Float &weight,
-															scn::NEECostFunction<VectorType> &costFunction, Problem &problem, Float *initialization) const;
+															scn::NEECostFunction<VectorType> &costFunction, Problem &problem, double *initialization) const;
 
 	void computePathLengthstillZ(const VectorType<Float> &v, const VectorType<Float> &p1, const VectorType<Float> &p2, Float &opticalPathLength, Float &t_l, const Float &scaling) const;
 
@@ -893,7 +897,7 @@ public:
 	void addEnergy(image::SmallImage &img, const VectorType<Float> &p,
 						const VectorType<Float> &d, Float distTravelled, int &depth, Float val,
 						const med::Medium &medium, smp::Sampler &sampler, const Float& scaling,
-						scn::NEECostFunction<VectorType> &costFunction, Problem &problem, Float *initialization) const;
+						scn::NEECostFunction<VectorType> &costFunction, Problem &problem, double *initialization) const;
 
 	void addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 						image::SmallImage &dAlbedo, image::SmallImage &dGVal,
