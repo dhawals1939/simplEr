@@ -45,11 +45,7 @@ public:
 	}
 
 	inline Float operator()() {
-#ifdef USE_DOUBLE_PRECISION
 		return static_cast<Float>(m_sampler());
-#else
-		return m_sampler();
-#endif
 	}
 
 private:

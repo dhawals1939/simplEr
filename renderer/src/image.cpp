@@ -100,14 +100,22 @@ void Image2<float>::writePFM(const std::string& fileName) const {//,
 			(m_xRes) * sizeof(Float));
 	}
 
-	file.write(reinterpret_cast<char*>(img),
-			m_xRes * m_yRes * sizeof(Float));
+	// Always save pfm's as double
+	double* double_pixels = new double[m_xRes*m_yRes];
+	for (size_t i=0; i < m_xRes*m_yRes; ++i) {
+		double_pixels[i] = static_cast<double>(img[i]);
+	}
+
+	file.write(reinterpret_cast<char*>(double_pixels),
+			m_xRes * m_yRes * sizeof(double));
 
 //  Old code
 //	file.write(reinterpret_cast<char*>(m_pixels),
 //			m_xRes * m_yRes * sizeof(float));
 
 	AssertEx(file, "Problem writing output file.");
+	delete[] img;
+	delete[] double_pixels;
 }
 
 template <>
@@ -185,10 +193,17 @@ void Image3<Float>::writePFM3D(const std::string& fileName) const {//,
 	file << '\n';
 	AssertEx(file, "Problem writing output file.");
 
+	double *double_pixels = new double[m_xRes * m_yRes * m_zRes];
+	for (size_t i = 0; i < m_xRes * m_yRes * m_zRes; ++i) {
+		double_pixels[i] = static_cast<double>(m_pixels[i]);
+	}
+
 	for(int z = 0; z < m_zRes; z++)
-		file.write(reinterpret_cast<char*>(m_pixels + z * m_xRes * m_yRes),
-				m_xRes * m_yRes * sizeof(Float));
+		file.write(reinterpret_cast<char*>(double_pixels + z * m_xRes * m_yRes),
+				m_xRes * m_yRes * sizeof(double));
 	AssertEx(file, "Problem writing output file.");
+
+	delete[] double_pixels;
 }
 
 }	/* namespace image */

@@ -202,12 +202,12 @@ private:
 
 				fseek(pFile, 0, SEEK_END);
 				long lSize = ftell(pFile);
-				long pos = lSize - this->m_xRes*this->m_yRes * sizeof(T);
+				long pos = lSize - this->m_xRes*this->m_yRes * sizeof(double);
 				fseek(pFile, pos, SEEK_SET);
 
-				T* img = new T[length_];
+				double* img = new double[length_];
 				//cout << "sizeof(T) = " << sizeof(T);
-				fread(img, sizeof(T), length_, pFile);
+				fread(img, sizeof(double), length_, pFile);
 				fclose(pFile);
 
 				/* The raster is a sequence of pixels, packed one after another,
@@ -215,14 +215,18 @@ private:
 				 * with the pixels in each row ordered left to right and
 				 * the rows ordered bottom to top.
 				 */
-				m_pixels = (T *)malloc(length_ * sizeof(T));// top-to-bottom.
+				double *double_pixels = (double*)malloc(length_ * sizeof(double));// top-to-bottom.
+				m_pixels = (T *)malloc(length_ * sizeof(T));
 				//PFM SPEC image stored bottom -> top reversing image
 				for (int i = 0; i < this->m_yRes; i++) {
-					memcpy(&m_pixels[(this->m_yRes - i - 1)*(this->m_xRes)],
+					memcpy(&double_pixels[(this->m_yRes - i - 1)*(this->m_xRes)],
 						&img[(i*(this->m_xRes))],
-						(this->m_xRes) * sizeof(T));
+						(this->m_xRes) * sizeof(double));
 				}
 
+				for (size_t i=0; i < length_; ++i) {
+					m_pixels[i] = static_cast<T>(double_pixels[i]);
+				}
 
 	//			if (this->is_little_big_endianness_swap()){
 	//				std::cout << "little-big endianness transformation is needed.\n";
@@ -241,7 +245,7 @@ private:
 	//				}
 	//			}
 				delete[] img;
-
+				free(double_pixels);
 			}
 			else {
 				std::cout << "Invalid magic number!"
@@ -408,12 +412,12 @@ public:
 
 				fseek(pFile, 0, SEEK_END);
 				long lSize = ftell(pFile);
-				long pos = lSize - this->m_xRes*this->m_yRes*this->m_zRes * sizeof(T);
+				long pos = lSize - this->m_xRes*this->m_yRes*this->m_zRes * sizeof(double);
 				fseek(pFile, pos, SEEK_SET);
 
-				T* img = new T[length_];
+				double* img = new double[length_];
 				//cout << "sizeof(T) = " << sizeof(T);
-				fread(img, sizeof(T), length_, pFile);
+				fread(img, sizeof(double), length_, pFile);
 				fclose(pFile);
 
 				/* The raster is a sequence of pixels, packed one after another,
@@ -421,14 +425,18 @@ public:
 				 * with the pixels in each row ordered left to right and
 				 * the rows ordered bottom to top.
 				 */
-				m_pixels = (T *)malloc(length_ * sizeof(T));// top-to-bottom.
-                //Adi: Did not test exhaustively
+				m_pixels = (Float *)malloc(length_ * sizeof(Float));// top-to-bottom.
+				double *double_pixels = (double *)malloc(length_ * sizeof(double));
+				//Adi: Did not test exhaustively
 //                for (int z = 0; z < this->m_zRes; z++) {
-	    				memcpy(m_pixels,
-		    				img,
-			    			length_ * sizeof(T));
-  //              }
-
+				memcpy(double_pixels,
+					   img,
+					   length_ * sizeof(double));
+//              }
+//
+				for (size_t i=0; i < length_; ++i) {
+					m_pixels[i] = static_cast<float>(double_pixels[i]);
+				}
 
 	//			if (this->is_little_big_endianness_swap()){
 	//				std::cout << "little-big endianness transformation is needed.\n";

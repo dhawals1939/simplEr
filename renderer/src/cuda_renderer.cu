@@ -329,7 +329,7 @@ __device__ bool Scene::movePhotonTillSensor(TVector3<Float> &p, TVector3<Float> 
 				break;
 			}
 		}
-		ASSERT(i < p.dim);
+		//ASSERT(i < p.dim);
 
 		Float minDiff = M_MAX;
 		Float minDir = FPCONST(0.0);
@@ -351,7 +351,7 @@ __device__ bool Scene::movePhotonTillSensor(TVector3<Float> &p, TVector3<Float> 
 			}
 		}
 		normalt[chosenI] = minDir;
-		ASSERT(normalt == norm);
+		//ASSERT(normalt == norm);
 		norm = normalt; // A HACK
 
         // check if we hit the sensor plane
@@ -398,8 +398,8 @@ __device__ void Scene::addEnergyToImage(const TVector3<Float> &p, Float pathleng
 	Float x = dot(m_camera->getHorizontal(), p) - m_camera->getOrigin().y;
 	Float y = dot(m_camera->getVertical(), p) - m_camera->getOrigin().z;
 
-	ASSERT(((fabsf(x) < FPCONST(0.5) * m_camera->getPlane().x)
-				&& (fabsf(y) < FPCONST(0.5) * m_camera->getPlane().y)));
+	//ASSERT(((fabsf(x) < FPCONST(0.5) * m_camera->getPlane().x)
+	//			&& (fabsf(y) < FPCONST(0.5) * m_camera->getPlane().y)));
 	if (((m_camera->getPathlengthRange().x == -1) && (m_camera->getPathlengthRange().y == -1)) ||
 		((pathlength > m_camera->getPathlengthRange().x) && (pathlength < m_camera->getPathlengthRange().y))) {
 		x = (x / m_camera->getPlane().x + FPCONST(0.5)) * static_cast<Float>(d_constants.x_res);
@@ -464,7 +464,7 @@ __device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float 
 				break;
 			}
 		}
-		ASSERT(i < p.dim);
+		//ASSERT(i < p.dim);
 
 		Float minDiff = M_MAX;
 		Float minDir = FPCONST(0.0);
@@ -486,7 +486,7 @@ __device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float 
 			}
 		}
 		normalt[chosenI] = minDir;
-		ASSERT(normalt == norm);
+		//ASSERT(normalt == norm);
 		norm = normalt;
 
 		/*
@@ -634,7 +634,7 @@ __global__ void renderPhotons() {
 
     int idx = gridDim.x * blockDim.x * blockDim.y * blockIdx.y + gridDim.x * blockDim.x * threadIdx.y + blockDim.x * blockIdx.x + threadIdx.x;
 
-    // Checking for numPhotons limit is not necessary as the more photons the merrier.
+    // FIXME: Checking for numPhotons limit is not necessary as the more photons the merrier.
     if (idx < d_constants.numPhotons) {
         if (scene->genRay(pos, dir, totalDistance, uses)) {
             scaling = max(min(sinf(scene->getUSPhi_min() + scene->getUSPhi_range() * sampler(uses)), scene->getUSMaxScaling()), -scene->getUSMaxScaling());
@@ -643,23 +643,14 @@ __global__ void renderPhotons() {
 #endif
             if (d_constants.useDirect)
                 directTracing(pos, dir, sampler, uses, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
+
             scatter(pos, dir, scaling, totalDistance, uses);
         }
     }
 }
 
 void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &medium, const scn::Scene<tvec::TVector3> &scene, int numPhotons) {
-    using std::chrono::high_resolution_clock;
-    using std::chrono::duration_cast;
-    using std::chrono::duration;
-    using std::chrono::milliseconds;
-
-    auto t1 = high_resolution_clock::now();
     setup(target, medium, scene, numPhotons);
-    auto t2 = high_resolution_clock::now();
-
-    auto setup_duration = duration_cast<milliseconds>(t2 - t1);
-    std::cout << "Setup: " << setup_duration.count() << "ms\n";
 
     dim3 threadGrid(16, 16); // Arbitrary choice, total can go up to 1024 on most architectures, 2048 or 4096 on newer ones.
     int threadsPerBlock = threadGrid.x * threadGrid.y;
@@ -669,17 +660,24 @@ void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &med
     // N + (W - 1) / W, to ensure we have enough threads as division rounds down
     dim3 blockGrid((numBlocks + width -1) / width, width);
 
-    std::cout << "Calling renderPhotons with " << blockGrid.x * blockGrid.y * threadGrid.x * threadGrid.y << "\n";
-
-    auto t3 = high_resolution_clock::now();
-    renderPhotons<<<blockGrid,threadGrid>>>();
     CUDA_CALL(cudaDeviceSynchronize());
-    auto t4 = high_resolution_clock::now();
 
-    auto kernel_duration = duration_cast<milliseconds>(t4 - t3);
-    std::cout << "Kernel: " << kernel_duration.count() << "ms\n";
+    cudaEvent_t start, stop;
+    float gpu_time = 0.0f;
+    CUDA_CALL(cudaEventCreate(&start));
+    CUDA_CALL(cudaEventCreate(&stop));
 
-    auto t5 = high_resolution_clock::now();
+    cudaEventRecord(start);
+
+    renderPhotons<<<blockGrid,threadGrid>>>();
+    cudaDeviceSynchronize();
+
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+
+    CUDA_CALL(cudaEventElapsedTime(&gpu_time, start, stop));
+    std::cout << "Kernel took " << gpu_time << "ms\n";
+
     CUDA_CALL(cudaMemcpy(image, cudaImage,
                          target.getXRes()*target.getYRes()*target.getZRes()*sizeof(Float),
                          cudaMemcpyDeviceToHost));
@@ -695,10 +693,6 @@ void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &med
     }
 
     cleanup();
-    auto t6 = high_resolution_clock::now();
-
-    auto cleanup_duration = duration_cast<milliseconds>(t6 - t5);
-    std::cout << "Cleanup: " << cleanup_duration.count() << "ms\n";
 }
 
 /* Allocates host and device data and sets up RNG. */
