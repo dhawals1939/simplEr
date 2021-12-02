@@ -23,7 +23,7 @@ struct Constants {
     int y_res;
     int z_res;
 
-    Float *random;
+    curandState *state;
     Scene *scene;
     Medium *medium;
     Float weight;
@@ -37,12 +37,14 @@ struct Constants {
 
 __constant__ Constants d_constants;
 
-__device__ Float Sampler::sample(short &uses) const{
-    int idx = gridDim.x * blockDim.x * blockDim.y * blockIdx.y + gridDim.x * blockDim.x * threadIdx.y
-        + blockDim.x * blockIdx.x + threadIdx.x;
-    //ASSERT(uses < RANDOM_NUMBERS_PER_PHOTON);
-    ASSERT(idx * RANDOM_NUMBERS_PER_PHOTON + uses < m_size);
-    return m_random[idx * RANDOM_NUMBERS_PER_PHOTON + uses++];
+// TODO: Store curandState in thread and pass it to this function, instead of always
+// accessing global memory
+__device__ static Float inline uniform_sample(curandState *state) {
+#ifdef USE_DOUBLE_PRECISION
+    return static_cast<double>(curand_uniform(state));
+#else
+    return curand_uniform(state);
+#endif
 }
 
 __device__ inline Float safeSqrt(Float x) {
@@ -82,7 +84,7 @@ __device__ inline Float fresnelDielectric(Float cosThetaI, Float cosThetaT, Floa
 }
 
 __device__ inline void SmoothDielectric::sample(const TVector3<Float> &in, const TVector3<Float> &n,
-				Sampler &sampler, TVector3<Float> &out, short &samplerUses) const {
+				curandState *rand_state, TVector3<Float> &out) const {
 	if (fabsf(m_ior1 - m_ior2) < M_EPSILON) {
 		// index matched
 		out = in;
@@ -109,33 +111,33 @@ __device__ inline void SmoothDielectric::sample(const TVector3<Float> &in, const
 			Float fresnelR = fresnelDielectric(cosI, cosT, eta);
 
 			// return either refracted or reflected direction based on the Fresnel term
-			out = (sampler(samplerUses) < fresnelR ? outR : outT);
+			out = (uniform_sample(rand_state) < fresnelR ? outR : outT);
 		}
 	}
 }
 
 // Sample random ray
 __device__ bool AreaTexturedSource::sampleRay(TVector3<Float> &pos, TVector3<Float> &dir,
-                                              Float &totalDistance, Sampler& sampler, short &samplerUses) const{
+                                              Float &totalDistance, curandState *rand_state) const{
     pos = *m_origin;
 
     // sample pixel position first
-	int pixel = m_textureSampler->sample(sampler(samplerUses));
+	int pixel = m_textureSampler->sample(uniform_sample(rand_state));
 	int p[2];
 	m_texture->ind2sub(pixel, p[0], p[1]);
 
 	// Now find a random location on the pixel
 	for (int iter = 1; iter < m_origin->dim; ++iter) {
 		pos[iter] += - (*m_plane)[iter - 1] / FPCONST(2.0) +
-            p[iter - 1] * (*m_pixelsize)[iter-1] + sampler(samplerUses) * (*m_pixelsize)[iter - 1];
+            p[iter - 1] * (*m_pixelsize)[iter-1] + uniform_sample(rand_state) * (*m_pixelsize)[iter - 1];
 	}
 
 	dir = *m_dir;
 
 	//FIXME: Hack: Works only for m_dir = [-1 0 0]
-	Float z   = sampler(samplerUses)*(1-m_ct) + m_ct;
+	Float z   = uniform_sample(rand_state)*(1-m_ct) + m_ct;
 	Float zt  = sqrtf(FPCONST(1.0)-z*z);
-	Float phi = sampler(samplerUses)*2*M_PI;
+	Float phi = uniform_sample(rand_state)*2*M_PI;
 	dir[0] = -z;
 	dir[1] = zt*cosf(phi);
 	dir[2] = zt*sinf(phi);
@@ -143,9 +145,63 @@ __device__ bool AreaTexturedSource::sampleRay(TVector3<Float> &pos, TVector3<Flo
 }
 
 
-__device__ inline Float getMoveStep(const Medium *medium, short &uses) {
-    Sampler &sampler = *d_constants.scene->sampler;
-    return -medium->getMfp() * logf(sampler(uses));
+__device__ inline Float getMoveStep(const Medium *medium, curandState *rand_state) {
+    return -medium->getMfp() * logf(uniform_sample(rand_state));
+}
+
+__device__ Float HenyeyGreenstein::sample(const TVector2<Float> &in, curandState *rand_state,
+                        TVector2<Float> &out)  const {
+    Float sampleVal = FPCONST(1.0) - FPCONST(2.0) * uniform_sample(rand_state);
+
+    Float theta;
+    if (fabsf(m_g) < M_EPSILON) {
+        theta = M_PI * sampleVal;
+    } else {
+        theta = FPCONST(2.0) * atanf((FPCONST(1.0) - m_g) / (FPCONST(1.0) + m_g)
+                            * tanf(M_PI / FPCONST(2.0) * sampleVal));
+    }
+    Float cosTheta = cosf(theta);
+    Float sinTheta = sinf(theta);
+
+    TVector2<Float> axisY;
+    axisY = TVector2<Float>(in.y, -in.x); // coordinate system
+
+    out = sinTheta * axisY + cosTheta * in;
+    return cosTheta;
+}
+
+__device__ Float HenyeyGreenstein::sample(const TVector3<Float> &in, curandState *rand_state, TVector3<Float> &out) const {
+
+    Float samplex = uniform_sample(rand_state);
+    Float sampley = uniform_sample(rand_state);
+
+    Float cosTheta;
+    if (fabsf(m_g) < M_EPSILON) {
+        cosTheta = 1 - 2 * samplex;
+    } else {
+        Float sqrTerm = (1 - m_g * m_g) / (1 - m_g + 2 * m_g * samplex);
+        cosTheta = (1 + m_g * m_g - sqrTerm * sqrTerm) / (2 * m_g);
+    }
+
+    Float sinTheta = sqrtf(fmaxf(FPCONST(0.0), FPCONST(1.0) - cosTheta * cosTheta));
+    Float phi = static_cast<Float>(FPCONST(2.0) * M_PI) * sampley;
+    Float sinPhi, cosPhi;
+    sinPhi = sinf(phi);
+    cosPhi = cosf(phi);
+
+    TVector3<Float> axisX, axisY;
+    coordinateSystem(in, axisX, axisY);
+
+    out = (sinTheta * cosPhi) * axisX + (sinTheta * sinPhi) * axisY + cosTheta * in;
+    return cosTheta;
+}
+
+__device__ inline bool Camera::samplePosition(TVector3<Float> &pos, curandState *rand_state) const {
+    pos = *m_origin;
+    for (int iter = 1; iter < m_origin->dim; ++iter) {
+        pos[iter] += - (*m_plane)[iter - 1] / FPCONST(2.0) + uniform_sample(rand_state) * (*m_plane)[iter - 1];
+    }
+    return true;
 }
 
 __device__ void Scene::er_step(TVector3<Float> &p, TVector3<Float> &d, Float stepSize, Float scaling) const{
@@ -218,8 +274,8 @@ __device__ TVector3<Float> squareToUniformHemisphere(const TVector2<Float> &samp
 	return TVector3<Float>(r * cosPhi, r * sinPhi, z);
 }
 
-__device__ void sampleRandomDirection(TVector3<Float> &randDirection, Sampler &sampler, short &uses){
-	randDirection = squareToUniformHemisphere(TVector2<Float>(sampler(uses), sampler(uses))); // this sampling is done in z=1 direction. need to compensate for it.
+__device__ void sampleRandomDirection(TVector3<Float> &randDirection, curandState *rand_state){
+	randDirection = squareToUniformHemisphere(TVector2<Float>(uniform_sample(rand_state), uniform_sample(rand_state))); // this sampling is done in z=1 direction. need to compensate for it.
 	Float temp = randDirection.x;
 	randDirection.x =-randDirection.z; // compensating that the direction of photon propagation is -x
 	randDirection.z = randDirection.y;
@@ -227,7 +283,7 @@ __device__ void sampleRandomDirection(TVector3<Float> &randDirection, Sampler &s
 }
 
 __device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVector3<Float> &d, Float distTravelled,
-                                           int &depth, Float val, Sampler &sampler, short &uses, const Float &scaling) const {
+                                           int &depth, Float val, curandState *rand_state, const Float &scaling) const {
 
 	TVector3<Float> p1 = p;
 
@@ -236,7 +292,7 @@ __device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVect
 	if( (p.x-m_camera->getOrigin().x) < 1e-4) // Hack to get rid of inf problems for direct connection
 		return;
 
-	sampleRandomDirection(dirToSensor, sampler, uses); // Samples by assuming that the sensor is in +x direction.
+	sampleRandomDirection(dirToSensor, rand_state); // Samples by assuming that the sensor is in +x direction.
 
 //#ifdef PRINT_DEBUGLOG
 //	std::cout << "dirToSensor: (" << dirToSensor.x << ", " << dirToSensor.y << ", " << dirToSensor.z << ") \n";
@@ -247,7 +303,7 @@ __device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVect
 #endif
 
 	Float distToSensor;
-	if(!movePhotonTillSensor(p1, dirToSensor, distToSensor, distTravelled, sampler, uses, scaling))
+	if(!movePhotonTillSensor(p1, dirToSensor, distToSensor, distTravelled, rand_state, scaling))
 		return;
 
 //#ifdef OMEGA_TRACKING
@@ -303,7 +359,7 @@ __device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVect
 }
 
 __device__ bool Scene::movePhotonTillSensor(TVector3<Float> &p, TVector3<Float> &d, Float &distToSensor, Float &totalOpticalDistance,
-                                            Sampler &sampler, short& uses, const Float& scaling) const {
+                                            curandState *rand_state, const Float& scaling) const {
 
 	Float LargeDist = FPCONST(10000.0);
 
@@ -361,7 +417,7 @@ __device__ bool Scene::movePhotonTillSensor(TVector3<Float> &p, TVector3<Float> 
 			return true;
 
 		// if not, routine
-        m_bsdf->sample(d, norm, sampler, d1, uses);
+        m_bsdf->sample(d, norm, rand_state, d1);
 		if (dot(d1, norm) < FPCONST(0.0)) {
 			// re-enter the medium through reflection
 			d = d1;
@@ -438,7 +494,7 @@ __device__ void Scene::addEnergyToImage(const TVector3<Float> &p, Float pathleng
 
 // Move photon and return true if still in medium, false otherwise
 __device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float dist,
-                                  Float &totalOpticalDistance, short &uses, Float scaling) const{
+                                  Float &totalOpticalDistance, curandState *rand_state, Float scaling) const{
 
 	// Algorithm
 	// 1. Move till you reach the boundary or till the distance is reached.
@@ -496,9 +552,9 @@ __device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float 
 		Float magnitude = d.length();
 #ifdef PRINT_DEBUGLOG
 		std::cout << "Before BSDF sample, d: (" << d.x/magnitude << ", " << d.y/magnitude <<  ", " << d.z/magnitude << "); \n "
-				"norm: (" << norm.x << ", " << norm.y << ", " << norm.z << ");" << "A Sampler: " << sampler() << "\n";
+				"norm: (" << norm.x << ", " << norm.y << ", " << norm.z << ");" << "A Sampler: " << uniform_sample(rand_state) << "\n";
 #endif
-        m_bsdf->sample(d/magnitude, norm, *sampler, d1, uses);
+        m_bsdf->sample(d/magnitude, norm, rand_state, d1);
         if (dot(d1, norm) < FPCONST(0.0)) {
 			// re-enter the medium through reflection
 			d = d1*magnitude;
@@ -513,24 +569,24 @@ __device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float 
 }
 
 __device__ bool scatterOnce(TVector3<Float> &p, TVector3<Float> &d, Float &dist,
-                            Float &totalOpticalDistance, Sampler &sampler, short &samplerUses, const Float &scaling) {
+                            Float &totalOpticalDistance, curandState *rand_state, const Float &scaling) {
     Medium *medium = d_constants.medium;
     Scene *scene = d_constants.scene;
 
-	if ((medium->getAlbedo() > FPCONST(0.0)) && ((medium->getAlbedo() >= FPCONST(1.0)) || (sampler(samplerUses) < medium->getAlbedo()))) {
+	if ((medium->getAlbedo() > FPCONST(0.0)) && ((medium->getAlbedo() >= FPCONST(1.0)) || (uniform_sample(rand_state) < medium->getAlbedo()))) {
 		TVector3<Float> d1;
 		Float magnitude = d.length();
-		medium->getPhaseFunction()->sample(d/magnitude, sampler, samplerUses, d1);
+		medium->getPhaseFunction()->sample(d/magnitude, rand_state, d1);
 		d = magnitude*d1;
-		dist = getMoveStep(medium, samplerUses);
-		return scene->movePhoton(p, d, dist, totalOpticalDistance, samplerUses, scaling);
+		dist = getMoveStep(medium, rand_state);
+		return scene->movePhoton(p, d, dist, totalOpticalDistance, rand_state, scaling);
 	} else {
 		dist = FPCONST(0.0);
 		return false;
 	}
 }
 
-__device__ void directTracing(const TVector3<Float> &p, const TVector3<Float> &d, Sampler &sampler, short &uses, const Float &scaling, Float &totalOpticalDistance) {
+__device__ void directTracing(const TVector3<Float> &p, const TVector3<Float> &d, curandState *rand_state, const Float &scaling, Float &totalOpticalDistance) {
 
     const Camera &camera = d_constants.scene->getCamera();
 
@@ -538,7 +594,7 @@ __device__ void directTracing(const TVector3<Float> &p, const TVector3<Float> &d
 	TVector3<Float> d1 = d;
 
 	Float distToSensor;
-	if(!d_constants.scene->movePhotonTillSensor(p1, d1, distToSensor, totalOpticalDistance, sampler, uses, scaling))
+	if(!d_constants.scene->movePhotonTillSensor(p1, d1, distToSensor, totalOpticalDistance, rand_state, scaling))
 		return;
 	Float fresnelWeight = FPCONST(1.0);
 
@@ -578,17 +634,16 @@ __device__ void directTracing(const TVector3<Float> &p, const TVector3<Float> &d
 	d_constants.scene->addEnergyToImage(p1, totalOpticalDistance, depth, totalPhotonValue);
 }
 
-__device__ void scatter(TVector3<Float> &p, TVector3<Float> &d, Float scaling, Float &totalOpticalDistance, short &uses) {
+__device__ void scatter(TVector3<Float> &p, TVector3<Float> &d, Float scaling, Float &totalOpticalDistance, curandState *rand_state) {
     Scene *scene = d_constants.scene;
     Medium *medium = d_constants.medium;
-    Sampler &sampler = *scene->sampler;
 	ASSERT(scene->getMediumBlock()->inside(p));
 
-	if ((medium->getAlbedo() > FPCONST(0.0)) && ((medium->getAlbedo() >= FPCONST(1.0)) || (sampler(uses) < medium->getAlbedo()))) {
+	if ((medium->getAlbedo() > FPCONST(0.0)) && ((medium->getAlbedo() >= FPCONST(1.0)) || (uniform_sample(rand_state) < medium->getAlbedo()))) {
 		TVector3<Float> pos(p), dir(d);
 
-		Float dist = getMoveStep(medium, uses);
-		if (!scene->movePhoton(pos, dir, dist, totalOpticalDistance, uses, scaling)) {
+		Float dist = getMoveStep(medium, rand_state);
+		if (!scene->movePhoton(pos, dir, dist, totalOpticalDistance, rand_state, scaling)) {
 			return;
 		}
 
@@ -598,10 +653,10 @@ __device__ void scatter(TVector3<Float> &p, TVector3<Float> &d, Float scaling, F
 				(d_constants.maxPathlength < 0 || totalDist <= d_constants.maxPathlength)) {
             ASSERT(d_constants.useAngularSampling);
 			if(d_constants.useAngularSampling)
-                scene->addEnergyInParticle(pos, dir, totalOpticalDistance, depth, d_constants.weight, sampler, uses, scaling);
+                scene->addEnergyInParticle(pos, dir, totalOpticalDistance, depth, d_constants.weight, rand_state, scaling);
 //			else
 //				scene.addEnergy(img, pos, dir, totalOpticalDistance, depth, weight, medium, sampler, scaling, costFunction, problem, initialization);
-			if (!scatterOnce(pos, dir, dist, totalOpticalDistance, sampler, uses, scaling)){
+			if (!scatterOnce(pos, dir, dist, totalOpticalDistance, rand_state, scaling)){
 //#ifdef PRINT_DEBUGLOG
 //				std::cout << "sampler after failing scatter once:" << sampler() << std::endl;
 //#endif
@@ -627,25 +682,33 @@ __global__ void renderPhotons() {
     TVector3<Float> dir;
     Float totalDistance = 0;
     Float scaling = 0;
-    short uses = 0;
 
-    Scene *scene = d_constants.scene;
-    Sampler &sampler = *scene->sampler;
+    Scene scene = *d_constants.scene;
 
     int idx = gridDim.x * blockDim.x * blockDim.y * blockIdx.y + gridDim.x * blockDim.x * threadIdx.y + blockDim.x * blockIdx.x + threadIdx.x;
 
     // FIXME: Checking for numPhotons limit is not necessary as the more photons the merrier.
     if (idx < d_constants.numPhotons) {
-        if (scene->genRay(pos, dir, totalDistance, uses)) {
-            scaling = max(min(sinf(scene->getUSPhi_min() + scene->getUSPhi_range() * sampler(uses)), scene->getUSMaxScaling()), -scene->getUSMaxScaling());
+        curandState local_state = d_constants.state[idx];
+        if (scene.genRay(pos, dir, totalDistance, &local_state)) {
+            scaling = max(min(sinf(scene.getUSPhi_min() + scene.getUSPhi_range() * uniform_sample(&local_state)), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
 #ifndef OMEGA_TRACKING
-			dir *= scene->getMediumIor(pos, scaling);
+			dir *= scene.getMediumIor(pos, scaling);
 #endif
             if (d_constants.useDirect)
-                directTracing(pos, dir, sampler, uses, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
+                directTracing(pos, dir, &local_state, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
 
-            scatter(pos, dir, scaling, totalDistance, uses);
+            //scatter(pos, dir, scaling, totalDistance, &local_state);
         }
+    }
+}
+
+// FIXME: Currently seeded
+__global__ void random_setup_kernel() {
+    int idx = gridDim.x * blockDim.x * blockDim.y * blockIdx.y + gridDim.x * blockDim.x * threadIdx.y
+        + blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx < d_constants.numPhotons) {
+        curand_init(1234, idx, 0, d_constants.state + idx);
     }
 }
 
@@ -658,7 +721,10 @@ void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &med
     int width = 32; // Arbitrary as well
 
     // N + (W - 1) / W, to ensure we have enough threads as division rounds down
-    dim3 blockGrid((numBlocks + width -1) / width, width);
+    dim3 blockGrid((numBlocks + width - 1) / width, width);
+
+    /* Setup RNG state to be used by each thread */
+    random_setup_kernel<<<blockGrid,threadGrid>>>();
 
     CUDA_CALL(cudaDeviceSynchronize());
 
@@ -670,7 +736,7 @@ void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &med
     cudaEventRecord(start);
 
     renderPhotons<<<blockGrid,threadGrid>>>();
-    cudaDeviceSynchronize();
+    CUDA_CALL(cudaDeviceSynchronize());
 
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -705,12 +771,12 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
     CUDA_CALL(cudaMalloc((void **)&cudaImage,
                          target.getXRes()*target.getYRes()*target.getZRes()*sizeof(Float)));
     CUDA_CALL(cudaMemset(cudaImage, 0, target.getXRes()*target.getYRes()*target.getZRes()*sizeof(Float))); // zero out image
-    CUDA_CALL(cudaMalloc((void **)&cudaRandom, requiredRandomNumbers(numPhotons) * sizeof(Float)));
-    cudaScene = Scene::from(scene, cudaRandom, requiredRandomNumbers(numPhotons) * sizeof(Float));
+    cudaScene = Scene::from(scene);
     cudaMedium = Medium::from(medium);
 
-    /* Setup generator. */
-    CURAND_CALL(curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_MT19937));
+    /* Setup curand state. */
+    curandState *cudaRandomState;
+    CUDA_CALL(cudaMalloc((void **)&cudaRandomState, sizeof(curandState) * numPhotons));
 
     /* Send in parameter pointers to device */
     Constants h_constants = {
@@ -718,7 +784,7 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
         .x_res              = target.getXRes(),
         .y_res              = target.getYRes(),
         .z_res              = target.getZRes(),
-        .random             = cudaRandom,
+        .state              = cudaRandomState,
         .scene              = cudaScene,
         .medium             = cudaMedium,
         .weight             = getWeight(medium, scene, numPhotons),
@@ -731,35 +797,30 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
 
     CUDA_CALL(cudaMemcpyToSymbol(d_constants, &h_constants, sizeof(Constants)));
 
-    /* Generate random numbers to be used by each thread */
-    genDeviceRandomNumbers(requiredRandomNumbers(numPhotons));
-
     CUDA_CALL(cudaDeviceSynchronize());
 }
 
 /* Generates random numbers on the device. */
 // TODO: currently sequential, compare to result produced by sequential renderer (as opposed to threaded)
-void CudaRenderer::genDeviceRandomNumbers(int num, CudaSeedType seed) {
-    smp::SamplerSet sampler(1, 0);
-    Float *random = new Float[num];
-    for (int i = 0; i < num; i++) {
-        random[i] = sampler[0]();
-    }
-
-    CUDA_CALL(cudaMemcpy(cudaRandom, random, sizeof(Float)*num, cudaMemcpyHostToDevice));
-
-    delete[] random;
-
-    // TODO: Enable below to make it parallel
-    //CURAND_CALL(curandSetPseudoRandomGeneratorSeed(generator, seed));
-    ///* Generate reals uniformly between 0.0 and 1.0 */
-    //CURAND_CALL(curandGenerateUniform(generator, cudaRandom, num));
-}
+//void CudaRenderer::genDeviceRandomNumbers(int num, CudaSeedType seed) {
+//    smp::SamplerSet sampler(1, 0);
+//    Float *random = new Float[num];
+//    for (int i = 0; i < num; i++) {
+//        random[i] = sampler[0]();
+//    }
+//
+//    CUDA_CALL(cudaMemcpy(cudaRandom, random, sizeof(Float)*num, cudaMemcpyHostToDevice));
+//
+//    delete[] random;
+//
+//    // TODO: Enable below to make it parallel
+//    //CURAND_CALL(curandSetPseudoRandomGeneratorSeed(generator, seed));
+//    ///* Generate reals uniformly between 0.0 and 1.0 */
+//    //CURAND_CALL(curandGenerateUniform(generator, cudaRandom, num));
+//}
 
 void CudaRenderer::cleanup() {
     if (image) delete[] image;
-
-    if (generator) CURAND_CALL(curandDestroyGenerator(generator));
 
     // TODO: Free cudaImage, cudaRandom, cudaScene, cudaMedium
 }
@@ -767,8 +828,8 @@ void CudaRenderer::cleanup() {
 CudaRenderer::~CudaRenderer() {}
 
 /* Required amount of random numbers to run the renderPhotons kernel on numPhotons */
-unsigned int CudaRenderer::requiredRandomNumbers(int numPhotons) {
-    return numPhotons * RANDOM_NUMBERS_PER_PHOTON;
-}
+//unsigned int CudaRenderer::requiredRandomNumbers(int numPhotons) {
+//    return numPhotons * RANDOM_NUMBERS_PER_PHOTON;
+//}
 
 }

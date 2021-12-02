@@ -346,7 +346,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 			if(m_useDirect)
 				directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
             //printf("[>] p (%.2f, %.2f, %.2f), d (%.2f, %.2f, %.2f), weight %.2f, scaling %.2f, dist %.2f\n", pos.x, pos.y, pos.z, dir.x, dir.y, dir.z, weight, scaling, totalDistance);
-			scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance, *costFunctions[id], problem[id], initializations+id*3);
+			//scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance, *costFunctions[id], problem[id], initializations+id*3);
 		}
 	}
 

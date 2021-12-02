@@ -33,7 +33,7 @@ public:
 	}
 
     __device__ inline void ind2sub(const int &ndx, int &x, int &y) const {
-		ASSERT(ndx >= 0 && ndx < m_xRes * m_yRes);
+		ASSERT(ndx >= 0 && ndx <= m_xRes * m_yRes);
 		y = ndx/m_xRes;
 		x = ndx - y*m_xRes;
 	}

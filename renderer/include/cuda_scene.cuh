@@ -8,38 +8,7 @@
 #include "constants.h"
 #include "scene.h"
 
-
-// Rendering a photon requires 6 calls to sampler() or
-// equivalently, 6 random floats/doubles (FIXME: Not really true)
-#define RANDOM_NUMBERS_PER_PHOTON 6
-
 namespace cuda {
-
-class Sampler {
-public:
-
-    /* Random should be a host pointer */
-    __host__ static Sampler *from(const Float *d_random, size_t size) {
-        Sampler result = Sampler(d_random, size);
-        Sampler *d_result;
-
-        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Sampler)));
-        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Sampler), cudaMemcpyHostToDevice));
-        return d_result;
-    }
-
-    /* Sample a random number for this thread and update uses argument for bookkeeping. */
-    __device__ Float inline operator()(short &uses) {
-        return sample(uses);
-    }
-private:
-
-    __device__ Float sample(short &uses) const;
-
-    __host__ Sampler(const Float *d_random, size_t size) : m_random(d_random), m_size(size) { }
-    size_t m_size;
-    const Float *m_random;
-};
 
 class DiscreteDistribution {
 public:
@@ -147,7 +116,7 @@ public:
 		return m_sum;
 	}
 
-	__device__ inline size_t sample(Float sampleValue) { // TODO: Make this const
+	__device__ inline size_t sample(Float sampleValue) {
         // First elements is dummy 0.0f. Account for it.
         size_t index = fminf(m_cdf_length-2,
                            fmaxf(cdf_lower_bound(sampleValue)-1, (size_t) 0));
@@ -194,11 +163,19 @@ private:
         m_normalized = false;
     }
 
-    __device__ size_t cdf_lower_bound(Float value) const {
-        for (size_t i=0; i < m_cdf_length; i++) {
-            if (m_cdf[i] >= value) return i;
+    __device__ inline size_t cdf_lower_bound(Float value) const {
+        size_t lo = 0;
+        size_t hi = m_cdf_length;
+        size_t mid;
+        while (lo < hi) {
+            mid = lo + (hi - lo)/2;
+            if (value < m_cdf[mid]) {
+                hi = mid;
+            } else {
+                lo = mid + 1;
+            }
         }
-        return m_cdf_length;
+        return lo;
     }
 
 	Float m_sum, m_normalization;
@@ -217,7 +194,7 @@ public:
     }
 
     __device__ void sample(const TVector3<Float> &in, const TVector3<Float> &n,
-				Sampler &sampler, TVector3<Float> &out, short &uses) const;
+				curandState *rand_state, TVector3<Float> &out) const;
 
 	__device__ inline Float getIor1() const {
 		return m_ior1;
@@ -330,13 +307,7 @@ public:
         return d_result;
     }
 
-	__device__ inline bool samplePosition(TVector3<Float> &pos, Sampler &sampler, short &uses) const {
-        pos = *m_origin;
-        for (int iter = 1; iter < m_origin->dim; ++iter) {
-            pos[iter] += - (*m_plane)[iter - 1] / FPCONST(2.0) + sampler(uses) * (*m_plane)[iter - 1];
-        }
-        return true;
-    }
+	__device__ inline bool samplePosition(TVector3<Float> &pos, curandState *rand_state) const;
 
 	__device__ inline const TVector3<Float>& getOrigin() const {
 		return *m_origin;
@@ -429,7 +400,7 @@ public:
         return d_result;
     }
 
-	__device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, Sampler& sampler, short &samplerUses) const;
+	__device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, curandState *rand_state) const;
 
 	__device__ inline const TVector3<Float>& getOrigin() const {
 		return *m_origin;
@@ -677,52 +648,9 @@ public:
     }
 
 
-    __device__ Float sample(const TVector3<Float> &in, Sampler &sampler, short& uses, TVector3<Float> &out) const {
+    __device__ Float sample(const TVector3<Float> &in, curandState *rand_state, TVector3<Float> &out) const;
 
-        Float samplex = sampler(uses);
-        Float sampley = sampler(uses);
-
-        Float cosTheta;
-        if (fabsf(m_g) < M_EPSILON) {
-            cosTheta = 1 - 2 * samplex;
-        } else {
-            Float sqrTerm = (1 - m_g * m_g) / (1 - m_g + 2 * m_g * samplex);
-            cosTheta = (1 + m_g * m_g - sqrTerm * sqrTerm) / (2 * m_g);
-        }
-
-        Float sinTheta = sqrtf(fmaxf(FPCONST(0.0), FPCONST(1.0) - cosTheta * cosTheta));
-        Float phi = static_cast<Float>(FPCONST(2.0) * M_PI) * sampley;
-        Float sinPhi, cosPhi;
-        sinPhi = sinf(phi);
-        cosPhi = cosf(phi);
-
-        TVector3<Float> axisX, axisY;
-        coordinateSystem(in, axisX, axisY);
-
-        out = (sinTheta * cosPhi) * axisX + (sinTheta * sinPhi) * axisY + cosTheta * in;
-        return cosTheta;
-    }
-
-	__device__ Float sample(const TVector2<Float> &in, Sampler &sampler, short &uses,
-                            TVector2<Float> &out)  const {
-        Float sampleVal = FPCONST(1.0) - FPCONST(2.0) * sampler(uses);
-
-        Float theta;
-        if (fabsf(m_g) < M_EPSILON) {
-            theta = M_PI * sampleVal;
-        } else {
-            theta = FPCONST(2.0) * atanf((FPCONST(1.0) - m_g) / (FPCONST(1.0) + m_g)
-                                * tanf(M_PI / FPCONST(2.0) * sampleVal));
-        }
-        Float cosTheta = cosf(theta);
-        Float sinTheta = sinf(theta);
-
-        TVector2<Float> axisY;
-        axisY = TVector2<Float>(in.y, -in.x); // coordinate system
-
-        out = sinTheta * axisY + cosTheta * in;
-        return cosTheta;
-    }
+	__device__ Float sample(const TVector2<Float> &in, curandState *rand_state, TVector2<Float> &out)  const;
 
 	__device__ inline Float getG() const {
 		return m_g;
@@ -825,59 +753,57 @@ class Block {
 	 * TODO: Maybe replace these with comparisons to FPCONST(0.0)?
 	 */
 	__device__ inline bool inside(const TVector3<Float> &p) const {
-		bool result = true;
-		for (int iter = 0; iter < p.dim; ++iter) {
-			result = result
-				&& (p[iter] - (*m_blockL)[iter] > -M_EPSILON)
-				&& ((*m_blockR)[iter] - p[iter] > -M_EPSILON);
-			/*
-			 * TODO: Maybe remove this check, it may be slowing performance down
-			 * due to the branching.
-			 */
-			if (!result) {
-				break;
-			}
-		}
-		return result;
+        return (p.x - m_blockL_x > -M_EPSILON)
+            && (m_blockR_x - p.x > -M_EPSILON)
+            && (p.y - m_blockL_y > -M_EPSILON)
+            && (m_blockR_y - p.y > -M_EPSILON)
+            && (p.z - m_blockL_z > -M_EPSILON)
+            && (m_blockR_z - p.z > -M_EPSILON);
 	}
 
-	//bool intersect(const VectorType<Float> &p, const VectorType<Float> &d,
-	//			Float &disx, Float &disy) const;
-
-
 	__device__ inline const TVector3<Float>& getBlockL() const {
-		return *m_blockL;
+		return TVector3<Float>(m_blockL_x, m_blockL_y, m_blockL_z);
 	}
 
 	__device__ inline const TVector3<Float>& getBlockR() const {
-		return *m_blockR;
+		return TVector3<Float>(m_blockR_x, m_blockR_y, m_blockR_z);
 	}
 
 protected:
 	__host__ Block(const tvec::TVector3<Float> &blockL, const tvec::TVector3<Float> &blockR)
-		: m_blockL(TVector3<Float>::from(blockL)),
-		  m_blockR(TVector3<Float>::from(blockR)) { }
+		: m_blockL_x(blockL.x),
+          m_blockL_y(blockL.y),
+		  m_blockL_z(blockL.z),
+          m_blockR_x(blockR.x),
+		  m_blockR_y(blockR.y),
+		  m_blockR_z(blockR.z) {}
 
 	virtual ~Block() { }
 
-	TVector3<Float> *m_blockL;
-	TVector3<Float> *m_blockR;
+    // TODO: Store as float3 or double3
+	Float m_blockL_x;
+	Float m_blockL_y;
+	Float m_blockL_z;
+
+	Float m_blockR_x;
+	Float m_blockR_y;
+	Float m_blockR_z;
 };
 
 class Scene {
 
 public:
 
-    __host__ static Scene *from(const scn::Scene<tvec::TVector3> &scene, const Float *d_random, size_t random_size) {
-        Scene result = Scene(scene, d_random, random_size);
+    __host__ static Scene *from(const scn::Scene<tvec::TVector3> &scene) {
+        Scene result = Scene(scene);
         Scene *d_result;
         CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Scene)));
         CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Scene), cudaMemcpyHostToDevice));
         return d_result;
     }
 
-    __device__ inline bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, short &samplerUses) {
-        return m_source->sampleRay(pos, dir, totalDistance, *sampler, samplerUses);
+    __device__ inline bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, curandState *rand_state) {
+        return m_source->sampleRay(pos, dir, totalDistance, rand_state);
     }
 
     __device__ inline Block *getMediumBlock() const{
@@ -903,13 +829,13 @@ public:
     __device__ void addEnergyToImage(const TVector3<Float> &p, Float pathlength, int &depth, Float val) const;
 
 	__device__ void addEnergyInParticle(const TVector3<Float> &p, const TVector3<Float> &d, Float distTravelled,
-                                        int &depth, Float val, Sampler &sampler, short &uses, const Float &scaling) const;
+                                        int &depth, Float val, curandState *rand_state, const Float &scaling) const;
 
     __device__ bool movePhotonTillSensor(TVector3<Float> &p, TVector3<Float> &d, Float &distToSensor, Float &totalOpticalDistance,
-                                            Sampler &sampler, short&uses, const Float& scaling) const;
+                                            curandState *rand_state, const Float& scaling) const;
 
     __device__ bool movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float dist,
-                               Float &totalOpticalDistance, short &uses, Float scaling) const;
+                               Float &totalOpticalDistance, curandState *rand_state, Float scaling) const;
 
     __device__ void traceTillBlock(TVector3<Float> &p, TVector3<Float> &d, Float dist, Float &disx,
                                    Float &disy, Float &totalOpticalDistance, Float scaling) const;
@@ -937,13 +863,10 @@ public:
     __device__ inline const Camera &getCamera() {
         return *m_camera;
     }
-
-    Sampler *sampler;
 private:
 
-    __host__ Scene(const scn::Scene<tvec::TVector3> &scene, const Float *d_random, size_t random_size) {
+    __host__ Scene(const scn::Scene<tvec::TVector3> &scene) {
         m_source  = AreaTexturedSource::from(scene.getAreaSource());
-        sampler   = Sampler::from(d_random, random_size);
         m_block   = Block::from(scene.getMediumBlock());
         m_us      = US::from(scene.m_us);
         m_bsdf    = SmoothDielectric::from(scene.getBSDF());
