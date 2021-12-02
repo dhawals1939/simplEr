@@ -23,10 +23,12 @@ struct Constants {
     int y_res;
     int z_res;
 
-    curandState *state;
+//    curandState *state;
     Scene *scene;
     Medium *medium;
     Float weight;
+    Float3 blockL;
+    Float3 blockR;
 
     int maxDepth;
     Float maxPathlength;
@@ -229,6 +231,19 @@ __device__ void Scene::er_step(TVector3<Float> &p, TVector3<Float> &d, Float ste
 #endif
 }
 
+
+__device__ inline bool inside_block(const TVector3<Float> &p) {
+    float3 blockL = d_constants.blockL;
+    float3 blockR = d_constants.blockR;
+
+    return (p.x - blockL.x > -M_EPSILON)
+        && (blockR.x - p.x > -M_EPSILON)
+        && (p.y - blockL.y > -M_EPSILON)
+        && (blockR.y - p.y > -M_EPSILON)
+        && (p.z - blockL.z > -M_EPSILON)
+        && (blockR.z - p.z > -M_EPSILON);
+}
+
 __device__ void Scene::traceTillBlock(TVector3<Float> &p, TVector3<Float> &d, Float dist, Float &disx, Float &disy, Float &totalOpticalDistance, Float scaling) const{
 	TVector3<Float> oldp, oldd;
 
@@ -244,7 +259,7 @@ __device__ void Scene::traceTillBlock(TVector3<Float> &p, TVector3<Float> &d, Fl
     	er_step(p, d, current_stepsize, scaling);
 
     	// check if we are at the intersection or crossing the sampled dist, then, estimate the distance and keep going more accurately towards the boundary or sampled dist
-    	if(!m_block->inside(p) || (distance + current_stepsize) > dist){
+    	if(!inside_block(p) || (distance + current_stepsize) > dist){
     		precision--;
     		if(precision < 0)
     			break;
@@ -365,6 +380,8 @@ __device__ bool Scene::movePhotonTillSensor(TVector3<Float> &p, TVector3<Float> 
 
 	Float disx, disy;
 	TVector3<Float> d1, norm;
+    TVector3<Float> blockL(d_constants.blockL.x, d_constants.blockL.y, d_constants.blockL.z);
+    TVector3<Float> blockR(d_constants.blockR.x, d_constants.blockR.y, d_constants.blockR.z);
 	traceTillBlock(p, d, LargeDist, disx, disy, totalOpticalDistance, scaling);
 	distToSensor = disy;
 	LargeDist -= disy;
@@ -376,11 +393,11 @@ __device__ bool Scene::movePhotonTillSensor(TVector3<Float> &p, TVector3<Float> 
 		int i;
 		norm.zero();
 		for (i = 0; i < p.dim; ++i) {
-			if (fabsf(m_block->getBlockL()[i] - p[i]) < 2*M_EPSILON) {
+			if (fabsf(blockL[i] - p[i]) < 2*M_EPSILON) {
 				norm[i] = -FPCONST(1.0);
 				break;
 			}
-			else if (fabsf(m_block->getBlockR()[i] - p[i]) < 2*M_EPSILON) {
+			else if (fabsf(blockR[i] - p[i]) < 2*M_EPSILON) {
 				norm[i] = FPCONST(1.0);
 				break;
 			}
@@ -393,13 +410,13 @@ __device__ bool Scene::movePhotonTillSensor(TVector3<Float> &p, TVector3<Float> 
 		normalt.zero();
 		int chosenI = p.dim;
 		for (i = 0; i < p.dim; ++i) {
-			Float diff = fabsf(m_block->getBlockL()[i] - p[i]);
+			Float diff = fabsf(blockL[i] - p[i]);
 			if (diff < minDiff) {
 				minDiff = diff;
 				chosenI = i;
 				minDir = -FPCONST(1.0);
 			}
-			diff = fabsf(m_block->getBlockR()[i] - p[i]);
+			diff = fabsf(blockR[i] - p[i]);
 			if (diff < minDiff) {
 				minDiff = diff;
 				chosenI = i;
@@ -507,15 +524,17 @@ __device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float 
 
 	dist -= disy;
 
+    TVector3<Float> blockL(d_constants.blockL.x, d_constants.blockL.y, d_constants.blockL.z);
+    TVector3<Float> blockR(d_constants.blockR.x, d_constants.blockR.y, d_constants.blockR.z);
 	while(dist > M_EPSILON){
 		int i;
 		norm.zero();
 		for (i = 0; i < p.dim; ++i) {
-			if (fabsf(m_block->getBlockL()[i] - p[i]) < M_EPSILON) {
+			if (fabsf(blockL[i] - p[i]) < M_EPSILON) {
 				norm[i] = -FPCONST(1.0);
 				break;
 			}
-			else if (fabsf(m_block->getBlockR()[i] - p[i]) < M_EPSILON) {
+			else if (fabsf(blockR[i] - p[i]) < M_EPSILON) {
 				norm[i] = FPCONST(1.0);
 				break;
 			}
@@ -528,13 +547,13 @@ __device__ bool Scene::movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float 
 		normalt.zero();
 		int chosenI = p.dim;
 		for (i = 0; i < p.dim; ++i) {
-			Float diff = fabsf(m_block->getBlockL()[i] - p[i]);
+			Float diff = fabsf(blockL[i] - p[i]);
 			if (diff < minDiff) {
 				minDiff = diff;
 				chosenI = i;
 				minDir = -FPCONST(1.0);
 			}
-			diff = fabsf(m_block->getBlockR()[i] - p[i]);
+			diff = fabsf(blockR[i] - p[i]);
 			if (diff < minDiff) {
 				minDiff = diff;
 				chosenI = i;
@@ -637,7 +656,7 @@ __device__ void directTracing(const TVector3<Float> &p, const TVector3<Float> &d
 __device__ void scatter(TVector3<Float> &p, TVector3<Float> &d, Float scaling, Float &totalOpticalDistance, curandState *rand_state) {
     Scene *scene = d_constants.scene;
     Medium *medium = d_constants.medium;
-	ASSERT(scene->getMediumBlock()->inside(p));
+	ASSERT(inside_block(p));
 
 	if ((medium->getAlbedo() > FPCONST(0.0)) && ((medium->getAlbedo() >= FPCONST(1.0)) || (uniform_sample(rand_state) < medium->getAlbedo()))) {
 		TVector3<Float> pos(p), dir(d);
@@ -689,7 +708,9 @@ __global__ void renderPhotons() {
 
     // FIXME: Checking for numPhotons limit is not necessary as the more photons the merrier.
     if (idx < d_constants.numPhotons) {
-        curandState local_state = d_constants.state[idx];
+        curandState local_state;
+        curand_init(1234, idx, 0, &local_state);
+
         if (scene.genRay(pos, dir, totalDistance, &local_state)) {
             scaling = max(min(sinf(scene.getUSPhi_min() + scene.getUSPhi_range() * uniform_sample(&local_state)), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
 #ifndef OMEGA_TRACKING
@@ -704,13 +725,13 @@ __global__ void renderPhotons() {
 }
 
 // FIXME: Currently seeded
-__global__ void random_setup_kernel() {
-    int idx = gridDim.x * blockDim.x * blockDim.y * blockIdx.y + gridDim.x * blockDim.x * threadIdx.y
-        + blockDim.x * blockIdx.x + threadIdx.x;
-    if (idx < d_constants.numPhotons) {
-        curand_init(1234, idx, 0, d_constants.state + idx);
-    }
-}
+//__global__ void random_setup_kernel() {
+//    int idx = gridDim.x * blockDim.x * blockDim.y * blockIdx.y + gridDim.x * blockDim.x * threadIdx.y
+//        + blockDim.x * blockIdx.x + threadIdx.x;
+//    if (idx < d_constants.numPhotons) {
+//        curand_init(1234, idx, 0, d_constants.state + idx);
+//    }
+//}
 
 void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &medium, const scn::Scene<tvec::TVector3> &scene, int numPhotons) {
     setup(target, medium, scene, numPhotons);
@@ -724,7 +745,7 @@ void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &med
     dim3 blockGrid((numBlocks + width - 1) / width, width);
 
     /* Setup RNG state to be used by each thread */
-    random_setup_kernel<<<blockGrid,threadGrid>>>();
+    //random_setup_kernel<<<blockGrid,threadGrid>>>();
 
     CUDA_CALL(cudaDeviceSynchronize());
 
@@ -775,8 +796,10 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
     cudaMedium = Medium::from(medium);
 
     /* Setup curand state. */
-    curandState *cudaRandomState;
-    CUDA_CALL(cudaMalloc((void **)&cudaRandomState, sizeof(curandState) * numPhotons));
+    //curandState *cudaRandomState;
+    //CUDA_CALL(cudaMalloc((void **)&cudaRandomState, sizeof(curandState) * numPhotons));
+
+    scn::Block<tvec::TVector3> block = scene.getMediumBlock();
 
     /* Send in parameter pointers to device */
     Constants h_constants = {
@@ -784,10 +807,12 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
         .x_res              = target.getXRes(),
         .y_res              = target.getYRes(),
         .z_res              = target.getZRes(),
-        .state              = cudaRandomState,
+        //.state              = cudaRandomState,
         .scene              = cudaScene,
         .medium             = cudaMedium,
         .weight             = getWeight(medium, scene, numPhotons),
+        .blockL             = make_float3(block.getBlockL().x, block.getBlockL().y, block.getBlockL().z),
+        .blockR             = make_float3(block.getBlockR().x, block.getBlockR().y, block.getBlockR().z),
         .maxDepth           = maxDepth,
         .maxPathlength      = maxPathlength,
         .useDirect          = useDirect,
@@ -796,8 +821,6 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
     };
 
     CUDA_CALL(cudaMemcpyToSymbol(d_constants, &h_constants, sizeof(Constants)));
-
-    CUDA_CALL(cudaDeviceSynchronize());
 }
 
 /* Generates random numbers on the device. */

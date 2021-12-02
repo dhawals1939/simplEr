@@ -737,59 +737,6 @@ protected:
 	HenyeyGreenstein *m_phase;
 };
 
-class Block {
-    public:
-
-    __host__ static Block *from(const scn::Block<tvec::TVector3> &block) {
-        Block result = Block(block.getBlockL(), block.getBlockR());
-        Block *d_result;
-
-        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(Block)));
-        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(Block), cudaMemcpyHostToDevice));
-        return d_result;
-    }
-
-	/*
-	 * TODO: Maybe replace these with comparisons to FPCONST(0.0)?
-	 */
-	__device__ inline bool inside(const TVector3<Float> &p) const {
-        return (p.x - m_blockL_x > -M_EPSILON)
-            && (m_blockR_x - p.x > -M_EPSILON)
-            && (p.y - m_blockL_y > -M_EPSILON)
-            && (m_blockR_y - p.y > -M_EPSILON)
-            && (p.z - m_blockL_z > -M_EPSILON)
-            && (m_blockR_z - p.z > -M_EPSILON);
-	}
-
-	__device__ inline const TVector3<Float>& getBlockL() const {
-		return TVector3<Float>(m_blockL_x, m_blockL_y, m_blockL_z);
-	}
-
-	__device__ inline const TVector3<Float>& getBlockR() const {
-		return TVector3<Float>(m_blockR_x, m_blockR_y, m_blockR_z);
-	}
-
-protected:
-	__host__ Block(const tvec::TVector3<Float> &blockL, const tvec::TVector3<Float> &blockR)
-		: m_blockL_x(blockL.x),
-          m_blockL_y(blockL.y),
-		  m_blockL_z(blockL.z),
-          m_blockR_x(blockR.x),
-		  m_blockR_y(blockR.y),
-		  m_blockR_z(blockR.z) {}
-
-	virtual ~Block() { }
-
-    // TODO: Store as float3 or double3
-	Float m_blockL_x;
-	Float m_blockL_y;
-	Float m_blockL_z;
-
-	Float m_blockR_x;
-	Float m_blockR_y;
-	Float m_blockR_z;
-};
-
 class Scene {
 
 public:
@@ -804,10 +751,6 @@ public:
 
     __device__ inline bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, curandState *rand_state) {
         return m_source->sampleRay(pos, dir, totalDistance, rand_state);
-    }
-
-    __device__ inline Block *getMediumBlock() const{
-        return m_block;
     }
 
     __device__ inline Float getMediumIor(const TVector3<Float> &p, const Float &scaling) const {
@@ -867,7 +810,6 @@ private:
 
     __host__ Scene(const scn::Scene<tvec::TVector3> &scene) {
         m_source  = AreaTexturedSource::from(scene.getAreaSource());
-        m_block   = Block::from(scene.getMediumBlock());
         m_us      = US::from(scene.m_us);
         m_bsdf    = SmoothDielectric::from(scene.getBSDF());
         m_camera  = Camera::from(scene.getCamera());
@@ -876,7 +818,6 @@ private:
     Camera *m_camera;
     SmoothDielectric *m_bsdf;
     US *m_us;
-    Block *m_block;
 	AreaTexturedSource *m_source;
 };
 

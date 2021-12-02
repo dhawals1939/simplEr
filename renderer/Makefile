@@ -203,9 +203,9 @@ ifeq ($(USE_CUDA), 1)
 	LIBS+= -L/opt/cuda/lib64/ -lcudart -lcurand
 	INCLUDES+=-I/opt/cuda/include/
 
-## Set to -O0 -lineinfo for profiling
-## Set to -O3 -use-fast-math
-	NVCCFLAGS= -O3 -use-fast-math -maxrregcount 32 -m64 -ccbin /usr/bin/g++ -std=c++14 -arch=sm_61
+## Try using -extra_device_vectorization
+##	NVCCFLAGS= -O3 -use_fast_math -maxrregcount 32 -m64 -ccbin /usr/bin/g++ -std=c++14 -arch=sm_61
+	NVCCFLAGS= -O0 -lineinfo -maxrregcount 32 -m64 -ccbin /usr/bin/g++ -std=c++14 -arch=sm_61
 	NVCC=nvcc
 
 	HEADERS += \
