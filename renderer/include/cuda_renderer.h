@@ -52,10 +52,10 @@ private:
     }
     void setup(image::SmallImage& target, const med::Medium &medium, const scn::Scene<tvec::TVector3> &scene, int numPhotons);
     void cleanup();
-    //void genDeviceRandomNumbers(int num, CudaSeedType seed = CudaSeedType(5489));
-    //unsigned int requiredRandomNumbers(int numPhotons);
+    void genDeviceRandomNumbers(Float *cudaRandom, int num, CudaSeedType seed = CudaSeedType(5489));
+    unsigned int requiredRandomNumbers(int numPhotons);
 
-    //curandGenerator_t generator;
+    curandGenerator_t generator;
 
     /* Host memory*/
     Float *image;

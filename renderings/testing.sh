@@ -1,7 +1,7 @@
 ../renderer/samples/renderer3d_sample_bin threads=-1 \
 stricts=true \
 precision=4 \
-numPhotons=10000000 \
+numPhotons=100000000 \
 outFilePrefix=withsplines \
 sigmaT=0 \
 albedo=.9 \

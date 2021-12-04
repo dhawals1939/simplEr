@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <chrono>
 
+#define RANDOM_NUMBERS_PER_PHOTON 6
+
 namespace cuda {
 
 // Store symbols here so as to avoid long argument list
@@ -23,7 +25,8 @@ struct Constants {
     int y_res;
     int z_res;
 
-//    curandState *state;
+    Float *random;
+    short *rand_indices;
     Scene *scene;
     Medium *medium;
     Float weight;
@@ -39,14 +42,15 @@ struct Constants {
 
 __constant__ Constants d_constants;
 
-// TODO: Store curandState in thread and pass it to this function, instead of always
-// accessing global memory
-__device__ static Float inline uniform_sample(curandState *state) {
-#ifdef USE_DOUBLE_PRECISION
-    return static_cast<double>(curand_uniform(state));
-#else
-    return curand_uniform(state);
-#endif
+__device__ inline Float uniform_sample(curandState *state) {
+    int idx = gridDim.x * blockDim.x * blockDim.y * blockIdx.y + blockDim.x * blockDim.y * blockIdx.x + blockDim.x * threadIdx.y + threadIdx.x;
+    short index = d_constants.rand_indices[idx]++;
+    return d_constants.random[idx * RANDOM_NUMBERS_PER_PHOTON + index];
+//#ifdef USE_DOUBLE_PRECISION
+//    return static_cast<double>(curand_uniform(state));
+//#else
+//    return curand_uniform(state);
+//#endif
 }
 
 __device__ inline Float safeSqrt(Float x) {
@@ -58,8 +62,7 @@ __device__ inline void reflect(const TVector3<Float> &a, const TVector3<Float> &
     b = -FPCONST(2.0)*dot(a, n)*n + a;
 }
 
-__device__ inline bool refract(const TVector3<Float> &a, const TVector3<Float> &n,
-                        Float eta, TVector3<Float> &b) {
+__device__ inline bool refract(const TVector3<Float> &a, const TVector3<Float> &n, Float eta, TVector3<Float> &b) {
     TVector3<Float> q = dot(a,n)*n;
     TVector3<Float> p = (a-q)/eta;
 
@@ -123,8 +126,23 @@ __device__ bool AreaTexturedSource::sampleRay(TVector3<Float> &pos, TVector3<Flo
                                               Float &totalDistance, curandState *rand_state) const{
     pos = *m_origin;
 
+
+    // "Bias" this sample so that we get more coalesced reads and writes (for now, horizontally)
+    // TODO: Find way to do this horizontally and verticall for better in block locality
+    //int idx = gridDim.x * blockDim.x * blockDim.y * blockIdx.y + gridDim.x * blockDim.x * threadIdx.y + blockDim.x * blockIdx.x + threadIdx.x;
+    //float sample_val = uniform_sample(rand_state);
+    //sample_val = (sample_val + static_cast<Float>(idx)) / d_constants.numPhotons;
+
+    // Simple version, bias by block
+    Float numBlocks       = static_cast<Float>(gridDim.x * gridDim.y);
+    Float blockId         = static_cast<Float>(gridDim.x * blockIdx.y + blockIdx.x);
+    Float inBlockThreadId = static_cast<Float>(blockDim.x * threadIdx.y + threadIdx.x);
+    Float numThreads      = static_cast<Float>(blockDim.x * blockDim.y);
+    Float sample_val      = uniform_sample(rand_state);
+    sample_val = (inBlockThreadId * sample_val + blockId * numThreads) / (numThreads * numBlocks);
+
     // sample pixel position first
-	int pixel = m_textureSampler->sample(uniform_sample(rand_state));
+	int pixel = m_textureSampler->sample(sample_val);
 	int p[2];
 	m_texture->ind2sub(pixel, p[0], p[1]);
 
@@ -704,13 +722,11 @@ __global__ void renderPhotons() {
 
     Scene scene = *d_constants.scene;
 
-    int idx = gridDim.x * blockDim.x * blockDim.y * blockIdx.y + gridDim.x * blockDim.x * threadIdx.y + blockDim.x * blockIdx.x + threadIdx.x;
+    int idx = gridDim.x * blockDim.x * blockDim.y * blockIdx.y + blockDim.x * blockDim.y * blockIdx.x + blockDim.x * threadIdx.y + threadIdx.x;
 
     // FIXME: Checking for numPhotons limit is not necessary as the more photons the merrier.
     if (idx < d_constants.numPhotons) {
         curandState local_state;
-        curand_init(1234, idx, 0, &local_state);
-
         if (scene.genRay(pos, dir, totalDistance, &local_state)) {
             scaling = max(min(sinf(scene.getUSPhi_min() + scene.getUSPhi_range() * uniform_sample(&local_state)), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
 #ifndef OMEGA_TRACKING
@@ -743,9 +759,6 @@ void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &med
 
     // N + (W - 1) / W, to ensure we have enough threads as division rounds down
     dim3 blockGrid((numBlocks + width - 1) / width, width);
-
-    /* Setup RNG state to be used by each thread */
-    //random_setup_kernel<<<blockGrid,threadGrid>>>();
 
     CUDA_CALL(cudaDeviceSynchronize());
 
@@ -796,8 +809,16 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
     cudaMedium = Medium::from(medium);
 
     /* Setup curand state. */
-    //curandState *cudaRandomState;
-    //CUDA_CALL(cudaMalloc((void **)&cudaRandomState, sizeof(curandState) * numPhotons));
+    short *cudaRandomIndices;
+    Float *cudaRandom;
+    CUDA_CALL(cudaMalloc((void **)&cudaRandom, requiredRandomNumbers(numPhotons) * sizeof(Float)));
+    CUDA_CALL(cudaMalloc((void **)&cudaRandomIndices, numPhotons * sizeof(short)));
+    CUDA_CALL(cudaMemset(cudaRandomIndices, 0, numPhotons * sizeof(short)));
+
+
+    CURAND_CALL(curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_MT19937));
+
+    genDeviceRandomNumbers(cudaRandom, requiredRandomNumbers(numPhotons), 5894);
 
     scn::Block<tvec::TVector3> block = scene.getMediumBlock();
 
@@ -807,7 +828,8 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
         .x_res              = target.getXRes(),
         .y_res              = target.getYRes(),
         .z_res              = target.getZRes(),
-        //.state              = cudaRandomState,
+        .random             = cudaRandom,
+        .rand_indices       = cudaRandomIndices,
         .scene              = cudaScene,
         .medium             = cudaMedium,
         .weight             = getWeight(medium, scene, numPhotons),
@@ -825,22 +847,10 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
 
 /* Generates random numbers on the device. */
 // TODO: currently sequential, compare to result produced by sequential renderer (as opposed to threaded)
-//void CudaRenderer::genDeviceRandomNumbers(int num, CudaSeedType seed) {
-//    smp::SamplerSet sampler(1, 0);
-//    Float *random = new Float[num];
-//    for (int i = 0; i < num; i++) {
-//        random[i] = sampler[0]();
-//    }
-//
-//    CUDA_CALL(cudaMemcpy(cudaRandom, random, sizeof(Float)*num, cudaMemcpyHostToDevice));
-//
-//    delete[] random;
-//
-//    // TODO: Enable below to make it parallel
-//    //CURAND_CALL(curandSetPseudoRandomGeneratorSeed(generator, seed));
-//    ///* Generate reals uniformly between 0.0 and 1.0 */
-//    //CURAND_CALL(curandGenerateUniform(generator, cudaRandom, num));
-//}
+void CudaRenderer::genDeviceRandomNumbers(Float *cudaRandom, int num, CudaSeedType seed) {
+    CURAND_CALL(curandSetPseudoRandomGeneratorSeed(generator, seed));
+    CURAND_CALL(curandGenerateUniform(generator, cudaRandom, num));
+}
 
 void CudaRenderer::cleanup() {
     if (image) delete[] image;
@@ -851,8 +861,8 @@ void CudaRenderer::cleanup() {
 CudaRenderer::~CudaRenderer() {}
 
 /* Required amount of random numbers to run the renderPhotons kernel on numPhotons */
-//unsigned int CudaRenderer::requiredRandomNumbers(int numPhotons) {
-//    return numPhotons * RANDOM_NUMBERS_PER_PHOTON;
-//}
+unsigned int CudaRenderer::requiredRandomNumbers(int numPhotons) {
+    return numPhotons * RANDOM_NUMBERS_PER_PHOTON;
+}
 
 }
