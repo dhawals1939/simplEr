@@ -20,7 +20,7 @@ USE_CERES = 1
 USE_OPENEXR = 0
 
 ## optimization options
-USE_THREADED = 1
+USE_THREADED = 0
 USE_DOUBLE_PRECISION = 1
 USE_PIXEL_SHARING = 1
 USE_NO_FRESNEL = 0
@@ -203,8 +203,8 @@ ifeq ($(USE_CUDA), 1)
 	LIBS+= -L/opt/cuda/lib64/ -lcudart -lcurand
 	INCLUDES+=-I/opt/cuda/include/
 
-	NVCCFLAGS= -O3 -use_fast_math -extra-device-vectorization -maxrregcount 64 -m64 -ccbin /usr/bin/g++ -std=c++14 -arch=sm_61
-##	NVCCFLAGS= -O0 -lineinfo -maxrregcount 64 -m64 -ccbin /usr/bin/g++ -std=c++14 -arch=sm_61
+	##NVCCFLAGS= -O3 -use_fast_math -extra-device-vectorization -maxrregcount 64 -m64 -ccbin /usr/bin/g++ -std=c++14 -arch=sm_61
+	NVCCFLAGS= -O0 -lineinfo -maxrregcount 64 -m64 -ccbin /usr/bin/g++ -std=c++14 -arch=sm_61
 	NVCC=nvcc
 
 	HEADERS += \

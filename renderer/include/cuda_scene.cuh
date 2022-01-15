@@ -194,7 +194,7 @@ public:
     }
 
     __device__ void sample(const TVector3<Float> &in, const TVector3<Float> &n,
-				curandState *rand_state, TVector3<Float> &out) const;
+				TVector3<Float> &out) const;
 
 	__device__ inline Float getIor1() const {
 		return m_ior1;
@@ -307,7 +307,7 @@ public:
         return d_result;
     }
 
-	__device__ inline bool samplePosition(TVector3<Float> &pos, curandState *rand_state) const;
+	__device__ inline bool samplePosition(TVector3<Float> &pos) const;
 
 	__device__ inline const TVector3<Float>& getOrigin() const {
 		return *m_origin;
@@ -400,7 +400,7 @@ public:
         return d_result;
     }
 
-	__device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, curandState *rand_state) const;
+	__device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const;
 
 	__device__ inline const TVector3<Float>& getOrigin() const {
 		return *m_origin;
@@ -628,8 +628,8 @@ public:
 
 	__device__ Float f(const TVector3<Float> &in, const TVector3<Float> &out) const {
         Float cosTheta = dot(in, out);
-        return static_cast<Float>(FPCONST(1.0) / (2.0 * M_PI)) * (FPCONST(1.0) - m_g * m_g)
-            / (FPCONST(1.0) + m_g * m_g - FPCONST(2.0) * m_g * cosTheta);
+        return static_cast<Float>(FPCONST(1.0) / (4.0 * M_PI)) * (FPCONST(1.0) - m_g * m_g)
+				/ pow(FPCONST(1.0) + m_g * m_g - FPCONST(2.0) * m_g * cosTheta, FPCONST(1.5));
     }
 
 	__device__ Float derivf(const TVector3<Float> &in, const TVector3<Float> &out) const {
@@ -648,9 +648,9 @@ public:
     }
 
 
-    __device__ Float sample(const TVector3<Float> &in, curandState *rand_state, TVector3<Float> &out) const;
+    __device__ Float sample(const TVector3<Float> &in, TVector3<Float> &out) const;
 
-	__device__ Float sample(const TVector2<Float> &in, curandState *rand_state, TVector2<Float> &out)  const;
+	__device__ Float sample(const TVector2<Float> &in, TVector2<Float> &out)  const;
 
 	__device__ inline Float getG() const {
 		return m_g;
@@ -749,8 +749,8 @@ public:
         return d_result;
     }
 
-    __device__ inline bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance, curandState *rand_state) {
-        return m_source->sampleRay(pos, dir, totalDistance, rand_state);
+    __device__ inline bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) {
+        return m_source->sampleRay(pos, dir, totalDistance);
     }
 
     __device__ inline Float getMediumIor(const TVector3<Float> &p, const Float &scaling) const {
@@ -772,13 +772,13 @@ public:
     __device__ void addEnergyToImage(const TVector3<Float> &p, Float pathlength, int &depth, Float val) const;
 
 	__device__ void addEnergyInParticle(const TVector3<Float> &p, const TVector3<Float> &d, Float distTravelled,
-                                        int &depth, Float val, curandState *rand_state, const Float &scaling) const;
+                                        int &depth, Float val, const Float &scaling) const;
 
     __device__ bool movePhotonTillSensor(TVector3<Float> &p, TVector3<Float> &d, Float &distToSensor, Float &totalOpticalDistance,
-                                            curandState *rand_state, const Float& scaling) const;
+                                            const Float& scaling) const;
 
     __device__ bool movePhoton(TVector3<Float> &p, TVector3<Float> &d, Float dist,
-                               Float &totalOpticalDistance, curandState *rand_state, Float scaling) const;
+                               Float &totalOpticalDistance, Float scaling) const;
 
     __device__ void traceTillBlock(TVector3<Float> &p, TVector3<Float> &d, Float dist, Float &disx,
                                    Float &disy, Float &totalOpticalDistance, Float scaling) const;

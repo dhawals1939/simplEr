@@ -7,6 +7,7 @@
 
 #include "scene.h"
 #include "util.h"
+#include <cstdio>
 #include <iostream>
 #include "math.h"
 #include <boost/math/special_functions.hpp>
@@ -252,8 +253,10 @@ const Matrix3x3 US<VectorType>::bessel_HessianRIF(const VectorType<Float> &q, co
 template <template <typename> class VectorType>
 void Scene<VectorType>::er_step(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize, const Float &scaling) const{
 #ifndef OMEGA_TRACKING
+		//printf("dV1(p = (%.4f, %.4f, %.4f), d = (%.4f, %.4f, %.4f), scaling = %.4f) = (%.4f, %.4f, %.4f)\n", p.x, p.y, p.z, d.x, d.y, d.z, scaling, dV(p, d, scaling).x, dV(p, d, scaling).y, dV(p,d,scaling).z);
     d += HALF * stepSize * dV(p, d, scaling);
     p +=        stepSize * d/m_us.RIF(p, scaling);
+	//printf("dV2(p = (%.4f, %.4f, %.4f), d = (%.4f, %.4f, %.4f), scaling = %.4f) = (%.4f, %.4f, %.4f)\n", p.x, p.y, p.z, d.x, d.y, d.z, scaling, dV(p, d, scaling).x, dV(p, d, scaling).y, dV(p,d,scaling).z);
     d += HALF * stepSize * dV(p, d, scaling);
 #else
     Float two = 2; // To avoid type conversion
@@ -323,7 +326,9 @@ void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &
     	oldp = p;
     	oldd = d;
 
+	    //printf("erStep: pos (%.4f %.4f %.4f) dir (%.4f %.4f %.4f) current_stepsize %.5f, scaling %.4f\n", p.x, p.y, p.z, d.x, d.y, d.z, current_stepsize, scaling);
     	er_step(p, d, current_stepsize, scaling);
+	    //printf("erStep after: pos (%.4f %.4f %.4f) dir (%.4f %.4f %.4f) current_stepsize %.5f, scaling %.4f\n", p.x, p.y, p.z, d.x, d.y, d.z, current_stepsize, scaling);
 
     	// check if we are at the intersection or crossing the sampled dist, then, estimate the distance and keep going more accurately towards the boundary or sampled dist
     	if(!m_block.inside(p) || (distance + current_stepsize) > dist){
@@ -626,7 +631,9 @@ bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Fl
 
 	Float disx, disy;
 	VectorType<Float> d1, norm;
+	//printf("traceTillBlock0: pos (%.4f %.4f %.4f) dir (%.4f %.4f %.4f) totalOpticalDistance %.4f, scaling %.4f\n", p.x, p.y, p.z, d.x, d.y, d.z, totalOpticalDistance, scaling);
 	traceTillBlock(p, d, LargeDist, disx, disy, totalOpticalDistance, scaling);
+	//printf("after traceTillBlock0: pos (%.4f %.4f %.4f) dir (%.4f %.4f %.4f) totalOpticalDistance %.4f, scaling %.4f\n", p.x, p.y, p.z, d.x, d.y, d.z, totalOpticalDistance, scaling);
 	distToSensor = disy;
 	LargeDist -= disy;
 	while(true){
@@ -678,7 +685,9 @@ bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Fl
 			return true;
 
 		// if not, routine
+	    //printf("sample: d (%.4f %.4f %.4f) norm (%.4f %.4f %.4f) d1 (%.4f %.4f %.4f)\n", d.x, d.y, d.z, norm.x, norm.y, norm.z, d1.x, d1.y, d1.z);
         m_bsdf.sample(d, norm, sampler, d1);
+	    //printf("after sample: d (%.4f %.4f %.4f) norm (%.4f %.4f %.4f) d1 (%.4f %.4f %.4f)\n", d.x, d.y, d.z, norm.x, norm.y, norm.z, d1.x, d1.y, d1.z);
 		if (tvec::dot(d1, norm) < FPCONST(0.0)) {
 			// re-enter the medium through reflection
 			d = d1;
@@ -686,7 +695,9 @@ bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Fl
 			return false;
 		}
 
+	    //printf("inner traceTillBlock0: pos (%.4f %.4f %.4f) dir (%.4f %.4f %.4f) totalOpticalDistance %.4f, scaling %.4f\n", p.x, p.y, p.z, d.x, d.y, d.z, totalOpticalDistance, scaling);
     	traceTillBlock(p, d, LargeDist, disx, disy, totalOpticalDistance, scaling);
+	    //printf("after inner traceTillBlock0: pos (%.4f %.4f %.4f) dir (%.4f %.4f %.4f) totalOpticalDistance %.4f, scaling %.4f\n", p.x, p.y, p.z, d.x, d.y, d.z, totalOpticalDistance, scaling);
     	distToSensor += disy;
     	LargeDist -= disy;
 	}
@@ -774,6 +785,8 @@ bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
 template <>
 void Scene<tvec::TVector3>::addEnergyToImage(image::SmallImage &img, const tvec::Vec3f &p,
 							Float pathlength, int &depth, Float val) const {
+
+		//printf("Running addEnergyToImage(p = (%.4f, %.4f, %.4f), pathlength = %.4f, depth = %d, val = %.4f)\n", p.x, p.y, p.z, pathlength, depth, val);
 
 	Float x = tvec::dot(m_camera.getHorizontal(), p) - m_camera.getOrigin().y;
 	Float y = tvec::dot(m_camera.getVertical(), p) - m_camera.getOrigin().z;
@@ -918,6 +931,8 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 		return;
 	totalOpticalDistance += distanceToSensor;
 
+	//printf("val %.4f, sigmaT %.4f, distToSensor %.4f, d (%.4f, %.4f, %.4f), dirToSensor (%.4f, %.4f, %.4f), foreshortening %.4f, fresnelWeight %.4f\n", val, medium.getSigmaT(), distToSensor, d.x, d.y, d.z, dirToSensor.x, dirToSensor.y, dirToSensor.z, foreshortening, fresnelWeight);
+	//printf("Phase function: %.4f\n", medium.getPhaseFunction()->f(d/d.length(), dirToSensor));
 	Float totalPhotonValue = val*(2*M_PI)
 			* std::exp(-medium.getSigmaT() * distToSensor)
 			* medium.getPhaseFunction()->f(d/d.length(), dirToSensor) // FIXME: Should be refractive index

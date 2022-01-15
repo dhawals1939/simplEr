@@ -1,7 +1,7 @@
 ../renderer/samples/renderer3d_sample_bin threads=-1 \
 stricts=true \
 precision=4 \
-numPhotons=100000000 \
+numPhotons=1000000 \
 outFilePrefix=withsplines \
 sigmaT=0 \
 albedo=.9 \
@@ -14,7 +14,7 @@ n_clip=1 \
 phi_min=+1.5708 \
 phi_max=+1.5708 \
 mode=0 \
-er_stepsize=1e-4 \
+er_stepsize=1e-3 \
 directTol=1e-6 \
 rrWeight=.001 \
 projectorTexture=../renderer/images/Disk_501.pfm \

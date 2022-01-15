@@ -391,6 +391,9 @@ SSEEngine::SSEEngine() : mt(NULL) {
 	seed();
 #endif
 #endif
+
+	// TODO: REMOVE
+	prev = 1;
 }
 
 template <typename IndexType>
@@ -398,6 +401,9 @@ SSEEngine::SSEEngine(const IndexType seedValue) : mt(NULL) {
 	mt = (State *) allocAligned(sizeof(State));
 	Assert(mt != NULL);
 	seed(seedValue);
+
+	// TODO: REMOVE
+	prev = 1;
 }
 
 SSEEngine::~SSEEngine() {
@@ -410,7 +416,14 @@ void SSEEngine::seed(const SSEEngineSeedType s) {
 }
 
 uint64_t SSEEngine::nextULong() {
-	return mt->gen_rand64();
+	// TODO: REMOVE
+    const unsigned int LCG_A = 1664525u;
+    const unsigned int LCG_C = 1013904223u;
+    prev = (LCG_A * prev + LCG_C);
+    return prev & 0x00FFFFFF;
+
+	// TODO: Enable
+	//return mt->gen_rand64();
 }
 
 

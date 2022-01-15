@@ -27,29 +27,37 @@ public:
 
 	template <typename IndexType>
 	inline void seed(const IndexType seedValue) {
-		seed(static_cast<SSEEngineSeedType>(seedValue));
+		// TODO: Undo this change
+		prev = seedValue;
+		//seed(static_cast<SSEEngineSeedType>(seedValue));
 	}
 
 	inline Float operator()() {
-#ifdef USE_DOUBLE_PRECISION
-		/* Trick from MTGP: generate an uniformly distributed
-		   single precision number in [1,2) and subtract 1. */
-		union {
-			uint64_t u;
-			double d;
-		} x;
-		x.u = (nextULong() >> 12) | 0x3ff0000000000000ULL;
-		return x.d - 1.0;
-#else
-		/* Trick from MTGP: generate an uniformly distributed
-		   single precision number in [1,2) and subtract 1. */
-		union {
-			uint64_t u;
-			double d;
-		} x;
-		x.u = (nextULong() >> 12) | 0x3ff0000000000000ULL;
-		return static_cast<float>(x.d - 1.0);
-#endif
+		// TODO: REMOVE
+		Float val = ((Float) nextULong() / (Float) 0x01000000);
+ 	    //printf("sampled %.4f\n", val);
+        return val;
+		// TODO: Enable
+//#ifdef USE_DOUBLE_PRECISION
+//		/* Trick from MTGP: generate an uniformly distributed
+//		   single precision number in [1,2) and subtract 1. */
+//		union {
+//			uint64_t u;
+//			double d;
+//		} x;
+//		x.u = (nextULong() >> 12) | 0x3ff0000000000000ULL;
+// 	    printf("sampled %.2f\n", x.d - 1.0);
+//		return x.d - 1.0;
+//#else
+//		/* Trick from MTGP: generate an uniformly distributed
+//		   single precision number in [1,2) and subtract 1. */
+//		union {
+//			uint64_t u;
+//			double d;
+//		} x;
+//		x.u = (nextULong() >> 12) | 0x3ff0000000000000ULL;
+//		return static_cast<float>(x.d - 1.0);
+//#endif
 	}
 
 	~SSEEngine();
@@ -72,6 +80,8 @@ private:
 
 	struct State;
 	State *mt;
+	// TODO: REMOVE
+	unsigned int prev;
 };
 
 } /* namespace rng */
