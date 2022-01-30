@@ -1,3 +1,5 @@
 Lens distance algorithm is slightly inaccurate. Basically, light starting from same focalpoint is having slightly different path lengths.
 The final importance step to angle is not incorporated. To be copy pasted from crdr_angletracing code
 gapEndLocX functionality is not very accurate. The little fresnel factor and the snell's law after the gap distance is not incorporated. This is a non-trivial feature to add.
+
+images are now always saved as double, doubling the size of the image. Need to add float support and also if the saved pfm3d is float or double
