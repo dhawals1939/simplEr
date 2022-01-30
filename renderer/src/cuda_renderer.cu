@@ -749,10 +749,11 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
 
     /* Setup curand state. */
 	srand(time(0));
+
 	int seed = rand();
 
     CUDA_CALL(cudaMalloc((void **)&cudaRandomState, numPhotons * sizeof(unsigned int)));
-	CUDA_CALL(cudaMemset(cudaImage, seed, numPhotons * sizeof(unsigned int)));
+	CUDA_CALL(cudaMemset(cudaRandomState, seed, numPhotons * sizeof(unsigned int)));
 
     scn::Block<tvec::TVector3> block = scene.getMediumBlock();
 
