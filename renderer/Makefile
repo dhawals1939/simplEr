@@ -20,7 +20,7 @@ USE_CERES = 1
 USE_OPENEXR = 0
 
 ## optimization options
-USE_THREADED = 0
+USE_THREADED = 1
 USE_DOUBLE_PRECISION = 1
 USE_PIXEL_SHARING = 1
 USE_NO_FRESNEL = 0
@@ -28,7 +28,7 @@ USE_FILE = 0
 USE_WEIGHT_NORMALIZATION = 0
 USE_SIMPLIFIED_TIMING = 0
 USE_OMEGA_TRACKING = 0
-USE_CUDA = 1
+USE_CUDA = 0
 
 ## whether to use bessel RIF or spline RIF
 USE_SPLINE_RIF = 0
@@ -40,7 +40,6 @@ CFLAGS =
 LDFLAGS =
 
 # Use floats with cuda as doubles are very slow
-# TODO: Enable print_debuglog in CUDA
 ifeq ($(USE_CUDA), 1)
 	USE_DOUBLE_PRECISION = 0
 	PRINT_DEBUGLOG = 0
@@ -63,7 +62,7 @@ ifeq ($(USE_MATLAB), 1)
 endif
 
 ## specify sampler-related options
-# specify RNG to use 
+# specify RNG to use
 ifeq ($(USE_RNG), BOOST)
 	CFLAGS += -DUSE_BOOST
 endif
@@ -198,13 +197,11 @@ else
 	HEADERS += $(INCLUDEDIR)/rng_boost.h
 endif
 
-## FIXME: opt/cuda/ is not cuda's location for all devices
 ifeq ($(USE_CUDA), 1)
-	LIBS+= -L/opt/cuda/lib64/ -lcudart -lcurand
-	INCLUDES+=-I/opt/cuda/include/
+	LIBS+= -L/usr/local/cuda/lib64/ -lcudart -lcurand
+	INCLUDES+=-I/usr/local/cuda/include/
 
-	##NVCCFLAGS= -O3 -use_fast_math -extra-device-vectorization -maxrregcount 64 -m64 -ccbin /usr/bin/g++ -std=c++14 -arch=sm_61
-	NVCCFLAGS= -O0 -lineinfo -maxrregcount 64 -m64 -ccbin /usr/bin/g++ -std=c++14 -arch=sm_61
+	NVCCFLAGS= -O3 -use_fast_math -maxrregcount 64 -m64 -ccbin $(CC) -std=c++14 -arch=sm_75
 	NVCC=nvcc
 
 	HEADERS += \

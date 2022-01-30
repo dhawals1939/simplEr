@@ -22,39 +22,12 @@ public:
         return d_result;
     }
 
-    //__host__ DiscreteDistribution(const image::Image2<Float> &texture, size_t length) {
-    //    m_cdf_length = 0;
-    //    m_cdf_capacity = 0;
-    //    m_cdf = NULL;
-    //    reserve(length);
-    //    clear();
-	//	for(int i=0; i<length; i++){
-	//		append(texture.getPixel(i));
-	//	}
-	//	normalize();
-
-    //    // Copy m_cdf to GPU
-    //    Float *temp;
-    //    CUDA_CALL(cudaMalloc((void **)&temp, (length+1) * sizeof(Float)));
-    //    CUDA_CALL(cudaMemcpy(temp, m_cdf, (length+1) * sizeof(Float), cudaMemcpyHostToDevice));
-    //    free(m_cdf);
-    //    m_cdf = temp;
-    //}
-
-	//__device__ explicit inline DiscreteDistribution(size_t nEntries = 0) {
-    //    m_cdf_length = 0;
-    //    m_cdf_capacity = 0;
-	//	reserve(nEntries);
-    //    clear();
-	//}
-
 	__device__ inline void clear() {
 		m_cdf_length = 0;
 		append(0.0f);
 		m_normalized = false;
 	}
 
-    // TODO: This might be inneficient
 	__device__ inline void reserve(size_t nEntries) {
         ASSERT(nEntries >= m_cdf_capacity);
         m_cdf_capacity = nEntries+1;
@@ -67,7 +40,6 @@ public:
         ASSERT(m_cdf);
 	}
 
-    // TODO: Is this efficient?
 	__device__ inline void append(Float pdfValue) {
         if (m_cdf_length == m_cdf_capacity) {
             reserve(m_cdf_capacity ? m_cdf_capacity * 2 : 1);
@@ -80,11 +52,7 @@ public:
         m_cdf_length++;
         ASSERT(m_cdf_length <= m_cdf_capacity);
 	}
-//
-//	inline size_t size() const {
-//		return m_cdf.size()-1;
-//	}
-//
+
 	__device__ inline Float operator[](size_t entry) const {
 		return m_cdf[entry+1] - m_cdf[entry];
 	}
@@ -92,15 +60,7 @@ public:
 	__device__ inline bool isNormalized() const {
 		return m_normalized;
 	}
-//
-//	inline Float getSum() const {
-//		return m_sum;
-//	}
-//
-//	inline Float getNormalization() const {
-//		return m_normalization;
-//	}
-//
+
 	__device__ inline Float normalize() {
 		ASSERT(m_cdf_length > 1);
 		m_sum = m_cdf[m_cdf_length-1];
@@ -128,26 +88,6 @@ public:
 
 		return index;
 	}
-//
-//	inline size_t sample(Float sampleValue, Float &pdf) const {
-//		size_t index = sample(sampleValue);
-//		pdf = operator[](index);
-//		return index;
-//	}
-//
-//	inline size_t sampleReuse(Float &sampleValue) const {
-//		size_t index = sample(sampleValue);
-//		sampleValue = (sampleValue - m_cdf[index])
-//			/ (m_cdf[index + 1] - m_cdf[index]);
-//		return index;
-//	}
-//
-//	inline size_t sampleReuse(Float &sampleValue, Float &pdf) const {
-//		size_t index = sample(sampleValue, pdf);
-//		sampleValue = (sampleValue - m_cdf[index])
-//			/ (m_cdf[index + 1] - m_cdf[index]);
-//		return index;
-//	}
 
 private:
 	Float *m_cdf;

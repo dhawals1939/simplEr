@@ -42,8 +42,7 @@ public:
 private:
 
     Float *cudaImage;
-    Scene *cudaScene;
-    Medium *cudaMedium;
+    unsigned int* cudaRandomState;
 
     inline Float getWeight(const med::Medium &, const scn::Scene<tvec::TVector3> &scene,
                             const int64 numPhotons) {
@@ -52,10 +51,6 @@ private:
     }
     void setup(image::SmallImage& target, const med::Medium &medium, const scn::Scene<tvec::TVector3> &scene, int numPhotons);
     void cleanup();
-    void genDeviceRandomNumbers(Float *cudaRandom, int num, CudaSeedType seed = CudaSeedType(5489));
-    unsigned int requiredRandomNumbers(int numPhotons);
-
-    curandGenerator_t generator;
 
     /* Host memory*/
     Float *image;

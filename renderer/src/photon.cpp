@@ -30,7 +30,6 @@ bool Renderer<VectorType>::scatterOnce(VectorType<Float> &p, VectorType<Float> &
 #ifdef PRINT_DEBUGLOG
 		std::cout << "sampler before move photon:" << sampler() << "\n";
 #endif
-		//printf("scatterOnce: movePhotons with pos (%.4f %.4f %.4f) dir (%.4f %.4f %.4f) dist %.4f, totalOpticalDistance %.4f, scaling %.4f\n", p.x, p.y, p.z, d.x, d.y, d.z, dist, totalOpticalDistance, scaling);
 		return scene.movePhoton(p, d, dist, totalOpticalDistance, sampler, scaling);
 	} else {
 		dist = FPCONST(0.0);
@@ -61,7 +60,6 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 		refrDirToSensor.x = refrDirToSensor.x/ior;
 		refrDirToSensor.normalize();
 #ifndef USE_NO_FRESNEL
-	    //printf("d1.x: %.4f, refrDirToSensor.x %.4f, ior %.4f\n", d1.x, refrDirToSensor.x, ior);
 		fresnelWeight = (FPCONST(1.0) -
 		util::fresnelDielectric(d1.x, refrDirToSensor.x,
 			FPCONST(1.0) / ior))
@@ -81,7 +79,6 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 		return;
 	totalOpticalDistance += distanceToSensor;
 
-	//printf("weight: %.4f, sigmaT %.4f, distToSensor %.4f, fresnelWeight %.4f\n", weight, medium.getSigmaT(), distToSensor, fresnelWeight);
 	Float totalPhotonValue = weight
 			* std::exp(-medium.getSigmaT() * distToSensor)
 			* fresnelWeight;
@@ -102,11 +99,9 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 
 		Float dist = getMoveStep(medium, sampler);
 
-		//printf("move photon: pos (%.4f %.4f %.4f) dir (%.4f %.4f %.4f) dist %.4f, totalOpticalDistance %.4f, scaling %.4f\n", pos.x, pos.y, pos.z, dir.x, dir.y, dir.z, dist, totalOpticalDistance, scaling);
 		if (!scene.movePhoton(pos, dir, dist, totalOpticalDistance, sampler, scaling)) {
 			return;
 		}
-		//printf("after move photon: pos (%.4f %.4f %.4f) dir (%.4f %.4f %.4f) dist %.4f, totalOpticalDistance %.4f, scaling %.4f\n", pos.x, pos.y, pos.z, dir.x, dir.y, dir.z, dist, totalOpticalDistance, scaling);
 
 #ifdef PRINT_DEBUGLOG
 		std::cout << "dist: " << dist << "\n";
@@ -117,7 +112,6 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 		Float totalDist = dist;
 		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
 				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
-				//printf("UseAngularSampling: addEnergy at pos (%.4f %.4f %.4f) dir (%.4f %.4f %.4f) totalOpticalDistance %.4f, depth %d, scaling %.4f\n", pos.x, pos.y, pos.z, dir.x, dir.y, dir.z, totalOpticalDistance, depth, scaling);
 			if(m_useAngularSampling)
                 scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, depth, weight, medium, sampler, scaling);
 			else
@@ -289,8 +283,6 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 	int numThreads = 1;
 #endif /* USE_THREADED */
 
-// FIXME: Re-enable ifdef or find better solution
-//#ifdef USE_DOUBLE_PRECISION
 	/* Set-up least squares problem for doing next event estimation */
 	Problem *problem = new Problem[numThreads];
 	scn::NEECostFunction<tvec::TVector3> *costFunctions[numThreads];
@@ -300,7 +292,6 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 		costFunctions[i] = new scn::NEECostFunction<tvec::TVector3>(&scene);
 		problem[i].AddResidualBlock((CostFunction*)costFunctions[i], NULL, initializations +i*3);
 	}
-//#endif /* USE_DOUBLE_PRECISION */
 
 #ifndef NDEBUG
 	std::cout << "numthreads = " << numThreads << std::endl;
@@ -346,29 +337,23 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 #else
 			Float scaling = std::max(std::min(std::sin(scene.getUSPhi_min() + scene.getUSPhi_range()*sampler[id]()), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
 #endif
-            //printf("after genRay pos (%.4f, %.4f, %.4f), dir (%.4f, %.4f, %.4f), scaling %.4f, dist %.4f\n", pos.x, pos.y, pos.z, dir.x, dir.y, dir.z, scaling, totalDistance);
 
 
 #ifndef OMEGA_TRACKING
 			dir *= scene.getMediumIor(pos, scaling);
 #endif
-            //printf("after omega pos (%.4f, %.4f, %.4f), dir (%.4f, %.4f, %.4f), scaling %.4f, dist %.4f\n", pos.x, pos.y, pos.z, dir.x, dir.y, dir.z, scaling, totalDistance);
 			if(m_useDirect)
 					directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
-            //printf("bef scatter pos (%.4f, %.4f, %.4f), dir (%.4f, %.4f, %.4f), scaling %.4f, dist %.4f\n", pos.x, pos.y, pos.z, dir.x, dir.y, dir.z, scaling, totalDistance);
 			scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance, *costFunctions[id], problem[id], initializations+id*3);
 		}
 	}
 
 	img.mergeImages(img0);
-// FIXME: Re-enable ifdef?
-//#ifdef USE_DOUBLE_PRECISION
 	for(int i=0; i<numThreads; i++){
 		delete costFunctions[i];
 	}
 	delete[] initializations;
 //	delete[] problem;
-//#endif /* USE_DOUBLE_PRECISION */
 #endif /* USE_CUDA */
 }
 
