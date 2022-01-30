@@ -297,9 +297,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 	std::cout << "numthreads = " << numThreads << std::endl;
 	std::cout << "numphotons = " << numPhotons << std::endl;
 #endif
-
-	// FIXME: Once cuda testing done, remove 0 seed.
-	smp::SamplerSet sampler(numThreads, 0);
+	smp::SamplerSet sampler(numThreads);
 
 	image::SmallImageSet img(img0.getXRes(), img0.getYRes(), img0.getZRes(), numThreads);
 	img.zero();

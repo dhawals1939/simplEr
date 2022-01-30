@@ -60,7 +60,7 @@ __host__ __device__ __inline__ Float float_rnd(unsigned int &rand) {
 }
 
 __device__ inline void init_rand(int idx) {
-	d_constants.random_state[idx] = idx;
+	d_constants.random_state[idx] += idx;
 }
 		
 __device__ inline Float uniform_sample() {
@@ -748,7 +748,11 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
     Medium *cudaMedium = Medium::from(medium);
 
     /* Setup curand state. */
+	srand(time(0));
+	int seed = rand();
+
     CUDA_CALL(cudaMalloc((void **)&cudaRandomState, numPhotons * sizeof(unsigned int)));
+	CUDA_CALL(cudaMemset(cudaImage, seed, numPhotons * sizeof(unsigned int)));
 
     scn::Block<tvec::TVector3> block = scene.getMediumBlock();
 
