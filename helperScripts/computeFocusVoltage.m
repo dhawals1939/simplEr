@@ -1,6 +1,10 @@
-function [n, searchN, V, smoothV]= computeFocusVoltage(staticCmd, spatialX, spatialY, n_max_min, n_max_max, nSearches, gVar)
+function [n, searchN, V, smoothV, data]= computeFocusVoltage(staticCmd, spatialX, spatialY, n_max_min, n_max_max, nSearches, gVar, fx, fy)
 
-[searchN, V] = computePeakPhotonsPerVoltage(staticCmd, spatialX, spatialY, n_max_min, n_max_max, nSearches);
+if(nargin <= 8)
+    [searchN, V, data] = computePeakPhotonsPerVoltage(staticCmd, spatialX, spatialY, n_max_min, n_max_max, nSearches);
+else
+    [searchN, V, data] = computePeakPhotonsPerVoltage(staticCmd, spatialX, spatialY, n_max_min, n_max_max, nSearches, fx, fy);
+end
 smoothV = smoothdata(V,'gaussian',gVar);
 [pks, locs] = findpeaks(smoothV);
 
