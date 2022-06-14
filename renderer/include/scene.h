@@ -27,6 +27,7 @@
 #include "bsdf.h"
 #include "util.h"
 
+#ifdef USE_CERES
 #include "ceres/ceres.h"
 
 using ceres::CostFunction;
@@ -34,6 +35,7 @@ using ceres::SizedCostFunction;
 using ceres::Problem;
 using ceres::Solver;
 using ceres::Solve;
+#endif
 
 #include <omp.h>
 
@@ -607,6 +609,7 @@ struct US {
 template <template <typename> class VectorType>
 class Scene;
 
+#ifdef USE_CERES
 template <template <typename> class VectorType>
 class NEECostFunction: public SizedCostFunction<3, 3>
 {
@@ -690,7 +693,7 @@ class NEECostFunction: public SizedCostFunction<3, 3>
 	Matrix3x3 m_dvdv0;
 	Float m_scaling;
 };
-
+#endif
 
 template <template <typename> class VectorType>
 class Scene {
@@ -785,6 +788,7 @@ public:
 		std::cout << "fresnel " << m_fresnelTrans << std::endl;
 #endif
 
+#ifdef USE_CERES
 		//Adithya: Move these to the command line or atleast the important ones
 		m_options.check_gradients = false;
 		m_options.gradient_check_relative_precision = 1e-3;
@@ -797,6 +801,7 @@ public:
 		m_options.gradient_tolerance = 0.0;
 		m_options.parameter_tolerance = 0.0;
 		m_options.minimizer_progress_to_stdout = false;
+#endif
 	}
 
 	/*
@@ -855,6 +860,7 @@ public:
 	inline void traceTillBlock(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, Float &disx, Float &disy, Float &totalOpticalDistance, const Float &scaling) const;
 	inline void trace_optical_distance(VectorType<Float> &p, VectorType<Float> &d, const Float &distance, const Float &scaling) const; // optical
 
+#ifdef USE_CERES
 	/* makeSurfaceDirectConnection: Makes direct connection by optimizing the direction to the sensor.
 	 * distTravelled is unaffected if we are using simplified timing or, is updated with the total new optical path length.
 	 * The dirTosensor is the optimal normalized direction found by the optimization algorithm.
@@ -865,6 +871,7 @@ public:
 	bool makeSurfaceDirectConnection(const VectorType<Float> &p1, const VectorType<Float> &p2, const Float &scaling, smp::Sampler &sampler,
 															Float &distTravelled, VectorType<Float> &dirToSensor, Float &distToSensor, Float &weight,
 															scn::NEECostFunction<VectorType> &costFunction, Problem &problem, double *initialization) const;
+#endif
 
 	void computePathLengthstillZ(const VectorType<Float> &v, const VectorType<Float> &p1, const VectorType<Float> &p2, Float &opticalPathLength, Float &t_l, const Float &scaling) const;
 
@@ -894,10 +901,12 @@ public:
 						const VectorType<Float> &d, Float distTravelled, int &depth, Float val,
 						const med::Medium &medium, smp::Sampler &sampler, const Float &scaling) const;
 
+#ifdef USE_CERES
 	void addEnergy(image::SmallImage &img, const VectorType<Float> &p,
 						const VectorType<Float> &d, Float distTravelled, int &depth, Float val,
 						const med::Medium &medium, smp::Sampler &sampler, const Float& scaling,
 						scn::NEECostFunction<VectorType> &costFunction, Problem &problem, double *initialization) const;
+#endif
 
 	void addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 						image::SmallImage &dAlbedo, image::SmallImage &dGVal,
@@ -966,8 +975,9 @@ protected:
 	bsdf::SmoothDielectric<VectorType> m_bsdf;
 public:
 	US<VectorType> m_us;
-
+#ifdef USE_CERES
 	Solver::Options m_options;
+#endif
 };
 
 }	/* namespace scn */

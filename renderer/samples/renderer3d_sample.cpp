@@ -12,6 +12,8 @@
 #include <sstream>
 
 #include <vector>
+
+#ifdef USE_CERES
 #include "ceres/ceres.h"
 #include "glog/logging.h"
 
@@ -21,6 +23,7 @@ using ceres::SizedCostFunction;
 using ceres::Problem;
 using ceres::Solver;
 using ceres::Solve;
+#endif
 
 /* ADITHYA: Known issues/inconsistencies to be fixed
  * 1. MaxPathLength and PathLengthRange's maxPathLength are inconsistent !!
@@ -47,7 +50,9 @@ std::vector<std::string> tokenize(const std::string &string, const std::string &
 
 
 int main(int argc, char **argv) {
+#ifdef USE_CERES
     google::InitGoogleLogging(argv[0]);
+#endif
 
     /*
      * output file prefix

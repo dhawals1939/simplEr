@@ -375,7 +375,7 @@ void Scene<VectorType>::trace_optical_distance(VectorType<Float> &p, VectorType<
     distance = (distance - opticalPathLength)/m_us.RIF(p, scaling);
     er_step(p, d, distance, scaling);
 }
-
+#ifdef USE_CERES
 template <template <typename> class VectorType>
 
 bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1, const VectorType<Float> &p2, const Float &scaling, smp::Sampler &sampler,
@@ -448,6 +448,7 @@ bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1,
 #endif
 	return true;
 }
+#endif
 
 template <template <typename> class VectorType>
 void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, const VectorType<Float> &p1, const VectorType<Float> &p2, Float &opticalPathLength, Float &t_l, const Float &scaling) const{
@@ -948,6 +949,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 #endif
 }
 
+#ifdef USE_CERES
 template <template <typename> class VectorType>
 void Scene<VectorType>::addEnergy(image::SmallImage &img,
 			const VectorType<Float> &p, const VectorType<Float> &d, Float distTravelled, int &depth,
@@ -1079,7 +1081,7 @@ void Scene<VectorType>::addEnergy(image::SmallImage &img,
 
 	}
 }
-
+#endif
 //template <template <typename> class VectorType>
 //void Scene<VectorType>::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
 //						image::SmallImage &dAlbedo, image::SmallImage &dGVal,
@@ -1176,8 +1178,9 @@ template class AreaTexturedSource<tvec::TVector3>;
 template class US<tvec::TVector3>;
 //template class Scene<tvec::TVector2>;
 template class Scene<tvec::TVector3>;
+#ifdef USE_CERES
 //template class NEECostFunction<tvec::TVector2>;
 template class NEECostFunction<tvec::TVector3>;
-
+#endif 
 
 }	/* namespace scn */

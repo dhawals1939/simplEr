@@ -14,7 +14,7 @@ USE_MATLAB = 0
 USE_SFMT = 1
 
 ## CERES options
-USE_CERES = 1
+USE_CERES = 0
 
 ## OpenEXR options
 USE_OPENEXR = 0
