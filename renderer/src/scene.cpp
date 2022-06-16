@@ -126,6 +126,56 @@ bool AreaTexturedSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorTyp
 //		std::cout << "Diffuse source not implemented; only directional source is implemented";
 }
 
+#ifdef FUS_RIF
+template <template <typename> class VectorType>
+double US<VectorType>::fus_RIF(const VectorType<Float> &p, const Float &scaling) const{ //scaling is ignored for now
+
+    Float rif=0;
+    for(int c=1; c<=n_coeff; c++){
+        Float scalingfactor = 4*pow(-1, c+1)/(pow(c*M_PI, 2)*nsources);
+        Float trif = 0.;
+        for(int n=0; n<nsources; n++){
+            Float r = (p - centers[n]).length();
+            trif += cos(k_r*r*c)/r; // avoiding complex number math by taking real numbers directly 
+        }
+        rif += trif*scalingfactor;
+    }
+    std::cout.precision(17);
+    return n_o + n_scaling * rif;
+}
+
+template <template <typename> class VectorType>
+const VectorType<Float> US<VectorType>::fus_dRIF(const VectorType<Float> &p, const Float &scaling) const{
+    VectorType<Float> dn(0.0,
+            			 0.0, 
+                         0.0
+                         );
+
+    for(int c=1; c<=n_coeff; c++){
+        Float scalingfactor = 4*pow(-1, c+1)/(pow(c*M_PI, 2)*nsources);
+        VectorType<Float> tdn(0., 0., 0.);
+
+        for(int n=0; n<nsources; n++){
+            VectorType<Float> dirvec = p - centers[n];
+            Float r = dirvec.length();
+            Float krrc = k_r*r*c;
+            Float commonterm = -(cos(krrc) + krrc * sin(krrc))/pow(r, 3); // avoiding complex number math by taking real numbers directly 
+            tdn += commonterm * dirvec;
+        }
+        //std::cout << "tdn:" << tdn << std::endl;
+        dn += tdn*scalingfactor;
+    }
+    return dn*n_scaling;
+}
+
+template <template <typename> class VectorType>
+const Matrix3x3 US<VectorType>::fus_HessianRIF(const VectorType<Float> &q, const Float &scaling) const{
+    return Matrix3x3(0., 0., 0.,
+    				 0., 0., 0.,
+    				 0., 0., 0.);
+}
+
+#else
 template <template <typename> class VectorType>
 double US<VectorType>::bessel_RIF(const VectorType<Float> &p, const Float &scaling) const{
     VectorType<Float> p_axis = p_u + dot(p - p_u , axis_uz)*axis_uz; // point on the axis closest to p
@@ -248,7 +298,7 @@ const Matrix3x3 US<VectorType>::bessel_HessianRIF(const VectorType<Float> &q, co
 
 
 }
-
+#endif
 
 template <template <typename> class VectorType>
 void Scene<VectorType>::er_step(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize, const Float &scaling) const{

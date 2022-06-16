@@ -30,8 +30,9 @@ USE_SIMPLIFIED_TIMING = 0
 USE_OMEGA_TRACKING = 0
 USE_CUDA = 0
 
-## whether to use bessel RIF or spline RIF
+## whether to use bessel RIF or spline RIF or FUS RIF. cannot have both USE_SPLINE_RIF and USE_FUS_RIF
 USE_SPLINE_RIF = 0
+USE_FUS_RIF = 1
 
 # initialize variables
 LIBS =
@@ -141,6 +142,10 @@ endif
 
 ifeq ($(USE_SPLINE_RIF), 1)
     CFLAGS += -DSPLINE_RIF
+endif
+
+ifeq ($(USE_FUS_RIF), 1)
+    CFLAGS += -DFUS_RIF
 endif
 
 ifeq ($(USE_CUDA), 1)

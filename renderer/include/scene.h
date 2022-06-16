@@ -402,18 +402,39 @@ protected:
 
 template <template <typename> class VectorType>
 struct US {
-	Float    f_u;          // Ultrasound frequency (1/s or Hz)
-	Float    speed_u;      // Ultrasound speed (m/s)
 	Float  wavelength_u; // (m)
 
+#ifdef FUS_RIF
+    Float f_u;
+    Float speed_u;
+    Float n_o;
+    Float n_scaling;
+    int n_coeff;
+    Float radius;
+//    Float[] center;
+    VectorType<Float> center;
+    Float chordlength;
+    Float theta_min;
+    Float theta_max;
+    int theta_sources;
+    Float trans_z_min;
+    Float trans_z_max;
+    int trans_z_sources;
+    int nsources;
+    VectorType<Float> *centers;
+#else
+	Float f_u;          // Ultrasound frequency (1/s or Hz)
+	Float speed_u;      // Ultrasound speed (m/s)
 	Float n_o;          // Baseline refractive index
 	Float n_max;        // Max refractive index variation
 	Float n_clip;        // Clipped refractive index variation
 	Float n_maxScaling;  // =n_clip/n_max
 	Float phi_min;        // Min Phase 
 	Float phi_max;        // Max Phase 
-	Float k_r;
     int   mode;         // Order of the bessel function or mode of the ultrasound
+#endif
+
+	Float k_r;
 
     VectorType<Float>    axis_uz;          // Ultrasound axis
     VectorType<Float>    axis_ux;          // Ultrasound x-axis. Need to compute angle as mode > 0 is a function of phi
@@ -436,8 +457,12 @@ struct US {
     spline::Spline<3> m_spline;
 #endif
 
-    US(const Float& f_u, const Float& speed_u,
-                 const Float& n_o, const Float& n_max, const Float& n_clip, const Float& phi_min, const Float& phi_max, const int& mode,
+    US(
+#ifdef FUS_RIF
+        const Float& f_u, const Float& speed_u, const Float& n_o, const Float& n_scaling, const Float& n_coeff, const Float& radius, const VectorType<Float> &center, const Float& chordlength, const Float& theta_min, const Float& theta_max, const int& theta_sources, const Float& trans_z_min, const Float& trans_z_max, const int& trans_z_sources,
+#else
+        const Float& f_u, const Float& speed_u, const Float& n_o, const Float& n_max, const Float& n_clip, const Float& phi_min, const Float& phi_max, const int& mode,
+#endif
                  const VectorType<Float> &axis_uz, const VectorType<Float> &axis_ux, const VectorType<Float> &p_u, const Float &er_stepsize,
 				 const Float &tol, const Float &rrWeight, const int &precision, const Float &EgapEndLocX, const Float &SgapBeginLocX, const bool &useInitializationHack
 #ifdef SPLINE_RIF
@@ -450,17 +475,54 @@ struct US {
 					 :m_spline(rifgridFile)
 #endif
     {
+#ifdef FUS_RIF
+		this->f_u = f_u;
+		this->speed_u = speed_u;
+		this->n_o = n_o;
+		this->n_scaling = n_scaling;
+		this->n_coeff = n_coeff;
+		this->radius = radius;
+		this->center = center;
+		this->chordlength = chordlength;
+		this->theta_min = theta_min;
+		this->theta_max = theta_max;
+		this->theta_sources = theta_sources;
+		this->trans_z_min = trans_z_min;
+		this->trans_z_max = trans_z_max;
+        this->trans_z_sources = trans_z_sources;
+
+        Float theta_diff   = (theta_max - theta_min)/(theta_sources-1);
+        Float trans_z_diff = (trans_z_max - trans_z_min)/(trans_z_sources-1);
+
+        nsources = theta_sources*trans_z_sources;
+        centers = new VectorType<Float>[nsources];
+
+        for(int i=0; i<theta_sources; i++){
+            Float theta = theta_min + theta_diff*i;
+            Float xval = radius*(1-cos(theta));
+            Float yval = radius*(sin(theta));
+
+            for(int j=0; j<trans_z_sources; j++){
+                //int index = i*trans_z_sources + j;
+                int index = i + j*theta_sources; //to match matlab indices and debug 
+                centers[index].x = xval + center.x;
+                centers[index].y = yval + center.y;
+                centers[index].z = trans_z_min + trans_z_diff*j + center.z;
+            }
+        }
+#else
         this->f_u            = f_u;
 		this->speed_u        = speed_u;      
-		this->wavelength_u   = ((double) speed_u)/f_u; 
 		this->n_o            = n_o;         
 		this->n_max          = n_max;      
 		this->n_clip         = n_clip;      
 		this->n_maxScaling   = n_clip/n_max;      
 		this->phi_min        = phi_min;
 		this->phi_max        = phi_max;
-		this->k_r            = (2*M_PI)/wavelength_u;
 		this->mode           = mode;     
+#endif
+		this->wavelength_u   = ((double) speed_u)/f_u; 
+		this->k_r            = (2*M_PI)/wavelength_u;
 
 		this->axis_uz        = axis_uz;
 		this->axis_ux        = axis_ux;
@@ -477,67 +539,47 @@ struct US {
 
         this->m_useInitializationHack = useInitializationHack;
 
-#ifdef SPLINE_RIF
-
-
-        // some fake values before reading the file. For compilation and testing
-//		Float xmin[] = {-0.01, -0.01};
-//		Float xmax[] = { 0.01,  0.01};
-//		int N[] = {21, 21};
-//        int xmin[3];
-//        int xmax[3];
-//        int N[3];
-//		Float *data;
-//		readvol
-//		m_spline = spline(xmin, xmax, N);
-//		m_spline().build(data);
-
-
-//		Float xres[2];
-//		xres[0] = (xmax[0] - xmin[0])/(N[0] - 1);
-//		xres[1] = (xmax[1] - xmin[1])/(N[1] - 1);
-//
-//		VectorType<Float> p;
-//		for(int i=0; i < N[0]; i++)
-//			for(int j=0; j < N[1]; j++){
-//				p[0] = 0;
-//				p[1] = xmin[1] + xres[1] * j;
-//				p[2] = xmin[0] + xres[0] * i;
-//				data[i + j*N[0]] = bessel_RIF(p, 1) - n_o; // Only fit the varying RIF. We will add the constant later. This is to include scaling factor easily.
-//			}
-//
-//		m_spline.build(data);
-//		auto end = std::chrono::steady_clock::now();
-#endif
     }
 
     inline Float RIF(const VectorType<Float> &p, const Float &scaling) const{
         if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
             return n_o;
+#ifdef FUS_RIF
+    	return fus_RIF(p, scaling);
+#else
 #ifndef SPLINE_RIF
     	return bessel_RIF(p, scaling);
 #else
     	return spline_RIF(p, scaling);
 #endif
+#endif
     }
 
-    inline const VectorType<Float> dRIF(const VectorType<Float> &q, const Float &scaling) const{
-        if(q.x > m_EgapEndLocX || q.x < m_SgapBeginLocX)
+    inline const VectorType<Float> dRIF(const VectorType<Float> &p, const Float &scaling) const{
+        if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
             return VectorType<Float>(0.0);
-#ifndef SPLINE_RIF
-    	return bessel_dRIF(q, scaling);
+#ifdef FUS_RIF
+    	return fus_dRIF(p, scaling);
 #else
-    	return spline_dRIF(q, scaling);
+#ifndef SPLINE_RIF
+    	return bessel_dRIF(p, scaling);
+#else
+    	return spline_dRIF(p, scaling);
+#endif
 #endif
     }
 
     inline const Matrix3x3 HessianRIF(const VectorType<Float> &p, const Float &scaling) const{
         if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
             return Matrix3x3(0.0);
+#ifdef FUS_RIF
+    	return fus_HessianRIF(p, scaling);
+#else
 #ifndef SPLINE_RIF
     	return bessel_HessianRIF(p, scaling);
 #else
     	return spline_HessianRIF(p, scaling);
+#endif
 #endif
     }
 
@@ -588,11 +630,23 @@ struct US {
     }
 #endif
 
+#ifdef FUS_RIF
+
+    inline double fus_RIF(const VectorType<Float> &p, const Float &scaling) const;
+
+    inline const VectorType<Float> fus_dRIF(const VectorType<Float> &q, const Float &scaling) const;
+
+    inline const Matrix3x3 fus_HessianRIF(const VectorType<Float> &p, const Float &scaling) const;
+
+#else
+
     inline double bessel_RIF(const VectorType<Float> &p, const Float &scaling) const;
 
     inline const VectorType<Float> bessel_dRIF(const VectorType<Float> &q, const Float &scaling) const;
 
     inline const Matrix3x3 bessel_HessianRIF(const VectorType<Float> &p, const Float &scaling) const;
+
+#endif
 
     inline const Float getStepSize() const{return er_stepsize;}
 
@@ -727,6 +781,22 @@ public:
 			const Float &sensor_lens_focalLength,
 			const bool &sensor_lens_active,
 			//Ultrasound parameters: a lot of them are currently not used
+#ifdef FUS_RIF
+			const Float& f_u,
+			const Float& speed_u,
+			const Float& n_o,
+			const Float& n_scaling,
+			const int& n_coeff,
+			const Float& radius,
+			const VectorType<Float> &center,
+			const Float& chordlength,
+			const Float& theta_min,
+			const Float& theta_max,
+			const int& theta_sources,
+			const Float& trans_z_min,
+			const Float& trans_z_max,
+			const int& trans_z_sources,
+#else
 			const Float& f_u,
 			const Float& speed_u,
 			const Float& n_o,
@@ -735,6 +805,7 @@ public:
 			const Float& phi_min,
 			const Float& phi_max,
 			const int& mode,
+#endif
 			const VectorType<Float> &axis_uz,
 			const VectorType<Float> &axis_ux,
 			const VectorType<Float> &p_u,
@@ -756,12 +827,20 @@ public:
 #endif
 				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange, useBounceDecomposition, sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active),
 				m_bsdf(FPCONST(1.0), ior),
+#ifdef FUS_RIF
+				m_us(f_u, speed_u, n_o, n_scaling, n_coeff, radius, center, chordlength, theta_min, theta_max, theta_sources, trans_z_min, trans_z_max, trans_z_sources, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, EgapEndLocX, SgapBeginLocX, useInitializationHack) // Need to fix this
+#else
 				m_us(f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, EgapEndLocX, SgapBeginLocX, useInitializationHack
-#ifdef SPLINE_RIF
-//						, xmin, xmax, N
-						, rifgridFile
 #endif
-						){
+#ifdef SPLINE_RIF
+						, xmin, xmax, N
+						, rifgridFile)
+#else
+#ifndef FUS_RIF
+                        )
+#endif
+#endif
+						{
 
 		Assert(((std::abs(m_source.getOrigin().x - m_block.getBlockL().x) < M_EPSILON) && (m_source.getDir().x > FPCONST(0.0)))||
 				((std::abs(m_source.getOrigin().x - m_block.getBlockR().x) < M_EPSILON) && (m_source.getDir().x < FPCONST(0.0))));
@@ -812,6 +891,20 @@ public:
     	return m_us.f_u;
     }
 
+#ifdef FUS_RIF
+    inline const Float getUSPhi_min() const{
+    	return 0.;
+    }
+
+    inline const Float getUSPhi_range() const{
+    	return 0.;
+    }
+
+    inline const Float getUSMaxScaling() const{
+    	return 0.;
+    }
+
+#else
     inline const Float getUSPhi_min() const{
     	return m_us.phi_min;
     }
@@ -823,6 +916,8 @@ public:
     inline const Float getUSMaxScaling() const{
     	return m_us.n_maxScaling;
     }
+
+#endif
 
 	inline VectorType<Float> dP(const VectorType<Float> d) const{ // assuming omega tracking
 		return d;
