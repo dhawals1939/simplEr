@@ -413,7 +413,6 @@ struct US {
     Float radius;
 //    Float[] center;
     VectorType<Float> center;
-    Float chordlength;
     Float theta_min;
     Float theta_max;
     int theta_sources;
@@ -459,7 +458,7 @@ struct US {
 
     US(
 #ifdef FUS_RIF
-        const Float& f_u, const Float& speed_u, const Float& n_o, const Float& n_scaling, const Float& n_coeff, const Float& radius, const VectorType<Float> &center, const Float& chordlength, const Float& theta_min, const Float& theta_max, const int& theta_sources, const Float& trans_z_min, const Float& trans_z_max, const int& trans_z_sources,
+        const Float& f_u, const Float& speed_u, const Float& n_o, const Float& n_scaling, const Float& n_coeff, const Float& radius, const VectorType<Float> &center, const Float& theta_min, const Float& theta_max, const int& theta_sources, const Float& trans_z_min, const Float& trans_z_max, const int& trans_z_sources,
 #else
         const Float& f_u, const Float& speed_u, const Float& n_o, const Float& n_max, const Float& n_clip, const Float& phi_min, const Float& phi_max, const int& mode,
 #endif
@@ -483,7 +482,6 @@ struct US {
 		this->n_coeff = n_coeff;
 		this->radius = radius;
 		this->center = center;
-		this->chordlength = chordlength;
 		this->theta_min = theta_min;
 		this->theta_max = theta_max;
 		this->theta_sources = theta_sources;
@@ -789,7 +787,6 @@ public:
 			const int& n_coeff,
 			const Float& radius,
 			const VectorType<Float> &center,
-			const Float& chordlength,
 			const Float& theta_min,
 			const Float& theta_max,
 			const int& theta_sources,
@@ -828,7 +825,7 @@ public:
 				m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange, useBounceDecomposition, sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active),
 				m_bsdf(FPCONST(1.0), ior),
 #ifdef FUS_RIF
-				m_us(f_u, speed_u, n_o, n_scaling, n_coeff, radius, center, chordlength, theta_min, theta_max, theta_sources, trans_z_min, trans_z_max, trans_z_sources, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, EgapEndLocX, SgapBeginLocX, useInitializationHack) // Need to fix this
+				m_us(f_u, speed_u, n_o, n_scaling, n_coeff, radius, center, theta_min, theta_max, theta_sources, trans_z_min, trans_z_max, trans_z_sources, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, EgapEndLocX, SgapBeginLocX, useInitializationHack) // Need to fix this
 #else
 				m_us(f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, EgapEndLocX, SgapBeginLocX, useInitializationHack
 #endif

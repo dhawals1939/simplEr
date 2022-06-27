@@ -796,7 +796,7 @@ int main(int argc, char **argv) {
                         emitter_lens_origin, emitter_lens_aperture, emitter_lens_focalLength, emitter_lens_active,
                         sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active,
 #ifdef FUS_RIF
-                        f_u, speed_u, n_o, n_scaling, n_coeff, radius, center, chordlength, theta_min, theta_max, theta_sources, trans_z_min, trans_z_max, trans_z_sources, 
+                        f_u, speed_u, n_o, n_scaling, n_coeff, radius, center, theta_min, theta_max, theta_sources, trans_z_min, trans_z_max, trans_z_sources, 
 #else
                         f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode, 
 #endif
