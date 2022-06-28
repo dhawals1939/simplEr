@@ -68,7 +68,7 @@ Image2<float>::EByteOrder getHostByteOrder() {
 template <>
 void Image2<float>::writePFM(const std::string& fileName) const {//,
 //						const EByteOrder fileEndianness) const {
-	Assert((fileEndianness == EBigEndian) || (fileEndianness == ELittleEndian));
+//	Assert((fileEndianness == EBigEndian) || (fileEndianness == ELittleEndian));
 
 	std::ofstream file(fileName.c_str(),
 					std::ofstream::out | std::ofstream::binary);
