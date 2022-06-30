@@ -140,7 +140,6 @@ double US<VectorType>::fus_RIF(const VectorType<Float> &p, const Float &scaling)
         }
         rif += trif*scalingfactor;
     }
-    std::cout.precision(17);
     return n_o + n_scaling * rif;
 }
 
