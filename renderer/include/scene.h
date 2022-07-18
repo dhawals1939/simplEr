@@ -492,7 +492,7 @@ struct US {
         Float theta_diff   = (theta_max - theta_min)/(theta_sources-1);
         Float trans_z_diff = (trans_z_max - trans_z_min)/(trans_z_sources-1);
 
-        nsources = theta_sources*trans_z_sources;
+        nsources = 2*theta_sources*trans_z_sources;
         centers = new VectorType<Float>[nsources];
 
         for(int i=0; i<theta_sources; i++){
@@ -503,9 +503,16 @@ struct US {
             for(int j=0; j<trans_z_sources; j++){
                 //int index = i*trans_z_sources + j;
                 int index = i + j*theta_sources; //to match matlab indices and debug 
-                centers[index].x = xval + center.x;
-                centers[index].y = yval + center.y;
-                centers[index].z = trans_z_min + trans_z_diff*j + center.z;
+                // for horizontal (0, 0, 0.0508)
+                //centers[index].y = yval + center.y;
+                //centers[index].z = xval + center.z;
+                centers[index].y = yval + center.z;
+                centers[index].z = xval + center.y;
+                centers[index].x = trans_z_min + trans_z_diff*j + center.x;
+                // for vertical (0, -0.0508, 0)
+                centers[nsources/2 + index].y = xval + center.y;
+                centers[nsources/2 + index].z = yval + center.z;
+                centers[nsources/2 + index].x = trans_z_min + trans_z_diff*j + center.x;
             }
         }
 #else
