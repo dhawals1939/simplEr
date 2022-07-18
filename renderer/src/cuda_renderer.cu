@@ -691,7 +691,11 @@ __global__ void renderPhotons() {
     if (idx < d_constants.numPhotons) {
 	init_rand(idx);
         if (scene.genRay(pos, dir, totalDistance)) {
+#ifdef FUS_RIF
+            scaling = 1.0f;
+#else
             scaling = max(min(sinf(scene.getUSPhi_min() + scene.getUSPhi_range() * uniform_sample()), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
+#endif
 #ifndef OMEGA_TRACKING
   	    dir *= scene.getMediumIor(pos, scaling);
 #endif
@@ -704,6 +708,7 @@ __global__ void renderPhotons() {
 }
 
 void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &medium, const scn::Scene<tvec::TVector3> &scene, int numPhotons) {
+
     setup(target, medium, scene, numPhotons);
 
     dim3 threadGrid(16, 16); // Arbitrary choice, total can go up to 1024 on most architectures, 2048 or 4096 on newer ones.
@@ -715,6 +720,7 @@ void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &med
     dim3 blockGrid((numBlocks + width - 1) / width, width);
     CUDA_CALL(cudaDeviceSynchronize());
 
+    printf("rendering numblocks=%d, numPhotons=%d\n", numBlocks, numPhotons);
     renderPhotons<<<blockGrid,threadGrid>>>();
     CUDA_CALL(cudaDeviceSynchronize());
 

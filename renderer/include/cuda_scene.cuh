@@ -22,13 +22,13 @@ public:
         return d_result;
     }
 
-	__device__ inline void clear() {
-		m_cdf_length = 0;
-		append(0.0f);
-		m_normalized = false;
-	}
+    __device__ inline void clear() {
+        m_cdf_length = 0;
+        append(0.0f);
+        m_normalized = false;
+    }
 
-	__device__ inline void reserve(size_t nEntries) {
+    __device__ inline void reserve(size_t nEntries) {
         ASSERT(nEntries >= m_cdf_capacity);
         m_cdf_capacity = nEntries+1;
         Float *temp = (Float *)malloc((nEntries+1) * sizeof(Float));
@@ -38,9 +38,9 @@ public:
         }
         m_cdf = temp;
         ASSERT(m_cdf);
-	}
+    }
 
-	__device__ inline void append(Float pdfValue) {
+    __device__ inline void append(Float pdfValue) {
         if (m_cdf_length == m_cdf_capacity) {
             reserve(m_cdf_capacity ? m_cdf_capacity * 2 : 1);
         }
@@ -51,46 +51,46 @@ public:
 
         m_cdf_length++;
         ASSERT(m_cdf_length <= m_cdf_capacity);
-	}
+    }
 
-	__device__ inline Float operator[](size_t entry) const {
-		return m_cdf[entry+1] - m_cdf[entry];
-	}
+    __device__ inline Float operator[](size_t entry) const {
+        return m_cdf[entry+1] - m_cdf[entry];
+    }
 
-	__device__ inline bool isNormalized() const {
-		return m_normalized;
-	}
+    __device__ inline bool isNormalized() const {
+        return m_normalized;
+    }
 
-	__device__ inline Float normalize() {
-		ASSERT(m_cdf_length > 1);
-		m_sum = m_cdf[m_cdf_length-1];
-		if (m_sum > 0) {
-			m_normalization = 1.0f / m_sum;
-			for (size_t i=1; i<m_cdf_length; ++i)
-				m_cdf[i] *= m_normalization;
-			m_cdf[m_cdf_length-1] = 1.0f;
-			m_normalized = true;
-		} else {
-			m_normalization = 0.0f;
-		}
-		return m_sum;
-	}
+    __device__ inline Float normalize() {
+        ASSERT(m_cdf_length > 1);
+        m_sum = m_cdf[m_cdf_length-1];
+        if (m_sum > 0) {
+            m_normalization = 1.0f / m_sum;
+            for (size_t i=1; i<m_cdf_length; ++i)
+                m_cdf[i] *= m_normalization;
+            m_cdf[m_cdf_length-1] = 1.0f;
+            m_normalized = true;
+        } else {
+            m_normalization = 0.0f;
+        }
+        return m_sum;
+    }
 
-	__device__ inline size_t sample(Float sampleValue) {
+    __device__ inline size_t sample(Float sampleValue) {
         // First elements is dummy 0.0f. Account for it.
         size_t index = fminf(m_cdf_length-2,
                            fmaxf(cdf_lower_bound(sampleValue)-1, (size_t) 0));
 
-		/* Handle a rare corner-case where a entry has probability 0
-		   but is sampled nonetheless */
-		while (operator[](index) == 0 && index < m_cdf_length-1)
-			++index;
+        /* Handle a rare corner-case where a entry has probability 0
+           but is sampled nonetheless */
+        while (operator[](index) == 0 && index < m_cdf_length-1)
+            ++index;
 
-		return index;
-	}
+        return index;
+    }
 
 private:
-	Float *m_cdf;
+    Float *m_cdf;
     size_t m_cdf_length;
     size_t m_cdf_capacity;
 
@@ -118,8 +118,8 @@ private:
         return lo;
     }
 
-	Float m_sum, m_normalization;
-	bool m_normalized;
+    Float m_sum, m_normalization;
+    bool m_normalized;
 };
 
 class SmoothDielectric {
@@ -134,26 +134,26 @@ public:
     }
 
     __device__ void sample(const TVector3<Float> &in, const TVector3<Float> &n,
-				TVector3<Float> &out) const;
+                TVector3<Float> &out) const;
 
-	__device__ inline Float getIor1() const {
-		return m_ior1;
-	}
+    __device__ inline Float getIor1() const {
+        return m_ior1;
+    }
 
-	__device__ inline Float getIor2() const {
-		return m_ior2;
-	}
+    __device__ inline Float getIor2() const {
+        return m_ior2;
+    }
 private:
     Float m_ior1;
     Float m_ior2;
 
-	__host__ SmoothDielectric(Float ior1, Float ior2) :
-		m_ior1(ior1),
-		m_ior2(ior2) { }
+    __host__ SmoothDielectric(Float ior1, Float ior2) :
+        m_ior1(ior1),
+        m_ior2(ior2) { }
 
-	__host__ SmoothDielectric(const bsdf::SmoothDielectric<tvec::TVector3> &in) {
-		m_ior1 = in.getIor1(); m_ior2 = in.getIor2();
-	}
+    __host__ SmoothDielectric(const bsdf::SmoothDielectric<tvec::TVector3> &in) {
+        m_ior1 = in.getIor1(); m_ior2 = in.getIor2();
+    }
 };
 
 
@@ -187,11 +187,11 @@ public:
          * Original ray deflects to pass through this point
          * The negative distance (HACK) travelled by this ray at the lens is -f/d[0] - norm(focalpoint_Pos - original_Pos)
          */
-    	Float squareDistFromLensOrigin = 0.0f;
-    	for(int i = 1; i < pos.dim; i++)
-    		squareDistFromLensOrigin += pos[i]*pos[i];
-    	if(squareDistFromLensOrigin > m_squareApertureRadius)
-    		return false;
+        Float squareDistFromLensOrigin = 0.0f;
+        for(int i = 1; i < pos.dim; i++)
+            squareDistFromLensOrigin += pos[i]*pos[i];
+        if(squareDistFromLensOrigin > m_squareApertureRadius)
+            return false;
 
         ASSERT(pos.x == m_origin->x);
         Float invd = -1/dir[0];
@@ -208,9 +208,9 @@ public:
         pos += dist*dir;
         totalDistance += dist;
         if(m_active)
-        	return deflect(pos, dir, totalDistance);
+            return deflect(pos, dir, totalDistance);
         else
-        	return true;
+            return true;
     }
 
     __device__ inline bool isActive() const {
@@ -247,59 +247,59 @@ public:
         return d_result;
     }
 
-	__device__ inline bool samplePosition(TVector3<Float> &pos) const;
+    __device__ inline bool samplePosition(TVector3<Float> &pos) const;
 
-	__device__ inline const TVector3<Float>& getOrigin() const {
-		return *m_origin;
-	}
+    __device__ inline const TVector3<Float>& getOrigin() const {
+        return *m_origin;
+    }
 
-	__device__ inline const TVector3<Float>& getDir() const {
-		return *m_dir;
-	}
+    __device__ inline const TVector3<Float>& getDir() const {
+        return *m_dir;
+    }
 
-	__device__ inline const TVector3<Float>& getHorizontal() const {
-		return *m_horizontal;
-	}
+    __device__ inline const TVector3<Float>& getHorizontal() const {
+        return *m_horizontal;
+    }
 
-	__device__ inline const TVector3<Float>& getVertical() const {
-		return *m_vertical;
-	}
+    __device__ inline const TVector3<Float>& getVertical() const {
+        return *m_vertical;
+    }
 
-	__device__ inline const TVector2<Float>& getPlane() const {
-		return *m_plane;
-	}
+    __device__ inline const TVector2<Float>& getPlane() const {
+        return *m_plane;
+    }
 
-	__device__ inline const TVector2<Float>& getPathlengthRange() const {
-		return *m_pathlengthRange;
-	}
+    __device__ inline const TVector2<Float>& getPathlengthRange() const {
+        return *m_pathlengthRange;
+    }
 
-	__device__ inline const bool& isBounceDecomposition() const {
-		return m_useBounceDecomposition;
-	}
+    __device__ inline const bool& isBounceDecomposition() const {
+        return m_useBounceDecomposition;
+    }
 
-	__device__ inline const bool propagateTillSensor(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const{
-		//propagate till lens
-		if (m_lens->isActive() && !m_lens->deflect(pos, dir, totalDistance))
-			return false;
-		//propagate from lens to sensor
-		Float dist = ((*m_origin)[0]-pos[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
-		pos += dist*dir;
+    __device__ inline const bool propagateTillSensor(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const{
+        //propagate till lens
+        if (m_lens->isActive() && !m_lens->deflect(pos, dir, totalDistance))
+            return false;
+        //propagate from lens to sensor
+        Float dist = ((*m_origin)[0]-pos[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
+        pos += dist*dir;
 #ifdef PRINT_DEBUGLOG
-		if (dist < -1e-4){
-			std::cout << "Propagation till sensor failed; dying" << std::endl;
-			exit(EXIT_FAILURE);
-		}
+        if (dist < -1e-4){
+            std::cout << "Propagation till sensor failed; dying" << std::endl;
+            exit(EXIT_FAILURE);
+        }
 #endif
 
-		totalDistance += dist;
-		return true;
-	}
+        totalDistance += dist;
+        return true;
+    }
 
-	__host__ ~Camera() { }
+    __host__ ~Camera() { }
 
 private:
 
-	__host__ Camera(const scn::Camera<tvec::TVector3>& camera) {
+    __host__ Camera(const scn::Camera<tvec::TVector3>& camera) {
 
         m_origin     = TVector3<Float>::from(camera.getOrigin());
         m_dir        = TVector3<Float>::from(camera.getDir());
@@ -312,15 +312,15 @@ private:
         m_useBounceDecomposition = camera.isBounceDecomposition();
 
         m_lens = Lens::from(camera.getLens());
-	}
-	TVector3<Float> *m_origin;
-	TVector3<Float> *m_dir;
-	TVector3<Float> *m_horizontal;
-	TVector3<Float> *m_vertical;
-	TVector2<Float> *m_plane;
-	TVector2<Float> *m_pathlengthRange;
-	bool m_useBounceDecomposition;
-	Lens *m_lens;
+    }
+    TVector3<Float> *m_origin;
+    TVector3<Float> *m_dir;
+    TVector3<Float> *m_horizontal;
+    TVector3<Float> *m_vertical;
+    TVector2<Float> *m_plane;
+    TVector2<Float> *m_pathlengthRange;
+    bool m_useBounceDecomposition;
+    Lens *m_lens;
 };
 
 // Currently only supporting AreaTexturedSource (which assumes PROJECTOR flag is on
@@ -340,33 +340,33 @@ public:
         return d_result;
     }
 
-	__device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const;
+    __device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const;
 
-	__device__ inline const TVector3<Float>& getOrigin() const {
-		return *m_origin;
-	}
+    __device__ inline const TVector3<Float>& getOrigin() const {
+        return *m_origin;
+    }
 
-	__device__ inline const TVector3<Float>& getDir() const {
-		return *m_dir;
-	}
+    __device__ inline const TVector3<Float>& getDir() const {
+        return *m_dir;
+    }
 
-	__device__ inline const TVector2<Float>& getPlane() const {
-		return *m_plane;
-	}
+    __device__ inline const TVector2<Float>& getPlane() const {
+        return *m_plane;
+    }
 
-	__device__ inline Float getLi() const {
-		return m_Li;
-	}
+    __device__ inline Float getLi() const {
+        return m_Li;
+    }
 
-	__device__ inline bool propagateTillMedium(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const{
-		//propagate till lens
-		return m_lens->propagateTillLens(pos, dir, totalDistance);
-	}
+    __device__ inline bool propagateTillMedium(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const{
+        //propagate till lens
+        return m_lens->propagateTillLens(pos, dir, totalDistance);
+    }
 
-	__host__ virtual ~AreaTexturedSource() { }
+    __host__ virtual ~AreaTexturedSource() { }
 
 protected:
-	__host__ AreaTexturedSource(const scn::AreaTexturedSource<tvec::TVector3> &source)
+    __host__ AreaTexturedSource(const scn::AreaTexturedSource<tvec::TVector3> &source)
         : m_emittertype(source.getEmitterType()) {
         m_origin         = TVector3<Float>::from(source.getOrigin());
         m_dir            = TVector3<Float>::from(source.getDir());
@@ -384,38 +384,58 @@ protected:
                                         planeY/textureYRes);
         m_pixelsize = TVector2<Float>::from(pixelsize);
 
-		m_ct = cosf(m_halfThetaLimit);
+        m_ct = cosf(m_halfThetaLimit);
 
         m_textureSampler = DiscreteDistribution::from(source.textureSamplerCDF());
 
-	}
+    }
 
-	TVector3<Float> *m_origin;
-	TVector3<Float> *m_dir;
-	Float m_halfThetaLimit;
-	Float m_ct;
+    TVector3<Float> *m_origin;
+    TVector3<Float> *m_dir;
+    Float m_halfThetaLimit;
+    Float m_ct;
     Image2<Float> *m_texture;
-	DiscreteDistribution *m_textureSampler;
-	TVector2<Float> *m_pixelsize;
-	TVector2<Float> *m_plane;
-	Float m_Li;
-	Lens *m_lens;
-	const EmitterType m_emittertype;
+    DiscreteDistribution *m_textureSampler;
+    TVector2<Float> *m_pixelsize;
+    TVector2<Float> *m_plane;
+    Float m_Li;
+    Lens *m_lens;
+    const EmitterType m_emittertype;
 };
 
 class US {
 public:
-	Float    f_u;          // Ultrasound frequency (1/s or Hz)
-	Float    speed_u;      // Ultrasound speed (m/s)
-	Float    wavelength_u; // (m)
+    Float    wavelength_u; // (m)
+#ifdef FUS_RIF
+    Float f_u;
+    Float speed_u;
+    Float n_o;
+    Float n_scaling;
+    int n_coeff;
+    Float radius;
+//    Float[] center;
+    TVector3<Float> *center;
+    Float theta_min;
+    Float theta_max;
+    int theta_sources;
+    Float trans_z_min;
+    Float trans_z_max;
+    int trans_z_sources;
+    int nsources;
+    TVector3<Float> *centers;
+#else
+    Float f_u;          // Ultrasound frequency (1/s or Hz)
+    Float speed_u;      // Ultrasound speed (m/s)
+    Float n_o;          // Baseline refractive index
+    Float n_max;        // Max refractive index variation
+    Float n_clip;        // Clipped refractive index variation
+    Float n_maxScaling;  // =n_clip/n_max
+    Float phi_min;        // Min Phase 
+    Float phi_max;        // Max Phase 
+    int   mode;         // Order of the bessel function or mode of the ultrasound
+#endif
 
-	Float n_o;          // Baseline refractive index
-	Float n_max;        // Max refractive index variation
-	Float n_clip;        // Clipped refractive index variation
-	Float n_maxScaling;  // =n_clip/n_max
-	Float phi_min;        // Min Phase
-	Float phi_max;        // Max Phase
-	Float k_r;
+    Float k_r;
     int   mode;         // Order of the bessel function or mode of the ultrasound
 
     TVector3<Float> *axis_uz;          // Ultrasound axis
@@ -438,21 +458,44 @@ public:
     __device__ inline Float RIF(const TVector3<Float> &p, const Float &scaling) const{
         if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
             return n_o;
-    	return bessel_RIF(p, scaling);
+#ifdef FUS_RIF
+        return fus_RIF(p, scaling);
+#else
+        return bessel_RIF(p, scaling);
+#endif
     }
 
-    __device__ inline const TVector3<Float> dRIF(const TVector3<Float> &q, const Float &scaling) const{
-        if(q.x > m_EgapEndLocX || q.x < m_SgapBeginLocX)
+    __device__ inline const TVector3<Float> dRIF(const TVector3<Float> &p, const Float &scaling) const{
+        if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
             return TVector3<Float>(0.0);
-    	return bessel_dRIF(q, scaling);
+#ifdef FUS_RIF
+        return fus_dRIF(p, scaling);
+#else
+        return bessel_dRIF(p, scaling);
+#endif
     }
 
-    //inline const Matrix3x3 HessianRIF(const VectorType<Float> &p, const Float &scaling) const{
+    //inline const Matrix3x3 HessianRIF(const TVector3<Float> &p, const Float &scaling) const{
     //    if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
     //        return Matrix3x3(0.0);
-    //	return bessel_HessianRIF(p, scaling);
+    //  return bessel_HessianRIF(p, scaling);
     //}
 
+    __device__ inline double fus_RIF(const TVector3<Float> &p, Float scaling) const{
+        Float rif=0;
+        for(int c=1; c<=n_coeff; c++){
+            Float scalingfactor = 4*pow(-1, c+1)/(pow(c*M_PI, 2)*nsources);
+            Float trif = 0.;
+            for(int n=0; n<nsources; n++){
+                Float r = (p - centers[n]).length();
+                trif += cos(k_r*r*c)/r; // avoiding complex number math by taking real numbers directly
+            }
+            rif += trif*scalingfactor;
+        }
+        return n_o + n_scaling * rif;
+    }
+#ifdef FUS_RIF
+#else
     __device__ inline double bessel_RIF(const TVector3<Float> &p, Float scaling) const{
         TVector3<Float> p_axis = *p_u + dot(p - *p_u, *axis_uz)*(*axis_uz); // point on the axis closest to p
 
@@ -463,7 +506,32 @@ public:
 
         return n_o + n_max * scaling * jn(mode, k_r*r) * cosf(mode*phi);
     }
+#endif
 
+    __device__ const TVector3<Float> fus_dRIF(const TVector3<Float> &p, Float scaling) const{
+        TVector3<Float> dn(0.0,
+                             0.0, 
+                             0.0
+                             );
+    
+        for(int c=1; c<=n_coeff; c++){
+            Float scalingfactor = 4*pow(-1, c+1)/(pow(c*M_PI, 2)*nsources);
+            TVector3<Float> tdn(0., 0., 0.);
+
+            for(int n=0; n<nsources; n++){
+                TVector3<Float> dirvec = p - centers[n];
+                Float r = dirvec.length();
+                Float krrc = k_r*r*c;
+                Float commonterm = -(cos(krrc) + krrc * sin(krrc))/pow(r, 3); // avoiding complex number math by taking real numbers directly
+                tdn += commonterm * dirvec;
+            }
+            //std::cout << "tdn:" << tdn << std::endl;
+            dn += tdn*scalingfactor;
+        }
+        return dn*n_scaling;
+    }
+#ifdef FUS_RIF
+#else
     __device__ const TVector3<Float> bessel_dRIF(const TVector3<Float> &q, Float scaling) const{
 
         TVector3<Float> p_axis = *p_u + dot(q - *p_u, *axis_uz)*(*axis_uz); // point on the axis closest to p
@@ -499,9 +567,10 @@ public:
                            n_max * scaling * (dbesselj * k_r * p.z * invr * cosmp + besselj*mode*sinmp*p.y*invr2));
         return dn;
     }
-    //inline const VectorType<Float> bessel_dRIF(const VectorType<Float> &q, const Float &scaling) const;
+#endif
+    //inline const TVector3<Float> bessel_dRIF(const TVector3<Float> &q, const Float &scaling) const;
 
-    //inline const Matrix3x3 bessel_HessianRIF(const VectorType<Float> &p, const Float &scaling) const;
+    //inline const Matrix3x3 bessel_HessianRIF(const TVector3<Float> &p, const Float &scaling) const;
 
     __device__ inline const Float getStepSize() const{return er_stepsize;}
 
@@ -524,28 +593,48 @@ public:
 
 protected:
     US(const scn::US<tvec::TVector3>& us) {
+#ifdef FUS_RIF
+        f_u = us.f_u;
+        speed_u = us.speed_u;
+        n_o = us.n_o;
+        n_scaling = us.n_scaling;
+        n_coeff = us.n_coeff;
+        radius = us.radius;
+        center = TVector3<Float>::from(us.center);
+        theta_min = us.theta_min;
+        theta_max = us.theta_max;
+        theta_sources = us.theta_sources;
+        trans_z_min = us.trans_z_min;
+        trans_z_max = us.trans_z_max;
+        trans_z_sources = us.trans_z_sources;
+
+        nsources = us.nsources;
+        cudaMalloc((void **)&centers, nsources * sizeof(TVector3<Float>));
+        cudaMemcpy(centers, us.centers, nsources * sizeof(TVector3<Float>), cudaMemcpyHostToDevice);
+#else
         f_u            = us.f_u;
-		speed_u        = us.speed_u;
-		wavelength_u   = us.wavelength_u;
-		n_o            = us.n_o;
-		n_max          = us.n_max;
-		n_clip         = us.n_clip;
-		n_maxScaling   = us.n_maxScaling;
-		phi_min        = us.phi_min;
-		phi_max        = us.phi_max;
-		k_r            = us.k_r;
-		mode           = us.mode;
+        speed_u        = us.speed_u;
+        n_o            = us.n_o;
+        n_max          = us.n_max;
+        n_clip         = us.n_clip;
+        n_maxScaling   = us.n_maxScaling;
+        phi_min        = us.phi_min;
+        phi_max        = us.phi_max;
+        mode           = us.mode;
+#endif
+        wavelength_u   = us.wavelength_u;
+        k_r            = us.k_r;
 
-		axis_uz        = TVector3<Float>::from(us.axis_uz);
-		axis_ux        = TVector3<Float>::from(us.axis_ux);
-		p_u            = TVector3<Float>::from(us.p_u);
+        axis_uz        = TVector3<Float>::from(us.axis_uz);
+        axis_ux        = TVector3<Float>::from(us.axis_ux);
+        p_u            = TVector3<Float>::from(us.p_u);
 
-		er_stepsize    = us.er_stepsize;
+        er_stepsize    = us.er_stepsize;
 
-		tol 		   = us.tol;
-		rrWeight       = us.rrWeight;
-		invrrWeight    = us.invrrWeight;
-		m_precision    = us.m_precision;
+        tol            = us.tol;
+        rrWeight       = us.rrWeight;
+        invrrWeight    = us.invrrWeight;
+        m_precision    = us.m_precision;
         m_EgapEndLocX  = us.m_EgapEndLocX;
         m_SgapBeginLocX= us.m_SgapBeginLocX;
 
@@ -564,15 +653,15 @@ public:
         return d_result;
     }
 
-	__host__ ~HenyeyGreenstein() { }
+    __host__ ~HenyeyGreenstein() { }
 
-	__device__ Float f(const TVector3<Float> &in, const TVector3<Float> &out) const {
+    __device__ Float f(const TVector3<Float> &in, const TVector3<Float> &out) const {
         Float cosTheta = dot(in, out);
         return static_cast<Float>(FPCONST(1.0) / (4.0 * M_PI)) * (FPCONST(1.0) - m_g * m_g)
-				/ pow(FPCONST(1.0) + m_g * m_g - FPCONST(2.0) * m_g * cosTheta, FPCONST(1.5));
+                / pow(FPCONST(1.0) + m_g * m_g - FPCONST(2.0) * m_g * cosTheta, FPCONST(1.5));
     }
 
-	__device__ Float derivf(const TVector3<Float> &in, const TVector3<Float> &out) const {
+    __device__ Float derivf(const TVector3<Float> &in, const TVector3<Float> &out) const {
         Float cosTheta = dot(in, out);
         Float denominator = FPCONST(1.0) + m_g * m_g - FPCONST(2.0) * m_g * cosTheta;
         return static_cast<Float>(FPCONST(1.0) / M_PI) *
@@ -580,7 +669,7 @@ public:
             / denominator / denominator;
     }
 
-	__device__ Float score(const TVector3<Float> &in, const TVector3<Float> &out) const {
+    __device__ Float score(const TVector3<Float> &in, const TVector3<Float> &out) const {
         Float cosTheta = dot(in, out);
         return (cosTheta + cosTheta * m_g * m_g - FPCONST(2.0) * m_g) * FPCONST(2.0)
                 / (FPCONST(1.0) - m_g * m_g)
@@ -590,29 +679,29 @@ public:
 
     __device__ Float sample(const TVector3<Float> &in, TVector3<Float> &out) const;
 
-	__device__ Float sample(const TVector2<Float> &in, TVector2<Float> &out)  const;
+    __device__ Float sample(const TVector2<Float> &in, TVector2<Float> &out)  const;
 
-	__device__ inline Float getG() const {
-		return m_g;
-	}
+    __device__ inline Float getG() const {
+        return m_g;
+    }
 
 private:
 
     __device__ static inline void coordinateSystem(const TVector3<Float> &a, TVector3<Float> &b, TVector3<Float> &c) {
-	if (fabsf(a.x) > fabsf(a.y)) {
-		Float invLen = FPCONST(1.0) / sqrtf(a.x * a.x + a.z *a.z);
-		c = TVector3<Float>(a.z * invLen, FPCONST(0.0), -a.x * invLen);
-	} else {
-		Float invLen = FPCONST(1.0) / sqrtf(a.y * a.y + a.z * a.z);
-		c = TVector3<Float>(FPCONST(0.0), a.z * invLen, -a.y * invLen);
-	}
-	b = cross(c, a);
+    if (fabsf(a.x) > fabsf(a.y)) {
+        Float invLen = FPCONST(1.0) / sqrtf(a.x * a.x + a.z *a.z);
+        c = TVector3<Float>(a.z * invLen, FPCONST(0.0), -a.x * invLen);
+    } else {
+        Float invLen = FPCONST(1.0) / sqrtf(a.y * a.y + a.z * a.z);
+        c = TVector3<Float>(FPCONST(0.0), a.z * invLen, -a.y * invLen);
+    }
+    b = cross(c, a);
 }
 
-	__host__ HenyeyGreenstein(const Float g)
-					: m_g(g) {	}
+    __host__ HenyeyGreenstein(const Float g)
+                    : m_g(g) {  }
 
-	Float m_g;
+    Float m_g;
 };
 
 class Medium {
@@ -625,56 +714,56 @@ public:
         return d_result;
     }
 
-	__device__ inline Float getSigmaT() const {
-		return m_sigmaT;
-	}
+    __device__ inline Float getSigmaT() const {
+        return m_sigmaT;
+    }
 
-	__device__ inline Float getSigmaS() const {
-		return m_sigmaS;
-	}
+    __device__ inline Float getSigmaS() const {
+        return m_sigmaS;
+    }
 
-	__device__ inline Float getSigmaA() const {
-		return m_sigmaA;
-	}
+    __device__ inline Float getSigmaA() const {
+        return m_sigmaA;
+    }
 
-	__device__ inline Float getMfp() const {
-		return m_mfp;
-	}
+    __device__ inline Float getMfp() const {
+        return m_mfp;
+    }
 
-	__device__ inline Float getAlbedo() const {
-		return m_albedo;
-	}
+    __device__ inline Float getAlbedo() const {
+        return m_albedo;
+    }
 
-	__device__ inline const HenyeyGreenstein *getPhaseFunction() const {
-		return m_phase;
-	}
+    __device__ inline const HenyeyGreenstein *getPhaseFunction() const {
+        return m_phase;
+    }
 
-	__host__ virtual ~Medium() { }
+    __host__ virtual ~Medium() { }
 
 protected:
     __host__ Medium(const Float sigmaT, const Float albedo, const pfunc::HenyeyGreenstein *phase)
-		: m_sigmaT(sigmaT),
-		  m_albedo(albedo),
-		  m_sigmaS(albedo * sigmaT),
-		  m_sigmaA((1 - albedo) * sigmaT),
-		  m_mfp(FPCONST(1.0) / sigmaT)
+        : m_sigmaT(sigmaT),
+          m_albedo(albedo),
+          m_sigmaS(albedo * sigmaT),
+          m_sigmaA((1 - albedo) * sigmaT),
+          m_mfp(FPCONST(1.0) / sigmaT)
     {
-		ASSERT(m_sigmaA >= 0);
-		ASSERT(m_albedo <= 1);
-		if (m_sigmaT <= M_EPSILON) {
-			m_sigmaT = FPCONST(0.0);
-			m_mfp = FPCONST(1.0);
-			m_albedo = FPCONST(0.0);
-		}
+        ASSERT(m_sigmaA >= 0);
+        ASSERT(m_albedo <= 1);
+        if (m_sigmaT <= M_EPSILON) {
+            m_sigmaT = FPCONST(0.0);
+            m_mfp = FPCONST(1.0);
+            m_albedo = FPCONST(0.0);
+        }
         m_phase = HenyeyGreenstein::from(phase);
-	}
+    }
 
-	Float m_sigmaT;
-	Float m_albedo;
-	Float m_sigmaS;
-	Float m_sigmaA;
-	Float m_mfp;
-	HenyeyGreenstein *m_phase;
+    Float m_sigmaT;
+    Float m_albedo;
+    Float m_sigmaS;
+    Float m_sigmaA;
+    Float m_mfp;
+    HenyeyGreenstein *m_phase;
 };
 
 class Scene {
@@ -697,21 +786,35 @@ public:
         return m_us->RIF(p, scaling);
     }
 
+#ifdef FUS_RIF
     __device__ inline Float getUSPhi_min() const{
-    	return m_us->phi_min;
+        return 0.;
     }
 
     __device__ inline Float getUSPhi_range() const{
-    	return m_us->phi_max - m_us->phi_min;
+        return 0.;
     }
 
     __device__ inline Float getUSMaxScaling() const{
-    	return m_us->n_maxScaling;
+        return 0.;
     }
+#else
+    __device__ inline Float getUSPhi_min() const{
+        return m_us->phi_min;
+    }
+
+    __device__ inline Float getUSPhi_range() const{
+        return m_us->phi_max - m_us->phi_min;
+    }
+
+    __device__ inline Float getUSMaxScaling() const{
+        return m_us->n_maxScaling;
+    }
+#endif
 
     __device__ void addEnergyToImage(const TVector3<Float> &p, Float pathlength, int &depth, Float val) const;
 
-	__device__ void addEnergyInParticle(const TVector3<Float> &p, const TVector3<Float> &d, Float distTravelled,
+    __device__ void addEnergyInParticle(const TVector3<Float> &p, const TVector3<Float> &d, Float distTravelled,
                                         int &depth, Float val, const Float &scaling) const;
 
     __device__ bool movePhotonTillSensor(TVector3<Float> &p, TVector3<Float> &d, Float &distToSensor, Float &totalOpticalDistance,
@@ -725,23 +828,23 @@ public:
 
     __device__ void er_step(TVector3<Float> &p, TVector3<Float> &d, Float stepSize, Float scaling) const;
 
-	__device__ inline TVector3<Float> dP(const TVector3<Float> d) const{
+    __device__ inline TVector3<Float> dP(const TVector3<Float> d) const{
         #ifndef OMEGA_TRACKING
         ASSERT(false);
         #endif /* OMEGA_TRACKING */
-		return d;
-	}
+        return d;
+    }
 
-	__device__ inline TVector3<Float> dV(const TVector3<Float> &p, const TVector3<Float> &d, Float scaling) const{
-		return m_us->dRIF(p, scaling);
-	}
+    __device__ inline TVector3<Float> dV(const TVector3<Float> &p, const TVector3<Float> &d, Float scaling) const{
+        return m_us->dRIF(p, scaling);
+    }
 
-	__device__ inline TVector3<Float> dOmega(const TVector3<Float> p, const TVector3<Float> d, Float scaling) const{
-		TVector3<Float> dn = m_us->dRIF(p, scaling);
-		Float            n = m_us->RIF(p, scaling);
+    __device__ inline TVector3<Float> dOmega(const TVector3<Float> p, const TVector3<Float> d, Float scaling) const{
+        TVector3<Float> dn = m_us->dRIF(p, scaling);
+        Float            n = m_us->RIF(p, scaling);
 
-		return (dn - dot(d, dn)*d)/n;
-	}
+        return (dn - dot(d, dn)*d)/n;
+    }
 
     __device__ inline const Camera &getCamera() {
         return *m_camera;
@@ -758,7 +861,7 @@ private:
     Camera *m_camera;
     SmoothDielectric *m_bsdf;
     US *m_us;
-	AreaTexturedSource *m_source;
+    AreaTexturedSource *m_source;
 };
 
 }
