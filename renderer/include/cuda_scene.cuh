@@ -414,7 +414,12 @@ public:
     int n_coeff;
     Float radius;
 //    Float[] center;
-    TVector3<Float> *center;
+    TVector3<Float> *center1;
+    TVector3<Float> *center2;
+    bool active1;
+    bool active2;
+    Float phase1;
+    Float phase2;
     Float theta_min;
     Float theta_max;
     int theta_sources;
@@ -422,7 +427,8 @@ public:
     Float trans_z_max;
     int trans_z_sources;
     int nsources;
-    TVector3<Float> *centers;
+    TVector3<Float> *centers1;
+    TVector3<Float> *centers2;
 #else
     Float f_u;          // Ultrasound frequency (1/s or Hz)
     Float speed_u;      // Ultrasound speed (m/s)
@@ -486,9 +492,17 @@ public:
         for(int c=1; c<=n_coeff; c++){
             Float scalingfactor = 4*pow(-1, c+1)/(pow(c*M_PI, 2)*nsources);
             Float trif = 0.;
-            for(int n=0; n<nsources; n++){
-                Float r = (p - centers[n]).length();
-                trif += cos(k_r*r*c)/r; // avoiding complex number math by taking real numbers directly
+            if (active1){
+                for(int n=0; n<nsources; n++){
+                    Float r = (p - centers1[n]).length();
+                    trif += cos(k_r*r*c + phase1)/r; // avoiding complex number math by taking real numbers directly
+                }
+            }
+            if (active2){
+                for(int n=0; n<nsources; n++){
+                    Float r = (p - centers2[n]).length();
+                    trif += cos(k_r*r*c + phase2)/r; // avoiding complex number math by taking real numbers directly
+                }
             }
             rif += trif*scalingfactor;
         }
@@ -518,12 +532,23 @@ public:
             Float scalingfactor = 4*pow(-1, c+1)/(pow(c*M_PI, 2)*nsources);
             TVector3<Float> tdn(0., 0., 0.);
 
-            for(int n=0; n<nsources; n++){
-                TVector3<Float> dirvec = p - centers[n];
-                Float r = dirvec.length();
-                Float krrc = k_r*r*c;
-                Float commonterm = -(cos(krrc) + krrc * sin(krrc))/pow(r, 3); // avoiding complex number math by taking real numbers directly
-                tdn += commonterm * dirvec;
+            if(active1){
+                for(int n=0; n<nsources; n++){
+                    TVector3<Float> dirvec = p - centers1[n];
+                    Float r = dirvec.length();
+                    Float krrc = k_r*r*c;
+                    Float commonterm = -(cos(krrc+phase1) + krrc * sin(krrc+phase1))/pow(r, 3); // avoiding complex number math by taking real numbers directly
+                    tdn += commonterm * dirvec;
+                }
+            }
+            if(active2){
+                for(int n=0; n<nsources; n++){
+                    TVector3<Float> dirvec = p - centers2[n];
+                    Float r = dirvec.length();
+                    Float krrc = k_r*r*c;
+                    Float commonterm = -(cos(krrc+phase2) + krrc * sin(krrc+phase2))/pow(r, 3); // avoiding complex number math by taking real numbers directly
+                    tdn += commonterm * dirvec;
+                }
             }
             //std::cout << "tdn:" << tdn << std::endl;
             dn += tdn*scalingfactor;
@@ -600,7 +625,12 @@ protected:
         n_scaling = us.n_scaling;
         n_coeff = us.n_coeff;
         radius = us.radius;
-        center = TVector3<Float>::from(us.center);
+        center1 = TVector3<Float>::from(us.center1);
+        center2 = TVector3<Float>::from(us.center2);
+        active1 = us.active1;
+        active2 = us.active2;
+        phase1 = us.phase1;
+        phase2 = us.phase2;
         theta_min = us.theta_min;
         theta_max = us.theta_max;
         theta_sources = us.theta_sources;
@@ -609,8 +639,14 @@ protected:
         trans_z_sources = us.trans_z_sources;
 
         nsources = us.nsources;
-        cudaMalloc((void **)&centers, nsources * sizeof(TVector3<Float>));
-        cudaMemcpy(centers, us.centers, nsources * sizeof(TVector3<Float>), cudaMemcpyHostToDevice);
+        if(active1){
+            cudaMalloc((void **)&centers1, nsources * sizeof(TVector3<Float>));
+            cudaMemcpy(centers1, us.centers1, nsources * sizeof(TVector3<Float>), cudaMemcpyHostToDevice);
+        }
+        if(active2){
+            cudaMalloc((void **)&centers2, nsources * sizeof(TVector3<Float>));
+            cudaMemcpy(centers2, us.centers2, nsources * sizeof(TVector3<Float>), cudaMemcpyHostToDevice);
+        }
 #else
         f_u            = us.f_u;
         speed_u        = us.speed_u;

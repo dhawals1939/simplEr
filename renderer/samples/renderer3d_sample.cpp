@@ -140,7 +140,12 @@ int main(int argc, char **argv) {
     Float n_scaling = 0.05e-3;
     int n_coeff = 1;
     Float radius = 2 * 25.4e-3;
-    tvec::Vec3f center = {-radius, 0., 0.}; 
+    tvec::Vec3f center1 = {-radius, 0., 0.}; 
+    tvec::Vec3f center2 = {-radius, 0., 0.};
+    bool active1 = true;
+    bool active2 = true;
+    Float phase1 = 0;
+    Float phase2 = 0;
     Float chordlength = 0.5 * 25.4e-3;
     Float theta_min= -asin(chordlength/(2*radius)); //computed from chordlength and radius after parsing the input file
     Float theta_max=  asin(chordlength/(2*radius)); //computed from chordlength and radius after parsing the input file
@@ -194,24 +199,29 @@ int main(int argc, char **argv) {
     bool balbedo=false;
     bool bgVal=false;
 #ifdef FUS_RIF
-	bool bf_u=false;
-	bool bspeed_u=false;
-	bool bn_o=false;
-	bool bn_scaling=false;
-	bool bn_coeff=false;
-	bool bradius=false;
-	bool bcenter=false;
-	bool bchordlength=false;
-	bool btheta_sources=false;
-	bool btrans_z_sources=false;
+    bool bf_u=false;
+    bool bspeed_u=false;
+    bool bn_o=false;
+    bool bn_scaling=false;
+    bool bn_coeff=false;
+    bool bradius=false;
+    bool bcenter1=false;
+    bool bcenter2=false;
+    bool bactive1=false;
+    bool bactive2=false;
+    bool bphase1=false;
+    bool bphase2=false;
+    bool bchordlength=false;
+    bool btheta_sources=false;
+    bool btrans_z_sources=false;
 #else
-	bool bf_u=false;
-	bool bspeed_u=false;
-	bool bn_o=false;
-	bool bn_max=false;
-	bool bn_clip=false;
-	bool bphi_min=false;
-	bool bphi_max=false;
+    bool bf_u=false;
+    bool bspeed_u=false;
+    bool bn_o=false;
+    bool bn_max=false;
+    bool bn_clip=false;
+    bool bphi_min=false;
+    bool bphi_max=false;
     bool bmode=false;
 #endif
     bool bemitter_gap=false;
@@ -290,69 +300,111 @@ int main(int argc, char **argv) {
             bgVal=true;
             gVal = stof(param[1]);
 #ifdef FUS_RIF
-		}else if(param[0].compare("f_u")==0){
-			bf_u=true;
-			f_u = stof(param[1]);
-		}else if(param[0].compare("speed_u")==0){
-			bspeed_u=true;
-			speed_u = stof(param[1]);
-		}else if(param[0].compare("n_o")==0){
-			bn_o=true;
-			n_o = stof(param[1]);
-		}else if(param[0].compare("n_scaling")==0){
-			bn_scaling=true;
-			n_scaling = stof(param[1]);
-		}else if(param[0].compare("n_coeff")==0){
-			bn_coeff=true;
-			n_coeff = stoi(param[1]);
-		}else if(param[0].compare("radius")==0){
-			bradius=true;
-			radius = stof(param[1]);
-		}else if(param[0].compare("center")==0){
-			bcenter=true;
+        }else if(param[0].compare("f_u")==0){
+            bf_u=true;
+            f_u = stof(param[1]);
+        }else if(param[0].compare("speed_u")==0){
+            bspeed_u=true;
+            speed_u = stof(param[1]);
+        }else if(param[0].compare("n_o")==0){
+            bn_o=true;
+            n_o = stof(param[1]);
+        }else if(param[0].compare("n_scaling")==0){
+            bn_scaling=true;
+            n_scaling = stof(param[1]);
+        }else if(param[0].compare("n_coeff")==0){
+            bn_coeff=true;
+            n_coeff = stoi(param[1]);
+        }else if(param[0].compare("radius")==0){
+            bradius=true;
+            radius = stof(param[1]);
+        }else if(param[0].compare("center1")==0){
+            bcenter1=true;
             std::regex rgx("\,");
             std::sregex_token_iterator iter(param[1].begin(),param[1].end(), rgx, -1);
             std::sregex_token_iterator end;
             for(int i=0; i<3; i++){
                 if(iter == end){
-                    std::cout << "Three input coordinates required for center; crashing \n" << std::endl; return -1;
+                    std::cout << "Three input coordinates required for center1; crashing \n" << std::endl; return -1;
                 }       
-                center[i] = stof(*iter++);
+                center1[i] = stof(*iter++);
             }
             if(iter != end){
-                std::cout << "More than three input coordinates entered for center; crashing \n" << std::endl; return -1;
+                std::cout << "More than three input coordinates entered for center1; crashing \n" << std::endl; return -1;
             }
-		}else if(param[0].compare("chordlength")==0){
-			bchordlength=true;
-			chordlength = stof(param[1]);
-		}else if(param[0].compare("theta_sources")==0){
-			btheta_sources=true;
-			theta_sources = stoi(param[1]);
-		}else if(param[0].compare("trans_z_sources")==0){
-			btrans_z_sources=true;
-			trans_z_sources = stoi(param[1]);
+        }else if(param[0].compare("center2")==0){
+            bcenter2=true;
+            std::regex rgx("\,");
+            std::sregex_token_iterator iter(param[1].begin(),param[1].end(), rgx, -1);
+            std::sregex_token_iterator end;
+            for(int i=0; i<3; i++){
+                if(iter == end){
+                    std::cout << "Three input coordinates required for center2; crashing \n" << std::endl; return -1;
+                }       
+                center2[i] = stof(*iter++);
+            }
+            if(iter != end){
+                std::cout << "More than three input coordinates entered for center2; crashing \n" << std::endl; return -1;
+            }
+        }else if(param[0].compare("active1")==0){ 
+            bactive1=true;
+            transform(param[1].begin(), param[1].end(), param[1].begin(), ::tolower);
+            if(param[1].compare("true")==0) 
+                active1 = true;
+            else if(param[1].compare("false")==0) 
+                active1 = false;
+            else{
+                std::cerr << "active1 should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
+                return -1;
+            }
+        }else if(param[0].compare("active2")==0){ 
+            bactive2=true;
+            transform(param[1].begin(), param[1].end(), param[1].begin(), ::tolower);
+            if(param[1].compare("true")==0) 
+                active2 = true;
+            else if(param[1].compare("false")==0) 
+                active2 = false;
+            else{
+                std::cerr << "active2 should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
+                return -1;
+            }
+        }else if(param[0].compare("phase1")==0){
+            bphase1=true;
+            phase1 = stof(param[1]);
+        }else if(param[0].compare("phase2")==0){
+            bphase2=true;
+            phase2 = stof(param[1]);
+        }else if(param[0].compare("chordlength")==0){
+            bchordlength=true;
+            chordlength = stof(param[1]);
+        }else if(param[0].compare("theta_sources")==0){
+            btheta_sources=true;
+            theta_sources = stoi(param[1]);
+        }else if(param[0].compare("trans_z_sources")==0){
+            btrans_z_sources=true;
+            trans_z_sources = stoi(param[1]);
 #else
-		}else if(param[0].compare("f_u")==0){
-			bf_u=true;
-			f_u = stof(param[1]);
-		}else if(param[0].compare("speed_u")==0){
-			bspeed_u=true;
-			speed_u = stof(param[1]);
-		}else if(param[0].compare("n_o")==0){
-			bn_o=true;
-			n_o = stof(param[1]);
-		}else if(param[0].compare("n_max")==0){
-			bn_max=true;
-			n_max = stof(param[1]);
-		}else if(param[0].compare("n_clip")==0){
-			bn_clip=true;
-			n_clip = stof(param[1]);
-		}else if(param[0].compare("phi_min")==0){
-			bphi_min=true;
-			phi_min = stof(param[1]);
-		}else if(param[0].compare("phi_max")==0){
-			bphi_max=true;
-			phi_max = stof(param[1]);
+        }else if(param[0].compare("f_u")==0){
+            bf_u=true;
+            f_u = stof(param[1]);
+        }else if(param[0].compare("speed_u")==0){
+            bspeed_u=true;
+            speed_u = stof(param[1]);
+        }else if(param[0].compare("n_o")==0){
+            bn_o=true;
+            n_o = stof(param[1]);
+        }else if(param[0].compare("n_max")==0){
+            bn_max=true;
+            n_max = stof(param[1]);
+        }else if(param[0].compare("n_clip")==0){
+            bn_clip=true;
+            n_clip = stof(param[1]);
+        }else if(param[0].compare("phi_min")==0){
+            bphi_min=true;
+            phi_min = stof(param[1]);
+        }else if(param[0].compare("phi_max")==0){
+            bphi_max=true;
+            phi_max = stof(param[1]);
         }else if(param[0].compare("mode")==0){
             bmode=true;
             mode = stoi(param[1]);
@@ -529,28 +581,33 @@ int main(int argc, char **argv) {
                       << "albedo, "
                       << "gVal, "
 #ifdef FUS_RIF
-					  << "f_u, "
-					  << "speed_u, "
-					  << "n_o, "
-					  << "n_scaling, "
-					  << "n_coeff, "
-					  << "radius, "
-					  << "center, "
-					  << "chordlength, "
-					  << "theta_min, "
-					  << "theta_max, "
-					  << "theta_sources, "
-					  << "trans_z_min, "
-					  << "trans_z_max, "
-					  << "trans_z_sources, "
+                      << "f_u, "
+                      << "speed_u, "
+                      << "n_o, "
+                      << "n_scaling, "
+                      << "n_coeff, "
+                      << "radius, "
+                      << "center1, "
+                      << "center2, "
+                      << "active1, "
+                      << "active2, "
+                      << "phase1, "
+                      << "phase2, "
+                      << "chordlength, "
+                      << "theta_min, "
+                      << "theta_max, "
+                      << "theta_sources, "
+                      << "trans_z_min, "
+                      << "trans_z_max, "
+                      << "trans_z_sources, "
 #else
-					  << "f_u, "
-					  << "speed_u, "
-					  << "n_o, "
-					  << "n_max, "
-					  << "n_clip, "
-					  << "phi_min, "
-					  << "phi_max, "
+                      << "f_u, "
+                      << "speed_u, "
+                      << "n_o, "
+                      << "n_max, "
+                      << "n_clip, "
+                      << "phi_min, "
+                      << "phi_max, "
 #endif
                       << "emitter_gap, "
                       << "sensor_gap, "
@@ -602,24 +659,29 @@ int main(int argc, char **argv) {
         if(!balbedo) {std::cout << "albedo is not specified " << std::endl;}
         if(!bgVal) {std::cout << "gVal is not specified " << std::endl;}
 #ifdef FUS_RIF
-		if(!bf_u) {std::cout << "f_u is not specified " << std::endl;}
-		if(!bspeed_u) {std::cout << "speed_u is not specified " << std::endl;}
-		if(!bn_o) {std::cout << "n_o is not specified " << std::endl;}
-		if(!bn_scaling) {std::cout << "n_scaling is not specified " << std::endl;}
-		if(!bn_coeff) {std::cout << "n_coeff is not specified " << std::endl;}
-		if(!bradius) {std::cout << "radius is not specified " << std::endl;}
-		if(!bcenter) {std::cout << "center is not specified " << std::endl;}
-		if(!bchordlength) {std::cout << "chordlength is not specified " << std::endl;}
-		if(!btheta_sources) {std::cout << "theta_sources is not specified " << std::endl;}
-		if(!btrans_z_sources) {std::cout << "trans_z_sources is not specified " << std::endl;}
+        if(!bf_u) {std::cout << "f_u is not specified " << std::endl;}
+        if(!bspeed_u) {std::cout << "speed_u is not specified " << std::endl;}
+        if(!bn_o) {std::cout << "n_o is not specified " << std::endl;}
+        if(!bn_scaling) {std::cout << "n_scaling is not specified " << std::endl;}
+        if(!bn_coeff) {std::cout << "n_coeff is not specified " << std::endl;}
+        if(!bradius) {std::cout << "radius is not specified " << std::endl;}
+        if(!bcenter1) {std::cout << "center1 is not specified " << std::endl;}
+        if(!bcenter2) {std::cout << "center2 is not specified " << std::endl;}
+        if(!bactive1) {std::cout << "active1 is not specified " << std::endl;}
+        if(!bactive2) {std::cout << "active2 is not specified " << std::endl;}
+        if(!bphase1) {std::cout << "phase1 is not specified " << std::endl;}
+        if(!bphase2) {std::cout << "phase2 is not specified " << std::endl;}
+        if(!bchordlength) {std::cout << "chordlength is not specified " << std::endl;}
+        if(!btheta_sources) {std::cout << "theta_sources is not specified " << std::endl;}
+        if(!btrans_z_sources) {std::cout << "trans_z_sources is not specified " << std::endl;}
 #else
-		if(!bf_u) {std::cout << "f_u is not specified " << std::endl;}
-		if(!bspeed_u) {std::cout << "speed_u is not specified " << std::endl;}
-		if(!bn_o) {std::cout << "n_o is not specified " << std::endl;}
-		if(!bn_max) {std::cout << "n_max is not specified " << std::endl;}
-		if(!bn_clip) {std::cout << "n_clip is not specified " << std::endl;}
-		if(!bphi_min) {std::cout << "phi_min is not specified " << std::endl;}
-		if(!bphi_max) {std::cout << "phi_max is not specified " << std::endl;}
+        if(!bf_u) {std::cout << "f_u is not specified " << std::endl;}
+        if(!bspeed_u) {std::cout << "speed_u is not specified " << std::endl;}
+        if(!bn_o) {std::cout << "n_o is not specified " << std::endl;}
+        if(!bn_max) {std::cout << "n_max is not specified " << std::endl;}
+        if(!bn_clip) {std::cout << "n_clip is not specified " << std::endl;}
+        if(!bphi_min) {std::cout << "phi_min is not specified " << std::endl;}
+        if(!bphi_max) {std::cout << "phi_max is not specified " << std::endl;}
         if(!bmode) {std::cout << "mode is not specified " << std::endl;}
 #endif
         if(!bemitter_gap) {std::cout << "emitter_gap is not specified " << std::endl;}
@@ -660,7 +722,7 @@ int main(int argc, char **argv) {
         if(!bprintInputs) {std::cout << "printInputs is not specified " << std::endl;}
         if(!(bthreads && bprecision && bnumPhotons && boutFilePrefix && bsigmaT && balbedo && bgVal && 
 #ifdef FUS_RIF
-            bf_u && bspeed_u && bn_o && bn_scaling && bn_coeff && bradius && bcenter && bchordlength && btheta_sources && btrans_z_sources && 
+            bf_u && bspeed_u && bn_o && bn_scaling && bn_coeff && bradius && bcenter1 && bcenter2 && bactive1 && bactive2 && bphase1 && bphase2 && bchordlength && btheta_sources && btrans_z_sources && 
 #else
             bf_u && bspeed_u && bn_o && bn_max && bn_clip && bphi_min && bphi_max && bmode && 
 #endif
@@ -677,24 +739,29 @@ int main(int argc, char **argv) {
         std::cout << "albedo = "    << albedo       << std::endl;
         std::cout << "gVal = "      << gVal         << std::endl;
 #ifdef FUS_RIF
-		std::cout << "f_u = " << f_u << std::endl;
-		std::cout << "speed_u = " << speed_u << std::endl;
-		std::cout << "n_o = " << n_o << std::endl;
-		std::cout << "n_scaling = " << n_scaling << std::endl;
-		std::cout << "n_coeff = " << n_coeff << std::endl;
-		std::cout << "radius = " << radius << std::endl;
-		std::cout << "center = (" << center[0] << ", " << center[1] << ", " << center[2] << ")" << std::endl;
-		std::cout << "chordlength = " << chordlength << std::endl;
-		std::cout << "theta_sources = " << theta_sources << std::endl;
-		std::cout << "trans_z_sources = " << trans_z_sources << std::endl;
+        std::cout << "f_u = " << f_u << std::endl;
+        std::cout << "speed_u = " << speed_u << std::endl;
+        std::cout << "n_o = " << n_o << std::endl;
+        std::cout << "n_scaling = " << n_scaling << std::endl;
+        std::cout << "n_coeff = " << n_coeff << std::endl;
+        std::cout << "radius = " << radius << std::endl;
+        std::cout << "center1 = (" << center1[0] << ", " << center1[1] << ", " << center1[2] << ")" << std::endl;
+        std::cout << "center2 = (" << center2[0] << ", " << center2[1] << ", " << center2[2] << ")" << std::endl;
+        std::cout << "active1 = " << active1 << std::endl;
+        std::cout << "active2 = " << active2 << std::endl;
+        std::cout << "phase1 = " << phase1 << std::endl;
+        std::cout << "phase2 = " << phase2 << std::endl;
+        std::cout << "chordlength = " << chordlength << std::endl;
+        std::cout << "theta_sources = " << theta_sources << std::endl;
+        std::cout << "trans_z_sources = " << trans_z_sources << std::endl;
 #else
-		std::cout << "f_u = " << f_u << std::endl;
-		std::cout << "speed_u = " << speed_u << std::endl;
-		std::cout << "n_o = " << n_o << std::endl;
-		std::cout << "n_max = " << n_max << std::endl;
-		std::cout << "n_clip = " << n_clip << std::endl;
-		std::cout << "phi_min = " << phi_min << std::endl;
-		std::cout << "phi_max = " << phi_max << std::endl;
+        std::cout << "f_u = " << f_u << std::endl;
+        std::cout << "speed_u = " << speed_u << std::endl;
+        std::cout << "n_o = " << n_o << std::endl;
+        std::cout << "n_max = " << n_max << std::endl;
+        std::cout << "n_clip = " << n_clip << std::endl;
+        std::cout << "phi_min = " << phi_min << std::endl;
+        std::cout << "phi_max = " << phi_max << std::endl;
         std::cout << "mode = "      << mode         << std::endl;
 #endif
         std::cout << "emitter_gap = "   << emitter_gap          << std::endl;
@@ -796,7 +863,7 @@ int main(int argc, char **argv) {
                         emitter_lens_origin, emitter_lens_aperture, emitter_lens_focalLength, emitter_lens_active,
                         sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active,
 #ifdef FUS_RIF
-                        f_u, speed_u, n_o, n_scaling, n_coeff, radius, center, theta_min, theta_max, theta_sources, trans_z_min, trans_z_max, trans_z_sources, 
+                        f_u, speed_u, n_o, n_scaling, n_coeff, radius, center1, center2, active1, active2, phase1, phase2, theta_min, theta_max, theta_sources, trans_z_min, trans_z_max, trans_z_sources, 
 #else
                         f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode, 
 #endif
