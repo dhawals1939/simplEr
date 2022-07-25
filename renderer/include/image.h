@@ -632,8 +632,8 @@ private:
 	Image3<T> *m_images;
 };
 typedef Image2<Float> Texture;
-typedef Image3<Float> SmallImage;
-typedef Image3Set<Float> SmallImageSet;
+typedef Image3<double> SmallImage;
+typedef Image3Set<double> SmallImageSet;
 
 } /* namespace image */
 

@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
     /*
      * Projector texture
      */
-    std::string projectorTexture("/home/igkiou/Dropbox/AccoustoOptics+InvRendering/CodeEtc/SkeletalRenderer/ercrdr/renderer/images/White.pfm");
+    std::string projectorTexture("/home/apedired/Dropbox/AccoustoOptics+InvRendering/CodeEtc/SkeletalRenderer/ercrdr/renderer/images/White.pfm");
 
     bool stricts=false;
     bool bthreads=false;

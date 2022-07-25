@@ -16,3 +16,10 @@ endif
 ifeq ($(PRODUCE_REPORTS), 1)
 	CFLAGS += $(REPORTSFLAGS) 
 endif
+
+PYFLAGS = -O3 -Wall -shared -std=c++14 -fPIC -march=native
+PYFLAGS += -ffast-math -fopenmp -pthread
+PYFLAGS += -DUSE_GCC -DUSE_SFMT 
+ifeq ($(DEBUG_MODE), 0)
+	PYFLAGS += -DNDEBUG
+endif

@@ -929,6 +929,22 @@ public:
         return 0.;
     }
 
+    inline void set_f_u(Float &value){
+        m_us.f_u = value;
+    }
+
+    inline void set_n_scaling(Float &value){
+        m_us.n_scaling = value;
+    }
+
+    inline void set_phase1(Float &value){
+        m_us.phase1 = value;
+    }
+
+    inline void set_phase2(Float &value){
+        m_us.phase2 = value;
+    }
+
 #else
     inline const Float getUSPhi_min() const{
         return m_us.phi_min;

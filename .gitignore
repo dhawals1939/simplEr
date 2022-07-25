@@ -10,4 +10,7 @@
 *_bin
 *.sh
 *.txt
+*.so
+*.npy
+*.mp4
 renderings

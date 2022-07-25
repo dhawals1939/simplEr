@@ -325,6 +325,11 @@ template <typename T> struct TVector3 {
 		return (&x)[i];
 	}
 
+    // TODO: bandaid for exposing operator[]
+    T index(int i) {
+        return (&x)[i];
+    }
+
 	/// Return the squared 2-norm of this vector
 	T lengthSquared() const {
 		return x*x + y*y + z*z;
