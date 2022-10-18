@@ -14,6 +14,7 @@ PYBIND11_MODULE(image_pybind, m) {
 		.def("getXRes", &image::Image3<double>::getXRes)
 		.def("getYRes", &image::Image3<double>::getYRes)
 		.def("getZRes", &image::Image3<double>::getZRes)
+		.def("getPixel", &image::Image3<double>::getPixel)
 //		.def("getData", &image::Image3<double>::getData)
 //        .def_buffer([](image::Image3<double> &m) -> py::buffer_info {
 //	        return py::buffer_info(

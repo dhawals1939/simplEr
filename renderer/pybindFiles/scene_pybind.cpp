@@ -79,8 +79,11 @@ PYBIND11_MODULE(scene_pybind, m) {
 	#endif
             >())
             .def("set_f_u", &scn::Scene<tvec::TVector3>::set_f_u)
+            .def("set_n_max", &scn::Scene<tvec::TVector3>::set_n_max)
+    #ifdef USE_FUS_RIF
             .def("set_n_scaling", &scn::Scene<tvec::TVector3>::set_n_scaling)
             .def("set_phase1", &scn::Scene<tvec::TVector3>::set_phase1)
             .def("set_phase2", &scn::Scene<tvec::TVector3>::set_phase2)
+    #endif
             ;
 }

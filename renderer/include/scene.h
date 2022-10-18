@@ -916,6 +916,10 @@ public:
         return m_us.f_u;
     }
 
+    inline void set_f_u(Float &value){
+        m_us.f_u = value;
+    }
+
 #ifdef FUS_RIF
     inline const Float getUSPhi_min() const{
         return 0.;
@@ -927,10 +931,6 @@ public:
 
     inline const Float getUSMaxScaling() const{
         return 0.;
-    }
-
-    inline void set_f_u(Float &value){
-        m_us.f_u = value;
     }
 
     inline void set_n_scaling(Float &value){
@@ -946,6 +946,10 @@ public:
     }
 
 #else
+    inline void set_n_max(Float &value){
+        m_us.n_max = value;
+    }
+
     inline const Float getUSPhi_min() const{
         return m_us.phi_min;
     }

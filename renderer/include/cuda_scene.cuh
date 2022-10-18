@@ -442,7 +442,6 @@ public:
 #endif
 
     Float k_r;
-    int   mode;         // Order of the bessel function or mode of the ultrasound
 
     TVector3<Float> *axis_uz;          // Ultrasound axis
     TVector3<Float> *axis_ux;          // Ultrasound x-axis. Need to compute angle as mode > 0 is a function of phi
@@ -487,6 +486,7 @@ public:
     //  return bessel_HessianRIF(p, scaling);
     //}
 
+#ifdef FUS_RIF
     __device__ inline double fus_RIF(const TVector3<Float> &p, Float scaling) const{
         Float rif=0;
         for(int c=1; c<=n_coeff; c++){
@@ -508,7 +508,6 @@ public:
         }
         return n_o + n_scaling * rif;
     }
-#ifdef FUS_RIF
 #else
     __device__ inline double bessel_RIF(const TVector3<Float> &p, Float scaling) const{
         TVector3<Float> p_axis = *p_u + dot(p - *p_u, *axis_uz)*(*axis_uz); // point on the axis closest to p
@@ -522,6 +521,7 @@ public:
     }
 #endif
 
+#ifdef FUS_RIF
     __device__ const TVector3<Float> fus_dRIF(const TVector3<Float> &p, Float scaling) const{
         TVector3<Float> dn(0.0,
                              0.0, 
@@ -555,7 +555,6 @@ public:
         }
         return dn*n_scaling;
     }
-#ifdef FUS_RIF
 #else
     __device__ const TVector3<Float> bessel_dRIF(const TVector3<Float> &q, Float scaling) const{
 
