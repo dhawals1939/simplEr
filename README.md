@@ -73,3 +73,61 @@ sh fus_rif.sh
 
 # Cheat sheet
 CUDA_VISIBLE_DEVICES=k runs the code on the K+1 cuda device. Helpful in parallelization and also to run code on a GPU that is not used for the display
+
+
+# Parameters -- FUS ultrasound
+-- threads = number of CPU hardware threads when running on CPU
+-- er_step_size = eikonal tracing step size. Smaller is better for accuracy but smaller will make the code slow. 
+-- precision = At boundaries, we trace beyond er_step_size and in somesense, the stepsize becomes 10^-(precision)xer_step_size at the boundary
+-- directTol = ignore it. Experimental for direct connections (path-tracing algorithm)
+-- numPhotons = montecarlo samples. Variance is inversely proportional to 1/numPhotons. The rendering time increases linearly with numPhotons
+-- outFilePrefix = prefix of the output file if renderered locally without jupyter-notebook
+-- sigmaT = extinction coefficient (sum of absorption and scattering coefficients) 
+-- albedo = ratio of scattered coefficient to sigmaT
+-- gVal = anisotropy coefficient (Henyey-Greenstein function) (0.9 typically for biological tissue)
+-- f_u = frequency of ultrasound
+-- speed_u = speed of ultrasound in the medium
+-- n_o = base refractive index of the medium. 
+-- n_scaling = proportional to the voltage applied (for traveling wave)
+-- n_coeff = leave it as 1. Experimental---Does quadratic expansion of sine coefficients
+-- radius = radius of the cylindrical transducer (assumed same for both the transducers)
+-- center1 = center of transducer-1
+-- center2 = center of transducer-2
+-- chordlength = chordlength of the cut transducer (assumed same for both the transducers)
+-- active1 and active2 = true/false -- Is the transducer enabled
+-- phase1 = phase shift of transducer 1
+-- phase2 = phase shift of transducer 2
+-- theta_sources = sampling on theta axis for ultrasonic sources
+-- trans_z_sources = same as above for z-axis
+-- rrWeight = russian roulette termination. 
+-- projectorTexture = illumination pattern
+-- halfThetaLimit = half of elevation angle for the illumination pattern (makes beam diffuse)
+-- useDirect = Run ballistic photons along with scattered photons
+-- useAngularSampling = always set it true. Angular sampling heuristic which gives best results. If set to false, it does direct connections which are slow for this geometry
+-- useBounceDecomposition = separate light based on the number of times it scattered. The pfm3d file will have multiple channels based on the pathLengthMin, pathLengthMax, pathLengthBins variables
+-- pathLengthMin = if bounce decomposition is set, it is the smallest bounce index, if not, it is the smallest pathlength (same as length units) 
+-- pathLengthMax = if bounce decomposition is set, it is the largest bounce index, if not, it is the largest pathlength (same as length units) 
+-- pathLengthBins = number of path length bins that bin from pathLengthMin to pathLengthMax
+-- maxDepth = maximum number of bounces. If set to -1, same as infinity. 
+-- maxPathLength = maximum path length and independent of decomposition 
+-- spatialX, spatialY = spatial resolution of the sensor in pixels
+-- sensor_size = length and bread of the whole sensor. Both the length and breadth are equal 
+-- mediumLx = ending of the medium
+-- mediumRx = start of the medium. Medium length is mediumRx-mediumLx
+-- distribution = experimental variable. set it to none. importance samples based on some distribution. Not giving any strong advantage
+-- gOrKappa = 1 (leave it as 1. experimental variable for distribution parameter)
+-- emitter_gap = distance inside the medium from the emitter side where US is absent but scattering is present
+-- sensor_gap = distance inside the medium from the sensor side where US is absent but scattering is present
+-- emitter_distance =  distance between projector to the medium
+-- sensor_distance =  distance between sensor to the medium
+-- emitter_lens and sensor_lens are thinlenses and are always attached to the medium and aperture is the radius of the thin lens, focal length is self-explanatory and active is a boolean saying if the lens is present or absent
+-- useInitializationHack = experimental variable. Set it to false
+-- printInputs = print all the inputs with which the code is being run
+
+# cylindrical -- Unique ones. Look equation (2) in Yasin's paper: Karimi, Y., Scopelliti, M.G., Do, N., Alam, M.R. and Chamanzar, M., 2019. In situ 3D reconfigurable ultrasonically sculpted optical beam paths. Optics express, 27(5), pp.7249-7265.
+-- n_max  = similar to n_scaling 
+-- n_clip = experimental. Keep it high. The peak gets clipped at this value
+-- phi_min = at what phase of US is the light turned ON (typically both are pi/2) 
+-- phi_max = at what phase of US is the light turned OFF (typically both are pi/2)
+-- mode = m in the equation
+
