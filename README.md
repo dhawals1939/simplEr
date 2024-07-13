@@ -1,12 +1,13 @@
 
-#I wrote the code for https://dl.acm.org/doi/abs/10.1145/3414685.3417793 and https://assets.researchsquare.com/files/rs-778793/v1_covered.pdf?c=1631876182 paper, but extended it for multiple ideas and projects. Therefore, the code has many capabilities but with that flexibility came complexity (not computational complexity, but usage complexity). As the user base for the code is increasing, I am trying to make my interface more intuitive, but I won't claim that it is trivial to use my code. Please contact me if something is misleading or confusing. 
+#The code is based on the simulator by pediredla et al. (https://dl.acm.org/doi/abs/10.1145/3414685.3417793 and https://assets.researchsquare.com/files/rs-778793/v1_covered.pdf?c=1631876182 paper)
 
 #Capabilities of the simulator:
 #1. Cylindrical transducer: For cylindrical transducer, we can simulate arbitrary ultrasound (US) amplitude, frequency, mode (0, 1, 2 ....), the duty cycle of the light source (0 to 100%), input pattern of the light source (collimated, collimated + textured, diffuse or expanding beam, diffuse or expanding beam + textured), length of the transducer, transparent and scattering medium (ability to vary albedo, anisotropy, scattering coefficient), thin lenses in front of the sensor or light source. 
 #2. Arbitrarily shaped transducer: The code can handle an arbitrarily shaped transducer, but it is a few orders slower for this case. 
 
 #Code structure:
-#The code is written in C++ and uses multiple open sources libraries and Cuda library for running on GPU2. I also wrote a pybind interface for the code, exposing all the important code structures as python APIs. Therefore, we could run the code from python as well. I included a regular python and a jupyter notebook example for using the pybind interface. 
+# 1. The code is written in C++ and uses multiple open sources libraries and Cuda library for running on GPU
+# 2. I also wrote a pybind interface for the code, exposing all the important code structures as python APIs. Therefore, we could run the code from python as well. I included a regular python and a jupyter notebook example for using the pybind interface. 
 
 #Build variants:
 # 1. The code could run parallel on multiple CPU cores or a GPU. However, both variants should be specified during compile time. 
@@ -18,7 +19,7 @@
 # 2. Docker: If you are not a Linux user and prefer to use only windows/mac or if you want to try out the code quickly, you could use Docker. I wrote a docker file you could use to run the code from any operating system (OS). However, I couldn't figure out how to run the GPU variant and jupyter notebook from docker. Therefore, you are stuck with running only the CPU variant, which might be good enough for your application. 
 
 #Installation instructions:
-#1. For docker, use the 
+#1. docker file is not shared in the supplementary material due to supplementary size restrictions but will be made public after the acceptance
 
 #2. For ubuntu, 
 sudo apt install python3 # install python
@@ -33,7 +34,9 @@ pip install matplotlib numpy # supporting libraries used for python 
 pip install jupyterlab # install Jupiter notebook
 
 # installing driver and cuda
-# I found it easier to install driver by going to software&updates, additional drivers tab, selecting nvidia-driver-470 (I believe latest one should work fine but I didn't test it)# For cuda, select a version from https://developer.nvidia.com/cuda-toolkit-archive. I used 10.6 and found that 10.3 has a bug that affects us, especially when used with g++ more than 11.0# restart the machine and reinstall the driver as the cuda installation is somehow corrupting the driver. 
+# I found it easier to install driver by going to software&updates, additional drivers tab, selecting nvidia-driver-470 (I believe latest one should work fine but I didn't test it)
+# For cuda, select a version from https://developer.nvidia.com/cuda-toolkit-archive. I used 10.6 and found that 10.3 has a bug that affects us, especially when used with g++ more than 11.0
+# restart the machine and reinstall the driver as the cuda installation is somehow corrupting the driver. 
 
 cd <renderer_location>/renderer/ #edit make file based on your requirements (see below)make
 
@@ -73,61 +76,3 @@ sh fus_rif.sh
 
 # Cheat sheet
 CUDA_VISIBLE_DEVICES=k runs the code on the K+1 cuda device. Helpful in parallelization and also to run code on a GPU that is not used for the display
-
-
-# Parameters -- FUS ultrasound
--- threads = number of CPU hardware threads when running on CPU
--- er_step_size = eikonal tracing step size. Smaller is better for accuracy but smaller will make the code slow. 
--- precision = At boundaries, we trace beyond er_step_size and in somesense, the stepsize becomes 10^-(precision)xer_step_size at the boundary
--- directTol = ignore it. Experimental for direct connections (path-tracing algorithm)
--- numPhotons = montecarlo samples. Variance is inversely proportional to 1/numPhotons. The rendering time increases linearly with numPhotons
--- outFilePrefix = prefix of the output file if renderered locally without jupyter-notebook
--- sigmaT = extinction coefficient (sum of absorption and scattering coefficients) 
--- albedo = ratio of scattered coefficient to sigmaT
--- gVal = anisotropy coefficient (Henyey-Greenstein function) (0.9 typically for biological tissue)
--- f_u = frequency of ultrasound
--- speed_u = speed of ultrasound in the medium
--- n_o = base refractive index of the medium. 
--- n_scaling = proportional to the voltage applied (for traveling wave)
--- n_coeff = leave it as 1. Experimental---Does quadratic expansion of sine coefficients
--- radius = radius of the cylindrical transducer (assumed same for both the transducers)
--- center1 = center of transducer-1
--- center2 = center of transducer-2
--- chordlength = chordlength of the cut transducer (assumed same for both the transducers)
--- active1 and active2 = true/false -- Is the transducer enabled
--- phase1 = phase shift of transducer 1
--- phase2 = phase shift of transducer 2
--- theta_sources = sampling on theta axis for ultrasonic sources
--- trans_z_sources = same as above for z-axis
--- rrWeight = russian roulette termination. 
--- projectorTexture = illumination pattern
--- halfThetaLimit = half of elevation angle for the illumination pattern (makes beam diffuse)
--- useDirect = Run ballistic photons along with scattered photons
--- useAngularSampling = always set it true. Angular sampling heuristic which gives best results. If set to false, it does direct connections which are slow for this geometry
--- useBounceDecomposition = separate light based on the number of times it scattered. The pfm3d file will have multiple channels based on the pathLengthMin, pathLengthMax, pathLengthBins variables
--- pathLengthMin = if bounce decomposition is set, it is the smallest bounce index, if not, it is the smallest pathlength (same as length units) 
--- pathLengthMax = if bounce decomposition is set, it is the largest bounce index, if not, it is the largest pathlength (same as length units) 
--- pathLengthBins = number of path length bins that bin from pathLengthMin to pathLengthMax
--- maxDepth = maximum number of bounces. If set to -1, same as infinity. 
--- maxPathLength = maximum path length and independent of decomposition 
--- spatialX, spatialY = spatial resolution of the sensor in pixels
--- sensor_size = length and bread of the whole sensor. Both the length and breadth are equal 
--- mediumLx = ending of the medium
--- mediumRx = start of the medium. Medium length is mediumRx-mediumLx
--- distribution = experimental variable. set it to none. importance samples based on some distribution. Not giving any strong advantage
--- gOrKappa = 1 (leave it as 1. experimental variable for distribution parameter)
--- emitter_gap = distance inside the medium from the emitter side where US is absent but scattering is present
--- sensor_gap = distance inside the medium from the sensor side where US is absent but scattering is present
--- emitter_distance =  distance between projector to the medium
--- sensor_distance =  distance between sensor to the medium
--- emitter_lens and sensor_lens are thinlenses and are always attached to the medium and aperture is the radius of the thin lens, focal length is self-explanatory and active is a boolean saying if the lens is present or absent
--- useInitializationHack = experimental variable. Set it to false
--- printInputs = print all the inputs with which the code is being run
-
-# cylindrical -- Unique ones. Look equation (2) in Yasin's paper: Karimi, Y., Scopelliti, M.G., Do, N., Alam, M.R. and Chamanzar, M., 2019. In situ 3D reconfigurable ultrasonically sculpted optical beam paths. Optics express, 27(5), pp.7249-7265.
--- n_max  = similar to n_scaling 
--- n_clip = experimental. Keep it high. The peak gets clipped at this value
--- phi_min = at what phase of US is the light turned ON (typically both are pi/2) 
--- phi_max = at what phase of US is the light turned OFF (typically both are pi/2)
--- mode = m in the equation
-
