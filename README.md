@@ -1,4 +1,4 @@
-# simplEr: simple renderer for scattering volumes with ultrasonically sculpted gradient index waveguides
+# simplEr: simple renderer for ultrasonically sculpted gradient-index waveguides inside scattering volumes
 
 This renderer was developed as part of the following three projects:
 - [Path tracing estimators for refractive radiative transfer](https://imaging.cs.cmu.edu/rrte/)
