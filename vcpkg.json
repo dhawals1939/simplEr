@@ -1,7 +1,20 @@
 {
   "dependencies": [
-    "boost",
+    "boost-core",
+    "boost-algorithm",
+    "boost-static-assert",
+    "boost-random",
+    "boost-iterator",
+    "boost-math",
     "fmt",
-    "eigen3"
+    "eigen3",
+    {
+      "name": "ceres",
+      "features": [
+        "cuda",
+        "lapack",
+        "cxsparse"
+      ]
+    }
   ]
 }

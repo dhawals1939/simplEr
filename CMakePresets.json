@@ -2,6 +2,21 @@
     "version": 2,
     "configurePresets": [
         {
+            "name": "linux",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            },
+            "environment": {
+                "CC": "gcc",
+                "CXX": "g++"
+            }
+        },
+        {
             "name": "windows",
             "generator": "Visual Studio 17 2022",
             "binaryDir": "${sourceDir}/build",
@@ -16,21 +31,6 @@
                 "CMAKE_C_COMPILER": "cl.exe",
                 "CMAKE_CXX_COMPILER": "cl.exe",
                 "CMAKE_BUILD_TYPE": "RelWithDebInfo"
-            }
-        },
-        {
-            "name": "linux",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build",
-            "cacheVariables": {
-                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-                "CMAKE_C_COMPILER": "gcc",
-                "CMAKE_CXX_COMPILER": "g++",
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
-            },
-            "environment": {
-                "CC": "gcc",
-                "CXX": "g++"
             }
         }
     ]
