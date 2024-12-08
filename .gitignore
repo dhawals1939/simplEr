@@ -9,8 +9,8 @@
 *.mexa64
 *_bin
 *.sh
-!CMakeLists.txt
 *.txt
+!CMakeLists.txt
 *.so
 *.npy
 *.mp4
