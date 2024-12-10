@@ -84,28 +84,10 @@ set(CERESFLAGS
 )
 add_compile_options(${CERESFLAGS})
 
-# Libraries for Ceres
-# set(LIBS 
-#     /lib/libceres.so 
-#     /lib/libglog.so 
-#     /lib/libgflags.so.2.2.2 
-#     -lpthread 
-#     /lib/libspqr.so 
-#     /lib/libcholmod.so 
-#     /lib/libccolamd.so 
-#     /lib/libcamd.so 
-#     /lib/libcolamd.so 
-#     /lib/libamd.so 
-#     /lib/liblapack.so 
-#     /opt/ATLAS/lib/libf77blas.a 
-#     /opt/ATLAS/lib/libatlas.a 
-#     /lib/libsuitesparseconfig.so 
-#     /lib/librt.so 
-#     /lib/libcxsparse.so
-# )
-
 # Base paths for vcpkg and other specific libraries
 set(VCPKG_PACKAGES_BASE_DIR ${VCPKG_ROOT}/packages)
+
+set(VCPKG_PACKAGES_SO_LIB_DIR ${VCPKG_ROOT}/installed/x64-linux-dynamic/lib)
 
 # Individual library folders based on your list
 set(CERES_LIB_DIR ${VCPKG_PACKAGES_BASE_DIR}/ceres_x64-linux/lib)
@@ -127,14 +109,13 @@ message(STATUS "GFLAGS_LIB_DIR: ${GFLAGS_LIB_DIR}")
 message(STATUS "GLOG_LIB_DIR: ${GLOG_LIB_DIR}")
 message(STATUS "EIGEN3_LIB_DIR: ${EIGEN3_LIB_DIR}")
 
-# Set the static libraries to link
-# List of libraries to link
+
 set(LIBS
-    ${CERES_LIB_DIR}/libceres.a
+    ${VCPKG_PACKAGES_SO_LIB_DIR}/libceres.so
     
-    ${GLOG_LIB_DIR}/libglog.a
+    ${VCPKG_PACKAGES_SO_LIB_DIR}/libglog.so
     
-    ${GFLAGS_LIB_DIR}/libgflags.a
+    ${VCPKG_PACKAGES_SO_LIB_DIR}/libgflags.so
 
     ${SUITESPARSE_LIB_DIR}/libspqr.a
     ${SUITESPARSE_LIB_DIR}/libcholmod.a
@@ -153,7 +134,7 @@ set(LIBS
     # /opt/ATLAS/lib/libf77blas.a
     # /opt/ATLAS/lib/libatlas.a
 
-    /usr/lib/x86_64-linux-gnu/librt.a
+    /usr/lib/x86_64-linux-gnu/librt.so
     -lpthread
 )
 

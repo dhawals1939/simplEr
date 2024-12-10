@@ -7,14 +7,20 @@
     "boost-iterator",
     "boost-math",
     "fmt",
-    "eigen3",
+    {
+      "name": "eigen3",
+      "default-features": false,
+      "platform": "x64 & dynamic"
+    },
     {
       "name": "ceres",
       "features": [
         "cuda",
         "lapack",
         "cxsparse"
-      ]
+      ],
+      "default-features": false,
+      "platform": "x64 & dynamic"
     }
   ]
 }
