@@ -9,8 +9,7 @@
     "fmt",
     {
       "name": "eigen3",
-      "default-features": false,
-      "platform": "x64 & dynamic"
+      "default-features": false
     },
     {
       "name": "ceres",
@@ -19,8 +18,7 @@
         "lapack",
         "cxsparse"
       ],
-      "default-features": false,
-      "platform": "x64 & dynamic"
+      "default-features": false
     }
   ]
 }

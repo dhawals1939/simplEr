@@ -21,7 +21,7 @@ find_package(fmt CONFIG REQUIRED)
 find_package(glog CONFIG REQUIRED)
 
 # Set the C++ compiler (optional; typically auto-detected)
-set(CMAKE_CXX_COMPILER g++)
+set(CMAKE_CXX_COMPILER g++)                                          
 
 # Debug mode flag (set to 1 for debug mode, 0 for release mode)
 set(DEBUG_MODE 1)

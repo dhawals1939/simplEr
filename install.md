@@ -9,8 +9,10 @@ Set the `VCPKG_ROOT` to the directory with `vcpkg` binary. Also add this directo
 
 In linux machines
 
-`cmake --preset linux`
-
 `sudo apt-get update`
 
-`sudo apt-get install gfortran`
+`sudo apt-get install gfortran pkg-config`
+
+`cmake --preset linux`
+
+
