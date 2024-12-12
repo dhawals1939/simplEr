@@ -19,6 +19,7 @@
         "cxsparse"
       ],
       "default-features": false
-    }
+    },
+    "openblas"
   ]
 }

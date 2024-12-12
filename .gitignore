@@ -16,3 +16,4 @@
 *.mp4
 renderings
 build/**
+vcpkg_installed/**
