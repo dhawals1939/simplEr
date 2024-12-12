@@ -38,6 +38,14 @@ set(SHARED_OPTIMFLAGS
     -fomit-frame-pointer
 )
 
+# Set the vcpkg toolchain
+set(CMAKE_TOOLCHAIN_FILE "/opt/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Path to vcpkg toolchain")
+
+# Use the triplet specified in the presets or fallback to x64-linux-dynamic
+if(NOT DEFINED VCPKG_TARGET_TRIPLET)
+    set(VCPKG_TARGET_TRIPLET "x64-linux-dynamic" CACHE STRING "Specify vcpkg triplet")
+endif()
+
 # # Find the fmt library
 # find_package(fmt CONFIG REQUIRED)
 
@@ -75,51 +83,33 @@ set(CERESFLAGS
 )
 add_compile_options(${CERESFLAGS})
 
-# Base paths for vcpkg and other specific libraries
-set(VCPKG_PACKAGES_BASE_DIR ${VCPKG_ROOT}/packages)
+set(VCPKG_PACKAGES_BASE_DIR ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-linux-dynamic/lib)
 
-set(VCPKG_PACKAGES_SO_LIB_DIR ${VCPKG_ROOT}/installed/x64-linux-dynamic/lib)
+# Print the top-level build directory
+message("Build folder: ${CMAKE_BINARY_DIR}")
 
-# # Individual library folders based on your list
-# set(CERES_LIB_DIR ${VCPKG_PACKAGES_BASE_DIR}/ceres_x64-linux/lib)
-# set(BLAS_LIB_DIR ${VCPKG_PACKAGES_BASE_DIR}/blas_x64-linux/lib)
-# set(LAPACK_LIB_DIR ${VCPKG_PACKAGES_BASE_DIR}/lapack-reference_x64-linux/lib)
-# set(OPENBLAS_LIB_DIR ${VCPKG_PACKAGES_BASE_DIR}/openblas_x64-linux/lib)
-# set(SUITESPARSE_LIB_DIR ${VCPKG_PACKAGES_BASE_DIR}/suitesparse_x64-linux/lib)
-# set(GFLAGS_LIB_DIR ${VCPKG_PACKAGES_BASE_DIR}/gflags_x64-linux/lib)
-# set(GLOG_LIB_DIR ${VCPKG_PACKAGES_BASE_DIR}/glog_x64-linux/lib)
-# set(EIGEN3_LIB_DIR ${VCPKG_PACKAGES_BASE_DIR}/eigen3_x64-linux/lib)
-
-# # Print all paths
-# message(STATUS "CERES_LIB_DIR: ${CERES_LIB_DIR}")
-# message(STATUS "BLAS_LIB_DIR: ${BLAS_LIB_DIR}")
-# message(STATUS "LAPACK_LIB_DIR: ${LAPACK_LIB_DIR}")
-# message(STATUS "OPENBLAS_LIB_DIR: ${OPENBLAS_LIB_DIR}")
-# message(STATUS "SUITESPARSE_LIB_DIR: ${SUITESPARSE_LIB_DIR}")
-# message(STATUS "GFLAGS_LIB_DIR: ${GFLAGS_LIB_DIR}")
-# message(STATUS "GLOG_LIB_DIR: ${GLOG_LIB_DIR}")
-# message(STATUS "EIGEN3_LIB_DIR: ${EIGEN3_LIB_DIR}")
-
+# Print all paths
+message(STATUS "Dynamic Library Files: ${CMAKE_BINARY_DIR}")
 
 set(LIBS
-    ${VCPKG_PACKAGES_SO_LIB_DIR}/libceres.so
+    ${VCPKG_PACKAGES_BASE_DIR}/libceres.so
     
-    ${VCPKG_PACKAGES_SO_LIB_DIR}/libglog.so
+    ${VCPKG_PACKAGES_BASE_DIR}/libglog.so
     
-    ${VCPKG_PACKAGES_SO_LIB_DIR}/libgflags.so
+    ${VCPKG_PACKAGES_BASE_DIR}/libgflags.so
 
-    ${SUITESPARSE_LIB_DIR}/libspqr.a
-    ${SUITESPARSE_LIB_DIR}/libcholmod.a
-    ${SUITESPARSE_LIB_DIR}/libccolamd.a
-    ${SUITESPARSE_LIB_DIR}/libcamd.a
-    ${SUITESPARSE_LIB_DIR}/libcolamd.a
-    ${SUITESPARSE_LIB_DIR}/libamd.a
-    ${SUITESPARSE_LIB_DIR}/libsuitesparseconfig.a
-    ${SUITESPARSE_LIB_DIR}/libcxsparse.a
+    ${VCPKG_PACKAGES_BASE_DIR}/libspqr.a
+    ${VCPKG_PACKAGES_BASE_DIR}/libcholmod.a
+    ${VCPKG_PACKAGES_BASE_DIR}/libccolamd.a
+    ${VCPKG_PACKAGES_BASE_DIR}/libcamd.a
+    ${VCPKG_PACKAGES_BASE_DIR}/libcolamd.a
+    ${VCPKG_PACKAGES_BASE_DIR}/libamd.a
+    ${VCPKG_PACKAGES_BASE_DIR}/libsuitesparseconfig.a
+    ${VCPKG_PACKAGES_BASE_DIR}/libcxsparse.a
     
-    ${LAPACK_LIB_DIR}/liblapack.a
+    ${VCPKG_PACKAGES_BASE_DIR}/liblapack.a
     
-    ${OPENBLAS_LIB_DIR}/libopenblas.a
+    ${VCPKG_PACKAGES_BASE_DIR}/libopenblas.a
     
     # ${EIGEN3_LIB_DIR}/libeigen3.a
     # /opt/ATLAS/lib/libf77blas.a
@@ -128,6 +118,7 @@ set(LIBS
     /usr/lib/x86_64-linux-gnu/librt.so
     -lpthread
 )
+
 set(PROJECT_NAME simplER)
 project(${PROJECT_NAME})
 
@@ -138,17 +129,38 @@ add_compile_options(${GENERALFLAGS} ${OPTIMFLAGS} ${REPORTSFLAGS})
 
 # Find packages
 find_package(Eigen3 CONFIG REQUIRED)
-if(USE_CERES)
-find_package(Ceres CONFIG REQUIRED)
-endif()
 
 # Add executable target
 add_executable(${PROJECT_NAME} simplER.cpp)
 
 # Link libraries
 find_package(fmt CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt Eigen3::Eigen)
+find_package(Eigen3 CONFIG REQUIRED)
+find_package(boost_static_assert CONFIG REQUIRED)
+find_package(boost_core CONFIG REQUIRED)
+find_package(boost_iterator CONFIG REQUIRED)
+find_package(boost_algorithm CONFIG REQUIRED)
+find_package(boost_random CONFIG REQUIRED)
+find_package(boost_math CONFIG REQUIRED)
+find_package(OpenBLAS CONFIG REQUIRED)
+# find_package(Ceres CONFIG REQUIRED)
+
+# # Link all libraries to the target
+target_link_libraries(${PROJECT_NAME}
+PRIVATE
+fmt::fmt
+Eigen3::Eigen
+Boost::static_assert
+Boost::core
+Boost::iterator
+Boost::algorithm
+Boost::random
+Boost::math
+OpenBLAS::OpenBLAS
+)
+
 if(USE_CERES)
-    target_link_libraries(${PROJECT_NAME} PRIVATE Ceres::ceres)
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBS})
+# find_package(Ceres CONFIG REQUIRED)
+# target_link_libraries(${PROJECT_NAME} PRIVATE Ceres::ceres)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBS})
 endif()

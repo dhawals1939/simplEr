@@ -1,16 +1,17 @@
 {
-    "version": 2,
+    "version": 3,
     "configurePresets": [
         {
             "name": "linux",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build",
+            "binaryDir": "${sourceDir}/build/linux",
+            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
             "cacheVariables": {
-                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
                 "CMAKE_C_COMPILER": "gcc",
                 "CMAKE_CXX_COMPILER": "g++",
                 "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-                "VCPKG_TARGET_TRIPLET":"x64-linux-dynamic"
+                "VCPKG_TARGET_TRIPLET": "x64-linux-dynamic",
+                "VCPKG_LIBRARY_DEBUG_SUFFIX": ""
             },
             "environment": {
                 "CC": "gcc",
@@ -20,7 +21,7 @@
         {
             "name": "windows",
             "generator": "Visual Studio 17 2022",
-            "binaryDir": "${sourceDir}/build",
+            "binaryDir": "${sourceDir}/build/windows",
             "toolset": {
                 "value": "host=x64"
             },
@@ -33,6 +34,18 @@
                 "CMAKE_CXX_COMPILER": "cl.exe",
                 "CMAKE_BUILD_TYPE": "RelWithDebInfo"
             }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "linux",
+            "configurePreset": "linux",
+            "jobs": 4
+        },
+        {
+            "name": "windows",
+            "configurePreset": "windows",
+            "jobs": 4
         }
     ]
 }
