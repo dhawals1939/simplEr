@@ -131,6 +131,8 @@ set(LIBS
 set(PROJECT_NAME simplER)
 project(${PROJECT_NAME})
 
+message("Build directory: ${CMAKE_BINARY_DIR}")
+message("Project Build directory: ${PROJECT_BINARY_DIR}")
 
 
 # Combine all flags
