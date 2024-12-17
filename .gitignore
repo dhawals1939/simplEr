@@ -17,3 +17,4 @@
 renderings
 build/**
 vcpkg_installed/**
+.vscode/**

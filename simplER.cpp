@@ -1,9 +1,35 @@
 #include <fmt/core.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/core/demangle.hpp>
+#include <boost/static_assert.hpp>
+#include <boost/random.hpp>
+#include <boost/iterator/iterator_facade.hpp>
+#include <boost/math/constants/constants.hpp>
 #include <Eigen/Dense>
 #include <ceres/ceres.h>
 #include <iostream>
 #include <openblas/cblas.h>
+
+template <typename T, int Rows, int Cols>
+struct fmt::formatter<Eigen::Matrix<T, Rows, Cols>>
+{
+    constexpr auto parse(fmt::format_parse_context &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const Eigen::Matrix<T, Rows, Cols> &mat, FormatContext &ctx) const
+    { // Marked as const
+        auto out = ctx.out();
+        for (int i = 0; i < mat.rows(); ++i)
+        {
+            for (int j = 0; j < mat.cols(); ++j)
+            {
+                out = fmt::format_to(out, "{} ", mat(i, j));
+            }
+            out = fmt::format_to(out, "\n");
+        }
+        return out;
+    }
+};
 
 // A simple cost function for Ceres
 struct CostFunctor
@@ -32,8 +58,7 @@ int main()
     mat(1, 0) = 2.5;
     mat(0, 1) = -1;
     mat(1, 1) = mat(1, 0) + mat(0, 1);
-    std::cout << "Eigen3 Matrix:\n"
-              << mat << std::endl;
+    fmt::print("Eigen3 Matrix:\n{}\n", mat);
 
     // Test Ceres
     double initial_x = 5.0;
@@ -48,8 +73,8 @@ int main()
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
 
-    std::cout << "Initial x: " << initial_x << "\n";
-    std::cout << "Final x: " << x << "\n";
+    fmt::print("Initial x: {}\n", initial_x);
+    fmt::print("Final x: {}\n", x);
 
     // Test CBLAS
     int m = 2, n = 2, k = 2;
@@ -59,15 +84,29 @@ int main()
 
     cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, m, n, k, 1.0, A, k, B, n, 0.0, C, n);
 
-    std::cout << "CBLAS Matrix Multiplication Result:\n";
+    fmt::print("CBLAS Matrix Multiplication Result:\n");
     for (int i = 0; i < m; ++i)
     {
         for (int j = 0; j < n; ++j)
         {
-            std::cout << C[i * n + j] << " ";
+            fmt::print("{} ", C[i * n + j]);
         }
-        std::cout << std::endl;
+        fmt::print("\n");
     }
+
+    // Example usage of boost::core::demangle
+    fmt::print("Demangled name: {}\n", boost::core::demangle(typeid(int).name()));
+
+    // Example usage of boost::static_assert
+    BOOST_STATIC_ASSERT(sizeof(int) == 4);
+
+    // Example usage of boost::random
+    boost::random::mt19937 rng;
+    boost::random::uniform_int_distribution<> dist(1, 100);
+    fmt::print("Random number: {}\n", dist(rng));
+
+    // Example usage of boost::math::constants
+    fmt::print("Pi: {}\n", boost::math::constants::pi<double>());
 
     return 0;
 }
