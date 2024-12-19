@@ -5,6 +5,8 @@ cmake_minimum_required(VERSION 3.20)
 # Set the VCPKG_ROOT variable from the environment
 set(VCPKG_ROOT $ENV{VCPKG_ROOT})
 
+set(MATLAB_DIR $ENV{MATLAB_DIR})
+
 # Enable verbose makefile output
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -71,12 +73,38 @@ set(VCPKG_PACKAGES_SO_LIB_DIR ${VCPKG_ROOT}/installed/x64-linux-dynamic/lib)
 
 # Libraries to link against
 set(LIBS
-    # /opt/ATLAS/lib/libf77blas.a
-    # /opt/ATLAS/lib/libatlas.a
-    # /usr/lib/x86_64-linux-gnu/librt.so
+    -lf77blas
+    -latlas
     -lrt
     -lpthread
 )
+message("Matlab Dir directory: ${MATLAB_DIR}\n\n")
+set(MATLAB_ARCH glnxa64)
+execute_process(COMMAND ${MATLAB_DIR}/bin/mexext OUTPUT_VARIABLE MEXEXT OUTPUT_STRIP_TRAILING_WHITESPACE)
+set(MAPFILE mexFunction.map)
+
+set(MATLABLIBS -L${MATLAB_DIR}/bin/${MATLAB_ARCH} -lmx -lmex -lmat)
+set(RPATH "-Wl,-rpath-link,${MATLAB_DIR}/bin/${MATLAB_ARCH}")
+set(LIBS ${RPATH} ${MATLABLIBS})
+
+include_directories(${MATLAB_DIR}/extern/include)
+link_directories(${MATLAB_DIR}/bin/glnxa64)
+
+# Compiler definitions
+add_compile_definitions(MATLAB_MEX_FILE _GNU_SOURCE)
+add_compile_options(-fexceptions -fno-omit-frame-pointer)
+
+# Link MATLAB libraries
+
+# set(MEX_FLAGS -DMATLAB_MEX_FILE -D_GNU_SOURCE -fexceptions -fno-omit-frame-pointer)
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MEX_FLAGS}")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pthread -shared -Wl --version-script ${MATLAB_DIR}/extern/lib/${MATLAB_ARCH}/${MAPFILE} -Wl --no-undefined")
+
+set(PYFLAGS "-O3 -Wall -shared -std=c++14 -fPIC -march=native -ffast-math" "-fopenmp" "-pthread -DUSE_GCC -DUSE_SFMT")
+if(NOT DEBUG_MODE)
+list(APPEND PYFLAGS "-DNDEBUG")
+endif()
 
 # Define the project name
 set(PROJECT_NAME simplER)
@@ -102,7 +130,7 @@ find_package(OpenBLAS CONFIG REQUIRED)
 
 # Find Ceres package if enabled
 if(USE_CERES)
-    find_package(Ceres CONFIG REQUIRED)
+find_package(Ceres CONFIG REQUIRED)
 endif()
 
 # Add executable target
@@ -112,10 +140,11 @@ add_executable(${PROJECT_NAME} simplER.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
 target_link_libraries(${PROJECT_NAME} PRIVATE Eigen3::Eigen)
 target_link_libraries(${PROJECT_NAME} PRIVATE Boost::core Boost::algorithm 
-                                              Boost::static_assert Boost::random 
-                                              Boost::iterator Boost::math)
+Boost::static_assert Boost::random 
+Boost::iterator Boost::math)
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenBLAS::OpenBLAS)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBS})
+target_link_libraries(${PROJECT_NAME} PRIVATE mex mat mx)
 
 # Link Ceres library if enabled
 if(USE_CERES)

@@ -9,7 +9,9 @@
 #include <ceres/ceres.h>
 #include <iostream>
 #include <openblas/cblas.h>
+#include <mex.h>
 
+// Formatter for Eigen matrices
 template <typename T, int Rows, int Cols>
 struct fmt::formatter<Eigen::Matrix<T, Rows, Cols>>
 {
@@ -17,7 +19,7 @@ struct fmt::formatter<Eigen::Matrix<T, Rows, Cols>>
 
     template <typename FormatContext>
     auto format(const Eigen::Matrix<T, Rows, Cols> &mat, FormatContext &ctx) const
-    { // Marked as const
+    {
         auto out = ctx.out();
         for (int i = 0; i < mat.rows(); ++i)
         {
@@ -31,7 +33,7 @@ struct fmt::formatter<Eigen::Matrix<T, Rows, Cols>>
     }
 };
 
-// A simple cost function for Ceres
+// Simple cost function for Ceres
 struct CostFunctor
 {
     template <typename T>
@@ -41,6 +43,59 @@ struct CostFunctor
         return true;
     }
 };
+
+void TestDenseLinearAlgebraLibraries();
+
+// A simple cost function for testing
+struct QuadraticCostFunctor
+{
+    template <typename T>
+    bool operator()(const T *const x, T *residual) const
+    {
+        residual[0] = T(10.0) - x[0];
+        return true;
+    }
+};
+
+void TestDenseLinearAlgebraLibraries()
+{
+    fmt::print("\nTesting Dense Linear Algebra Libraries in Ceres...\n");
+
+    // Define the problem
+    double x = 0.5; // Initial guess
+    ceres::Problem problem;
+
+    ceres::CostFunction *cost_function =
+        new ceres::AutoDiffCostFunction<QuadraticCostFunctor, 1, 1>(new QuadraticCostFunctor);
+    problem.AddResidualBlock(cost_function, nullptr, &x);
+
+    // Test different dense linear algebra libraries
+    const std::vector<ceres::DenseLinearAlgebraLibraryType> libraries = {
+        ceres::EIGEN,
+        ceres::CUDA, ceres::LAPACK};
+
+    for (auto library : libraries)
+    {
+        // Solver options
+        ceres::Solver::Options options;
+        options.minimizer_progress_to_stdout = true;
+        options.linear_solver_type = ceres::DENSE_QR;
+        options.dense_linear_algebra_library_type = library;
+
+        // Solve the problem
+        ceres::Solver::Summary summary;
+        ceres::Solve(options, &problem, &summary);
+
+        // Print results
+        const char *library_name = (library == ceres::EIGEN) ? "EIGEN" : (library == ceres::LAPACK) ? "LAPACK"
+                                                                                                    : "CUDA";
+        fmt::print("\nResults with {}:\n", library_name);
+        fmt::print("Initial x: {}\n", 0.5);
+        fmt::print("Final x: {}\n", x);
+        fmt::print("{}\n", summary.BriefReport());
+    }
+    fmt::print("\n");
+}
 
 int main()
 {
@@ -60,7 +115,7 @@ int main()
     mat(1, 1) = mat(1, 0) + mat(0, 1);
     fmt::print("Eigen3 Matrix:\n{}\n", mat);
 
-    // Test Ceres
+    // Test Ceres optimization
     double initial_x = 5.0;
     double x = initial_x;
 
@@ -76,37 +131,7 @@ int main()
     fmt::print("Initial x: {}\n", initial_x);
     fmt::print("Final x: {}\n", x);
 
-    // Test CBLAS
-    int m = 2, n = 2, k = 2;
-    double A[4] = {1, 2, 3, 4};
-    double B[4] = {5, 6, 7, 8};
-    double C[4] = {0, 0, 0, 0};
-
-    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, m, n, k, 1.0, A, k, B, n, 0.0, C, n);
-
-    fmt::print("CBLAS Matrix Multiplication Result:\n");
-    for (int i = 0; i < m; ++i)
-    {
-        for (int j = 0; j < n; ++j)
-        {
-            fmt::print("{} ", C[i * n + j]);
-        }
-        fmt::print("\n");
-    }
-
-    // Example usage of boost::core::demangle
-    fmt::print("Demangled name: {}\n", boost::core::demangle(typeid(int).name()));
-
-    // Example usage of boost::static_assert
-    BOOST_STATIC_ASSERT(sizeof(int) == 4);
-
-    // Example usage of boost::random
-    boost::random::mt19937 rng;
-    boost::random::uniform_int_distribution<> dist(1, 100);
-    fmt::print("Random number: {}\n", dist(rng));
-
-    // Example usage of boost::math::constants
-    fmt::print("Pi: {}\n", boost::math::constants::pi<double>());
+    TestDenseLinearAlgebraLibraries();
 
     return 0;
 }
