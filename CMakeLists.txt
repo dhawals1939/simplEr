@@ -83,23 +83,15 @@ set(MATLAB_ARCH glnxa64)
 execute_process(COMMAND ${MATLAB_DIR}/bin/mexext OUTPUT_VARIABLE MEXEXT OUTPUT_STRIP_TRAILING_WHITESPACE)
 set(MAPFILE mexFunction.map)
 
-set(MATLABLIBS -L${MATLAB_DIR}/bin/${MATLAB_ARCH} -lmx -lmex -lmat)
 set(RPATH "-Wl,-rpath-link,${MATLAB_DIR}/bin/${MATLAB_ARCH}")
-set(LIBS ${RPATH} ${MATLABLIBS})
+set(LIBS ${RPATH})
 
 include_directories(${MATLAB_DIR}/extern/include)
-link_directories(${MATLAB_DIR}/bin/glnxa64)
+link_directories(${MATLAB_DIR}/bin/${MATLAB_ARCH})
 
 # Compiler definitions
 add_compile_definitions(MATLAB_MEX_FILE _GNU_SOURCE)
 add_compile_options(-fexceptions -fno-omit-frame-pointer)
-
-# Link MATLAB libraries
-
-# set(MEX_FLAGS -DMATLAB_MEX_FILE -D_GNU_SOURCE -fexceptions -fno-omit-frame-pointer)
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MEX_FLAGS}")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pthread -shared -Wl --version-script ${MATLAB_DIR}/extern/lib/${MATLAB_ARCH}/${MAPFILE} -Wl --no-undefined")
 
 set(PYFLAGS "-O3 -Wall -shared -std=c++14 -fPIC -march=native -ffast-math" "-fopenmp" "-pthread -DUSE_GCC -DUSE_SFMT")
 if(NOT DEBUG_MODE)
