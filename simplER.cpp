@@ -10,6 +10,7 @@
 #include <iostream>
 #include <openblas/cblas.h>
 #include <mex.h>
+#include <pybind11/pybind11.h>
 
 // Formatter for Eigen matrices
 template <typename T, int Rows, int Cols>

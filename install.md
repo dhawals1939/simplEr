@@ -31,14 +31,20 @@ sudo apt-get update
 
 sudo apt-get install gfortran pkg-config libatlas-base-dev
 
-vcpkg install --triplet=x64-linux-dynamic
+<!-- vcpkg install --triplet=x64-linux-dynamic -->
 
-cmake --preset linux
+cmake --preset default
+cmake --build ./build --parallel 16 --target simplER
 ```
 
 If the build fails while building the CERES, you might have to link the `libopenblas.so` correctly.
 
-`ln -s build/vcpkg_installed/x64-linux-dynamic/debug/lib/libopenblas_d.so build/vcpkg_installed/x64-linux-dynamic/debug/lib/libopenblas.so`
+`ln libopenblas_d.so.0.3 libopenblas.so`
+
+
+Install `pybind11`
+
+`pip install pybind11`
 
 
 
