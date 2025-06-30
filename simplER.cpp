@@ -9,7 +9,7 @@
 #include <ceres/ceres.h>
 #include <iostream>
 #include <openblas/cblas.h>
-#include <mex.h>
+// #include <mex.h>
 #include <pybind11/pybind11.h>
 
 // Formatter for Eigen matrices

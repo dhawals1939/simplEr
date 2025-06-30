@@ -11,15 +11,6 @@
     {
       "name": "eigen3",
       "default-features": false
-    },
-    {
-      "name": "ceres",
-      "features": [
-        "cuda",
-        "lapack",
-        "cxsparse"
-      ],
-      "default-features": false
     }
   ]
 }

@@ -12,10 +12,26 @@ if(NOT WIN32)
   set(BoldWhite   "${Esc}[1;37m")
 endif()
 
-# Define the project name as a variable
 
-# Set the VCPKG_ROOT variable from the environment
-set(VCPKG_ROOT $ENV{VCPKG_ROOT})
+# Force use of gcc-11 if available
+if(NOT DEFINED CMAKE_C_COMPILER)
+  set(CMAKE_C_COMPILER /usr/bin/gcc-11 CACHE FILEPATH "" FORCE)
+endif()
+
+if(NOT DEFINED CMAKE_CXX_COMPILER)
+  set(CMAKE_CXX_COMPILER /usr/bin/g++-11 CACHE FILEPATH "" FORCE)
+endif()
+
+if(NOT DEFINED CMAKE_CUDA_HOST_COMPILER)
+  set(CMAKE_CUDA_HOST_COMPILER /usr/bin/g++-11 CACHE FILEPATH "" FORCE)
+endif()
+
+
+message("${BoldGreen}C compile definitions: ${CMAKE_C_COMPILER}${ColourReset}")
+message("${BoldGreen}C++ compile definitions: ${CMAKE_CXX_COMPILER}${ColourReset}")
+message("${BoldGreen}CUDA compile definitions: ${CMAKE_CUDA_HOST_COMPILER}${ColourReset}")
+
+# Define the project name as a variable
 
 set(MATLAB_DIR $ENV{MATLAB_DIR})
 
@@ -29,6 +45,8 @@ execute_process(
 
 set(PYTHON_PATH ${PYTHON_EXECUTABLE})
 
+message("${BoldGreen}Using MATLAB_DIR: ${MATLAB_DIR}${ColourReset}")
+message("${BoldGreen}CMake toolchain file: ${CMAKE_TOOLCHAIN_FILE}${ColourReset}")
 message("${BoldGreen}Python executable: ${PYTHON_EXECUTABLE}${ColourReset}")
 message("${BoldGreen}Using Python at: ${PYTHON_PATH}${ColourReset}")
 
@@ -45,7 +63,7 @@ set(USE_CUDA 1)
 
 
 # Flag to use Ceres Solver (set to 1 to enable, 0 to disable)
-set(USE_CERES 1)
+set(USE_CERES 0)
 
 # Flag to produce reports (set to 1 to enable, 0 to disable)
 set(PRODUCE_REPORTS 0)
@@ -94,7 +112,6 @@ set(CERESFLAGS
     -DNDEBUG 
     -DCERES_GFLAGS_NAMESPACE=google
 )
-add_compile_options(${CERESFLAGS})
 
 # Base paths for vcpkg and other specific libraries
 set(VCPKG_PACKAGES_SO_LIB_DIR ${VCPKG_ROOT}/installed/x64-linux-dynamic/lib)
@@ -190,7 +207,7 @@ Boost::static_assert Boost::random
 Boost::iterator Boost::math)
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenBLAS::OpenBLAS)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBS})
-target_link_libraries(${PROJECT_NAME} PRIVATE mex mat mx)
+# target_link_libraries(${PROJECT_NAME} PRIVATE mex mat mx)
 
 # PYBIND11 from Python PIP
 execute_process(
@@ -201,6 +218,7 @@ execute_process(
 
 # Link Ceres library if enabled
 if(USE_CERES)
+add_compile_options(${CERESFLAGS})
 target_link_libraries(${PROJECT_NAME} PRIVATE Ceres::ceres)
 endif()
 

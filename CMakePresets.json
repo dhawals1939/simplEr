@@ -1,5 +1,5 @@
 {
-    "version": 2,
+    "version": 3,
     "configurePresets": [
         {
             "name": "default",
@@ -7,14 +7,10 @@
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-                "CMAKE_C_COMPILER": "gcc",
-                "CMAKE_CXX_COMPILER": "g++",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc-11",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++-11",
                 "CMAKE_BUILD_TYPE": "RelWithDebInfo",
                 "VCPKG_TARGET_TRIPLET": "x64-linux-dynamic"
-            },
-            "environment": {
-                "CC": "gcc",
-                "CXX": "g++"
             }
         }
     ],
