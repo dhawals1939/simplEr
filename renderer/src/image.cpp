@@ -12,29 +12,28 @@
 #include <string>
 #include <vector>
 
-#ifdef USE_OPENEXR
+#if USE_OPENEXR
 #include <ImathBox.h>
-#include <ImfRgba.h>
-#include <ImfRgbaFile.h>
-#include <ImfInputFile.h>
-#include <ImfOutputFile.h>
-#include <ImfHeader.h>
-#include <ImathBox.h>
-#include <ImfInputFile.h>
-#include <ImfHeader.h>
-#include <ImfArray.h>
-#include <ImfChannelList.h>
-#include <ImfAttribute.h>
-#include <ImfStandardAttributes.h>
-#include <ImfPixelType.h>
-#include <ImfFrameBuffer.h>
+#include <OpenEXR/ImfRgba.h>
+#include <OpenEXR/ImfRgbaFile.h>
+#include <OpenEXR/ImfInputFile.h>
+#include <OpenEXR/ImfOutputFile.h>
+#include <OpenEXR/ImfHeader.h>
+#include <OpenEXR/ImfInputFile.h>
+#include <OpenEXR/ImfHeader.h>
+#include <OpenEXR/ImfArray.h>
+#include <OpenEXR/ImfChannelList.h>
+#include <OpenEXR/ImfAttribute.h>
+#include <OpenEXR/ImfStandardAttributes.h>
+#include <OpenEXR/ImfPixelType.h>
+#include <OpenEXR/ImfFrameBuffer.h>
 #endif
 
-#include "image.h"
+#include <image.h>
 
 namespace image {
 
-#ifdef USE_OPENEXR
+#if USE_OPENEXR
 void SmallImage::writeOpenEXR(const std::string& fileName) const {
 
 	Imf::Header head((int) m_xRes, (int) m_yRes);

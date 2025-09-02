@@ -4,7 +4,7 @@
  *  Created on: Nov 3, 2015
  *      Author: igkiou
  */
-
+#pragma once
 #ifndef MEDIUM_H_
 #define MEDIUM_H_
 

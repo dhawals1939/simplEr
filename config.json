@@ -1,0 +1,17 @@
+{
+    "name": "Dhawal",
+    "age": 27,
+    "height": 1.82,
+    "active": true,
+    "tags": [
+        "research",
+        "photonics"
+    ],
+    "settings": {
+        "resolution": [
+            1280,
+            720
+        ],
+        "framerate": 60
+    }
+}

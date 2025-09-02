@@ -2,8 +2,8 @@
     This file is adapated from Mitsuba
 */
 
-#include "vmf.h"
-#include "warp.h"
+#include <vmf.h>
+#include <warp.h>
 
 Float VonMisesFisherDistr::eval(Float cosTheta) const {
 	if (m_kappa == 0.0f)
@@ -40,7 +40,7 @@ void VonMisesFisherDistr::sample(const tvec::Vec3f &in, smp::Sampler &smp, tvec:
 	Float sinTheta = std::sqrt(1-cosTheta*cosTheta),
 	      sinPhi, cosPhi;
 
-#ifdef USE_DOUBLE_PRECISION
+#if USE_DOUBLE_PRECISION
 	sincos(2*M_PI * sample.y, &sinPhi, &cosPhi);
 #else
 	sincosf(2*M_PI * sample.y, &sinPhi, &cosPhi);
@@ -65,7 +65,7 @@ tvec::Vec3f VonMisesFisherDistr::sample(const tvec::Vec2f &sample) const {
 	Float sinTheta = std::sqrt(1-cosTheta*cosTheta),
 	      sinPhi, cosPhi;
 
-#ifdef USE_DOUBLE_PRECISION
+#if USE_DOUBLE_PRECISION
 	sincos(2*M_PI * sample.y, &sinPhi, &cosPhi);
 #else
 	sincosf(2*M_PI * sample.y, &sinPhi, &cosPhi);

@@ -6,7 +6,7 @@
 
 typedef double Float;
 
-#ifdef NDEBUG
+#if NDEBUG
 #define Assert(cond) ((void) 0)
 #define AssertEx(cond, explanation) ((void) 0)
 #else

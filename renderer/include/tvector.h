@@ -4,7 +4,7 @@
  *  Created on: Nov 24, 2015
  *      Author: igkiou
  */
-
+#pragma once
 #ifndef TVECTOR_H_
 #define TVECTOR_H_
 

@@ -74,11 +74,22 @@ bool Block<VectorType>::intersect(const VectorType<Float> &p, const VectorType<F
     return true;
 }
 
+// template <template <typename> class VectorType>
+// bool Camera<VectorType>::samplePosition(VectorType<Float> &pos, smp::Sampler &sampler) const {
+//     pos = m_origin;
+//     for (int iter = 1; iter < m_origin.dim; ++iter) {
+//         pos[iter] += - m_plane[iter - 1] / FPCONST(2.0) + sampler() * m_plane[iter - 1];
+//     }
+//     return true;
+// }
+
 template <template <typename> class VectorType>
-bool Camera<VectorType>::samplePosition(VectorType<Float> &pos, smp::Sampler &sampler) const {
+bool Camera<VectorType>::samplePosition(VectorType<Float> &pos, smp::Sampler &sampler) const
+{
     pos = m_origin;
-    for (int iter = 1; iter < m_origin.dim; ++iter) {
-        pos[iter] += - m_plane[iter - 1] / FPCONST(2.0) + sampler() * m_plane[iter - 1];
+    for (int iter = 1; iter < m_origin.dim; ++iter)
+    {
+        pos[iter] += -m_view_plane[iter - 1] / FPCONST(2.0) + sampler() * m_view_plane[iter - 1];
     }
     return true;
 }
@@ -126,7 +137,7 @@ bool AreaTexturedSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorTyp
 //      std::cout << "Diffuse source not implemented; only directional source is implemented";
 }
 
-#ifdef FUS_RIF
+#if USE_RIF_FUS
 template <template <typename> class VectorType>
 double US<VectorType>::fus_RIF(const VectorType<Float> &p, const Float &scaling) const{ //scaling is ignored for now
 
@@ -441,80 +452,6 @@ void Scene<VectorType>::trace_optical_distance(VectorType<Float> &p, VectorType<
     distance = (distance - opticalPathLength)/m_us.RIF(p, scaling);
     er_step(p, d, distance, scaling);
 }
-#ifdef USE_CERES
-template <template <typename> class VectorType>
-
-bool Scene<VectorType>::makeSurfaceDirectConnection(const VectorType<Float> &p1, const VectorType<Float> &p2, const Float &scaling, smp::Sampler &sampler,
-                                                        Float &distTravelled, VectorType<Float> &dirToSensor, Float &distToSensor, Float &weight,
-                                                        scn::NEECostFunction<VectorType> &costFunction, Problem &problem, double *initialization) const{
-
-    Matrix3x3 dpdv0((Float)0);
-    Matrix3x3 dvdv0((Float)1, 0, 0,
-                    0, 1, 0,
-                    0, 0, 1);
-
-    while(true){
-        VectorType<Float> v;
-
-
-#ifdef PRINT_DEBUGLOG
-        v = p2 - p1; // Hack to make direct connections match the crdr.
-        v.normalize();
-#else
-        if(m_us.m_useInitializationHack){
-            v = p2 - p1; // Hack to make direct connections match the crdr.
-            v.normalize();
-        }
-        else
-            sampleRandomDirection(v, sampler);
-#endif
-
-//      CostFunction* cost_function = new NEECostFunction<tvec::TVector3>(this, p1, p2, dpdv0, dvdv0, scaling);
-//      Problem problem;
-//      double x[] = {v.x, v.y, v.z};
-//      problem.AddResidualBlock(cost_function, NULL, x);
-
-        costFunction.updateParameters(p1, p2, dpdv0, dvdv0, scaling);
-
-        initialization[0] = v.x; initialization[1] = v.y; initialization[2] = v.z;
-
-        Solver::Summary summary;
-        Solve(m_options, &problem, &summary);
-
-        if(summary.final_cost < m_us.getTol2()){
-            dirToSensor[0] = initialization[0];
-            dirToSensor[1] = initialization[1];
-            dirToSensor[2] = initialization[2];
-            dirToSensor.normalize();
-            break;
-        }
-
-        // Did not converge, so perform russian roulette
-        if(sampler() < m_us.getrrWeight())
-            weight = weight * m_us.getInvrrWeight();
-        else{
-            dirToSensor[0] = initialization[0];
-            dirToSensor[1] = initialization[1];
-            dirToSensor[2] = initialization[2];
-            dirToSensor.normalize();
-            return false;
-        }
-    }
-
-
-    // success, the algorithm found a solution.
-    VectorType<Float> error;
-    Matrix3x3 derror;
-    Float opticalPathLength;
-    VectorType<Float> v = dirToSensor * m_us.RIF(p1, scaling);
-
-    computePathLengthstillZ(v, p1, p2, opticalPathLength, distToSensor, scaling);
-#if !USE_SIMPLIFIED_TIMING
-    distTravelled += opticalPathLength;
-#endif
-    return true;
-}
-#endif
 
 template <template <typename> class VectorType>
 void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, const VectorType<Float> &p1, const VectorType<Float> &p2, Float &opticalPathLength, Float &t_l, const Float &scaling) const{
@@ -524,7 +461,7 @@ void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, co
         opticalPathLength = M_MAX;
     }
 //
-//#ifdef PRINT_DEBUGLOG
+//#if PRINT_DEBUGLOG
 //  std::cout << "Trying to connect: " << std::endl;
 //  std::cout << "P1: (" << p1.x  << ", " << p1.y  << ", " << p1.z  << "); " << std::endl;
 //  std::cout << "P2: (" << p2.x  << ", " << p2.y  << ", " << p2.z  << "); " << std::endl;
@@ -574,7 +511,7 @@ void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, co
 //      exit(-1);
 //  }
 
-//#ifdef PRINT_DEBUGLOG
+//#if PRINT_DEBUGLOG
 //  std::cout << "Geometric length: " << t_l << std::endl;
 //#endif
 }
@@ -831,7 +768,7 @@ bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
          * refraction), there is no need to adjust radiance by eta*eta.
          */
         Float magnitude = d.length();
-#ifdef PRINT_DEBUGLOG
+#if PRINT_DEBUGLOG
         std::cout << "Before BSDF sample, d: (" << d.x/magnitude << ", " << d.y/magnitude <<  ", " << d.z/magnitude << "); \n "
                 "norm: (" << norm.x << ", " << norm.y << ", " << norm.z << ");" << "A Sampler: " << sampler() << "\n";
 #endif
@@ -884,7 +821,7 @@ void Scene<tvec::TVector3>::addEnergyToImage(image::SmallImage &img, const tvec:
                 iz = static_cast<int>(std::floor(z));
             }
         }
-#ifdef USE_PIXEL_SHARING
+#if USE_PIXEL_SHARING
         Float fx = x - std::floor(x);
         Float fy = y - std::floor(y);
 
@@ -922,7 +859,7 @@ void Scene<tvec::TVector2>::addEnergyToImage(image::SmallImage &img, const tvec:
             z = (z / range) * static_cast<Float>(img.getZRes());
             iz = static_cast<int>(std::floor(z));
         }
-#ifdef USE_PIXEL_SHARING
+#if USE_PIXEL_SHARING
         Float fx = x - std::floor(x);
 
         addPixel(img, ix, 0, iz, val*(FPCONST(1.0) - fx));
@@ -950,7 +887,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 //  if(m_camera.getOrigin().x < m_source.getOrigin().x) // Direction to sensor is flipped. Compensate
 //      dirToSensor.x = -dirToSensor.x;
 
-#ifdef PRINT_DEBUGLOG
+#if PRINT_DEBUGLOG
     std::cout << "dirToSensor: (" << dirToSensor.x << ", " << dirToSensor.y << ", " << dirToSensor.z << ") \n";
 #endif
 
@@ -963,7 +900,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
     if(!movePhotonTillSensor(p1, dirToSensor, distToSensor, distTravelled, sampler, scaling))
         return;
 
-//#ifdef OMEGA_TRACKING
+//#if OMEGA_TRACKING
     dirToSensor.normalize();
 //#endif
 
@@ -974,7 +911,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
     if (ior > FPCONST(1.0)) {
         refrDirToSensor.x = refrDirToSensor.x/ior;
         refrDirToSensor.normalize(); 
-#ifdef PRINT_DEBUGLOG
+#if PRINT_DEBUGLOG
         std::cout << "refrDir: (" << refrDirToSensor[0] << ", " <<  refrDirToSensor[1] << ", " << refrDirToSensor[2] << ");" << std::endl;
 #endif
 #ifndef USE_NO_FRESNEL
@@ -1006,7 +943,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
             * foreshortening
             * fresnelWeight;
     addEnergyToImage(img, p1, totalOpticalDistance, depth, totalPhotonValue);
-#ifdef PRINT_DEBUGLOG
+#if PRINT_DEBUGLOG
     std::cout << "Added Energy:" << totalPhotonValue << " to (" << p1.x << ", " << p1.y << ", " << p1.z << ") at time:" << totalOpticalDistance << std::endl;
     std::cout << "val term:" << val << std::endl;
     std::cout << "exp term:" << std::exp(-medium.getSigmaT() * distToSensor) << std::endl;
@@ -1014,223 +951,6 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
     std::cout << "fresnel weight:" << fresnelWeight << std::endl;
 #endif
 }
-
-#ifdef USE_CERES
-template <template <typename> class VectorType>
-void Scene<VectorType>::addEnergy(image::SmallImage &img,
-            const VectorType<Float> &p, const VectorType<Float> &d, Float distTravelled, int &depth,
-            Float val, const med::Medium &medium, smp::Sampler &sampler, const Float& scaling,
-            scn::NEECostFunction<VectorType> &costFunction, Problem &problem, double *initialization) const {
-
-#ifdef USE_WEIGHT_NORMALIZATION
-    val *=  static_cast<Float>(img.getXRes()) * static_cast<Float>(img.getYRes())
-        / (m_camera.getPlane().x * m_camera.getPlane().y);
-#ifdef USE_PRINTING
-        std::cout << "using weight normalization " << std::endl;
-#endif
-#endif
-    if( (p.x-m_camera.getOrigin().x) < 1e-4) // Hack to get rid of inf problems for direct connection
-        return;
-
-
-    VectorType<Float> sensorPoint;
-    if(m_camera.samplePosition(sensorPoint, sampler)) {
-        /*
-         * TODO: Not sure why this check is here, but it was in the original code.
-         */
-        Assert(m_block.inside(sensorPoint));
-
-        // make a direct connection here and accurately measure the radiance
-
-        Float weight = (Float) 1.0;
-        VectorType<Float> dirToSensor;
-        Float distToSensor;
-
-#ifdef RUNTIME_DEBUGLOG
-        auto start = std::chrono::high_resolution_clock::now();
-        std::ios_base::sync_with_stdio(false);
-#endif
-        bool b = makeSurfaceDirectConnection(p, sensorPoint, scaling, sampler, distTravelled, dirToSensor, distToSensor, weight, costFunction, problem, initialization);
-#ifdef RUNTIME_DEBUGLOG
-        auto end = std::chrono::high_resolution_clock::now();
-        double time_taken =
-                std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-        if(time_taken > 1e10){
-            std::cout << "Direct connection took:" <<    time_taken * 1e-9 << " sec" << std::endl;
-            std::cout << "Status: " << (b ?"Success":"Failed") << std::endl;
-            std::cout << "While trying to connect: " << std::endl;
-            std::cout << "P1: (" << p.x  << ", " << p.y  << ", " << p.z  << "); " << std::endl;
-            std::cout << "P2: (" << sensorPoint.x  << ", " << sensorPoint.y  << ", " << sensorPoint.z  << "); " << std::endl;
-        }
-#endif
-
-        if(!b)
-            return;
-
-        VectorType<Float> refrDirToSensor = dirToSensor;
-        Float fresnelWeight = FPCONST(1.0);
-
-        if (m_ior > FPCONST(1.0)) {
-            for (int iter = 1; iter < dirToSensor.dim; ++iter) {
-                refrDirToSensor[iter] = dirToSensor[iter] * m_ior;
-            }
-            refrDirToSensor.normalize();
-#ifdef PRINT_DEBUGLOG
-        std::cout << "refrDir: (" << refrDirToSensor[0] << ", " <<  refrDirToSensor[1] << ", " << refrDirToSensor[2] << ");" << std::endl;
-#endif
-#ifndef USE_NO_FRESNEL
-            fresnelWeight = (FPCONST(1.0) -
-            util::fresnelDielectric(dirToSensor.x, refrDirToSensor.x,
-                FPCONST(1.0) / m_ior))
-                / m_ior / m_ior;
-#endif
-        }
-
-        /*
-         * TODO: Double-check that the foreshortening term is needed, and
-         * that it is applied after refraction.
-         */
-        Float foreshortening = dot(refrDirToSensor, m_camera.getDir());
-        Assert(foreshortening >= FPCONST(0.0));
-
-#if USE_SIMPLIFIED_TIMING
-    Float totalOpticalDistance = (distTravelled + distToSensor) * m_ior;
-#else
-    Float totalOpticalDistance = distTravelled;
-#endif
-
-        Float falloff = FPCONST(1.0);
-        if (p.dim == 2) {
-            falloff = distToSensor;
-        } else if (p.dim == 3) {
-            falloff = distToSensor * distToSensor;
-        }
-
-        Float totalPhotonValue = val * m_camera.getPlane().x * m_camera.getPlane().y
-                * std::exp(- medium.getSigmaT() * distToSensor)
-                * medium.getPhaseFunction()->f(d/d.length(), dirToSensor)
-                * fresnelWeight
-                * weight
-                * foreshortening
-                / falloff;
-        addEnergyToImage(img, sensorPoint, totalOpticalDistance, depth, totalPhotonValue);
-#ifdef PRINT_DEBUGLOG
-    std::cout << "Added Energy:" << totalPhotonValue << " to (" << sensorPoint.x << ", " << sensorPoint.y << ", " << sensorPoint.z << ") at time:" << totalOpticalDistance << std::endl;
-    std::cout << "val term:" << val << std::endl;
-    std::cout << "exp term:" << std::exp(-medium.getSigmaT() * distToSensor) << std::endl;
-    std::cout << "phase function term:" << medium.getPhaseFunction()->f(d/d.length(), dirToSensor) << std::endl;
-    std::cout << "fresnel weight:" << fresnelWeight << std::endl;
-//    std::cout << "weight:" << weight << std::endl;
-    std::cout << "foreshortening:" << foreshortening << std::endl;
-    std::cout << "falloff:" << falloff << std::endl;
-#endif
-
-#ifdef RUNTIME_DEBUGLOG
-    if(totalPhotonValue > 1e2 || totalPhotonValue < 0){
-        std::cout << "Added Energy:" << totalPhotonValue << " to (" << sensorPoint.x << ", " << sensorPoint.y << ", " << sensorPoint.z << ") at time:" << totalOpticalDistance << std::endl;
-        std::cout << "val term:" << val << std::endl;
-        std::cout << "exp term:" << std::exp(-medium.getSigmaT() * distToSensor) << std::endl;
-        std::cout << "phase function term:" << medium.getPhaseFunction()->f(d/d.length(), dirToSensor) << std::endl;
-        std::cout << "fresnel weight:" << fresnelWeight << std::endl;
-        std::cout << "weight:" << weight << std::endl;
-        std::cout << "foreshortening:" << foreshortening << std::endl;
-        std::cout << "falloff:" << falloff << std::endl;
-
-            std::cout << "For this bad point, Direct connection took:" <<    time_taken * 1e-9 << " sec" << std::endl;
-            std::cout << "Status: " << (b ?"Success":"Failed") << std::endl;
-            std::cout << "While trying to connect: " << std::endl;
-            std::cout << "P1: (" << p.x  << ", " << p.y  << ", " << p.z  << "); " << std::endl;
-            std::cout << "P2: (" << sensorPoint.x  << ", " << sensorPoint.y  << ", " << sensorPoint.z  << "); " << std::endl;
-
-    }
-#endif
-
-    }
-}
-#endif
-//template <template <typename> class VectorType>
-//void Scene<VectorType>::addEnergyDeriv(image::SmallImage &img, image::SmallImage &dSigmaT,
-//                      image::SmallImage &dAlbedo, image::SmallImage &dGVal,
-//                      const VectorType<Float> &p, const VectorType<Float> &d,
-//                      Float distTravelled, Float val, Float sumScoreSigmaT,
-//                      Float sumScoreAlbedo, Float sumScoreGVal,
-//                      const med::Medium &medium, smp::Sampler &sampler) const {
-//
-//#ifdef USE_WEIGHT_NORMALIZATION
-//  val *=  static_cast<Float>(img.getXRes()) * static_cast<Float>(img.getYRes())
-//      / (m_camera.getPlane().x * m_camera.getPlane().y);
-//#ifdef USE_PRINTING
-//      std::cout << "using weight normalization " << std::endl;
-//#endif
-//#endif
-//#ifdef USE_PRINTING
-//  std::cout << "total = " << distTravelled << std::endl;
-//#endif
-//
-//  VectorType<Float> sensorPoint;
-//  if(m_camera.samplePosition(sensorPoint, sampler)) {
-//      /*
-//       * TODO: Not sure why this check is here, but it was in the original code.
-//       */
-//      Assert(m_block.inside(sensorPoint));
-//
-//      VectorType<Float> distVec = sensorPoint - p;
-//      Float distToSensor = distVec.length();
-//
-//      VectorType<Float> dirToSensor = distVec;
-//      dirToSensor.normalize();
-//
-//      VectorType<Float> refrDirToSensor = dirToSensor;
-//      Float fresnelWeight = FPCONST(1.0);
-//
-//      if (m_ior > FPCONST(1.0)) {
-//          Float sqrSum = FPCONST(0.0);
-//          for (int iter = 1; iter < dirToSensor.dim; ++iter) {
-//              refrDirToSensor[iter] = dirToSensor[iter] * m_ior;
-//              sqrSum += refrDirToSensor[iter] * refrDirToSensor[iter];
-//          }
-//          refrDirToSensor.x = std::sqrt(FPCONST(1.0) - sqrSum);
-//          if (dirToSensor.x < FPCONST(0.0)) {
-//              refrDirToSensor.x *= -FPCONST(1.0);
-//          }
-//#ifndef USE_NO_FRESNEL
-//          fresnelWeight = (FPCONST(1.0) -
-//          util::fresnelDielectric(dirToSensor.x, refrDirToSensor.x,
-//              FPCONST(1.0) / m_ior))
-//              / m_ior / m_ior;
-//#endif
-//      }
-//
-//      /*
-//       * TODO: Double-check that the foreshortening term is needed, and that
-//       * it is applied after refraction.
-//       */
-//      Float foreshortening = dot(refrDirToSensor, m_camera.getDir());
-//      Assert(foreshortening >= FPCONST(0.0));
-//
-//      Float totalDistance = (distTravelled + distToSensor) * m_ior;
-//      Float falloff = FPCONST(1.0);
-//      if (p.dim == 2) {
-//          falloff = distToSensor;
-//      } else if (p.dim == 3) {
-//          falloff = distToSensor * distToSensor;
-//      }
-//      Float totalPhotonValue = val
-//              * std::exp(- medium.getSigmaT() * distToSensor)
-//              * medium.getPhaseFunction()->f(d, dirToSensor)
-//              * fresnelWeight
-//              * foreshortening
-//              / falloff;
-//      addEnergyToImage(img, sensorPoint, totalDistance, totalPhotonValue);
-//      Float valDSigmaT = totalPhotonValue * (sumScoreSigmaT - distToSensor);
-//      addEnergyToImage(dSigmaT, sensorPoint, totalDistance, valDSigmaT);
-//      Float valDAlbedo = totalPhotonValue * sumScoreAlbedo;
-//      addEnergyToImage(dAlbedo, sensorPoint, totalDistance, valDAlbedo);
-//      Float valDGVal = totalPhotonValue *
-//              (sumScoreGVal + medium.getPhaseFunction()->score(d, dirToSensor));
-//      addEnergyToImage(dGVal, sensorPoint, totalDistance, valDGVal);
-//  }
-//}
 
 //template class Block<tvec::TVector2>;
 template class Block<tvec::TVector3>;
@@ -1244,9 +964,5 @@ template class AreaTexturedSource<tvec::TVector3>;
 template class US<tvec::TVector3>;
 //template class Scene<tvec::TVector2>;
 template class Scene<tvec::TVector3>;
-#ifdef USE_CERES
-//template class NEECostFunction<tvec::TVector2>;
-template class NEECostFunction<tvec::TVector3>;
-#endif 
 
 }   /* namespace scn */

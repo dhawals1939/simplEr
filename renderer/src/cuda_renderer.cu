@@ -15,7 +15,7 @@
 
 #define RANDOM_NUMBERS_PER_PHOTON 6
 
-#ifdef USE_DOUBLE_PRECISION
+#if USE_DOUBLE_PRECISION
 #define FLOATS_IN_MEMORY_LINE 4
 #else
 #define FLOATS_IN_MEMORY_LINE 8
@@ -338,7 +338,7 @@ __device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVect
 	if(!movePhotonTillSensor(p1, dirToSensor, distToSensor, distTravelled, scaling))
 		return;
 
-//ifdef OMEGA_TRACKING
+//if OMEGA_TRACKING
 	dirToSensor.normalize();
 //#endif
 
@@ -494,7 +494,7 @@ __device__ void Scene::addEnergyToImage(const TVector3<Float> &p, Float pathleng
 				iz = static_cast<int>(floorf(z));
 			}
 		}
-#ifdef USE_PIXEL_SHARING
+#if USE_PIXEL_SHARING
 		Float fx = x - floorf(x);
 		Float fy = y - floorf(y);
 
@@ -691,7 +691,7 @@ __global__ void renderPhotons() {
     if (idx < d_constants.numPhotons) {
 	init_rand(idx);
         if (scene.genRay(pos, dir, totalDistance)) {
-#ifdef FUS_RIF
+#if USE_RIF_FUS
             scaling = 1.0f;
 #else
             scaling = max(min(sinf(scene.getUSPhi_min() + scene.getUSPhi_range() * uniform_sample()), scene.getUSMaxScaling()), -scene.getUSMaxScaling());

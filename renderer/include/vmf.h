@@ -1,7 +1,7 @@
 /*
     This file is adapated from Mitsuba
 */
-
+#pragma once
 #if !defined(__MITSUBA_CORE_VMF_H_)
 #define __MITSUBA_CORE_VMF_H_
 

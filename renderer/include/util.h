@@ -4,7 +4,7 @@
  *  Created on: Nov 15, 2015
  *      Author: igkiou
  */
-
+#pragma once
 #ifndef UTIL_H_
 #define UTIL_H_
 

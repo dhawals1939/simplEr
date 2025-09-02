@@ -20,7 +20,7 @@
 #define CUDA_CALL(x) x
 #define ASSERT(x) void(0)
 
-#ifdef USE_DOUBLE_PRECISION
+#if USE_DOUBLE_PRECISION
 typedef double3 Float3;
 #else
 typedef float3 Float3;

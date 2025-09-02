@@ -4,7 +4,7 @@
  *  Created on: Nov 5, 2015
  *      Author: igkiou
  */
-
+#pragma once
 #ifndef MEX_WRAPPER_H_
 #define MEX_WRAPPER_H_
 

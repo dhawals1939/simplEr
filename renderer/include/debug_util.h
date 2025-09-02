@@ -4,7 +4,7 @@
  *  Created on: Sep 4, 2012
  *      Author: igkiou
  */
-
+#pragma once
 #ifndef DEBUG_UTIL_H_
 #define DEBUG_UTIL_H_
 
@@ -12,7 +12,7 @@
 #include <stdarg.h>
 
 // Inspired by mitsuba-0.4.1
-#ifdef NDEBUG
+#if NDEBUG
 #define Assert(cond) ((void) 0)
 #define AssertEx(cond, explanation) ((void) 0)
 #else

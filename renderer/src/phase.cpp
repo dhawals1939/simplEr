@@ -59,7 +59,7 @@ Float HenyeyGreenstein::sample(const tvec::Vec3f &in, smp::Sampler &sampler, tve
 //	Float phi = static_cast<Float>(FPCONST(2.0) * M_PI) * sample.y;
 	Float phi = static_cast<Float>(FPCONST(2.0) * M_PI) * sampley;
 	Float sinPhi, cosPhi;
-//#ifdef USE_GCC
+//#if USE_GCC
 //	std::sincos(phi, &sinPhi, &cosPhi);
 //#else
 	sinPhi = std::sin(phi);

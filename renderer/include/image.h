@@ -4,7 +4,7 @@
  *  Created on: Nov 30, 2015
  *      Author: igkiou
  */
-
+#pragma once
 #ifndef IMAGE_H_
 #define IMAGE_H_
 
@@ -17,8 +17,8 @@
 #include <string.h>
 #include <vector>
 
-#ifdef USE_OPENEXR
-#include <ImfPixelType.h>
+#if USE_OPENEXR
+#include <OpenEXR/ImfPixelType.h>
 const Imf::PixelType kEXRFloatUsed = Imf::FLOAT;
 #endif
 
@@ -123,7 +123,7 @@ public:
 		return m_yRes;
 	}
 
-#ifdef NDEBUG
+#if NDEBUG
 	inline void copyImage(T *buffer, const int) const {
 #else
 	inline void copyImage(T *buffer, const int size) const {
@@ -263,7 +263,7 @@ private:
 		}
 	}
 	void writePFM(const std::string& fileName) const; //, const EByteOrder fileEndianness) const;
-#ifdef USE_OPENEXR
+#if USE_OPENEXR
 	void writeOpenEXR(const std::string& fileName) const;
 #else
 	inline void readOpenEXR(const std::string&) const {
@@ -354,7 +354,7 @@ public:
 		return m_zRes;
 	}
 
-#ifdef NDEBUG
+#if NDEBUG
 	inline void copyImage(T *buffer, const int) const {
 #else
 	inline void copyImage(T *buffer, const int size) const {
@@ -474,7 +474,7 @@ public:
 	}
 private:
 	void writePFM(const std::string& fileNamePrefix) const;
-#ifdef USE_OPENEXR
+#if USE_OPENEXR
 	void writeOpenEXR(const std::string& fileName) const;
 #else
 	inline void readOpenEXR(const std::string&) const {
@@ -632,8 +632,8 @@ private:
 	Image3<T> *m_images;
 };
 typedef Image2<Float> Texture;
-typedef Image3<double> SmallImage;
-typedef Image3Set<double> SmallImageSet;
+typedef Image3<Float> SmallImage;
+typedef Image3Set<Float> SmallImageSet;
 
 } /* namespace image */
 

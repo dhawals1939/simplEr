@@ -33,9 +33,9 @@ USE_SIMPLIFIED_TIMING = 0
 USE_OMEGA_TRACKING = 0
 USE_CUDA = 0
 
-## whether to use bessel RIF or spline RIF or FUS RIF. cannot have both USE_SPLINE_RIF and USE_FUS_RIF
-USE_SPLINE_RIF = 0
-USE_FUS_RIF = 0
+## whether to use bessel RIF or spline RIF or FUS RIF. cannot have both USE_RIF_SPLINE and USE_RIF_FUS
+USE_RIF_SPLINE = 0
+USE_RIF_FUS = 0
 
 # initialize variables
 LIBS =
@@ -160,12 +160,12 @@ ifeq ($(USE_OMEGA_TRACKING), 1)
     PYFLAGS += -DOMEGA_TRACKING
 endif
 
-ifeq ($(USE_SPLINE_RIF), 1)
+ifeq ($(USE_RIF_SPLINE), 1)
     CFLAGS += -DSPLINE_RIF
     PYFLAGS += -DSPLINE_RIF
 endif
 
-ifeq ($(USE_FUS_RIF), 1)
+ifeq ($(USE_RIF_FUS), 1)
     CFLAGS += -DFUS_RIF
     PYFLAGS += -DFUS_RIF
 endif

@@ -4,7 +4,7 @@
  *  Created on: Nov 21, 2015
  *      Author: igkiou
  */
-
+#pragma once
 #ifndef PHOTON_H_
 #define PHOTON_H_
 
@@ -49,16 +49,9 @@ public:
 					   const scn::Scene<VectorType> &scene, const med::Medium &medium,
 					   smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance) const; // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
 
-#ifdef USE_CERES
-	void scatter(const VectorType<Float> &p, const VectorType<Float> &d,
-				const scn::Scene<VectorType> &scene, const med::Medium &medium,
-				smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance,
-				scn::NEECostFunction<VectorType> &costFunction, Problem &problem, double *initialization) const;
-#else
 	void scatter(const VectorType<Float> &p, const VectorType<Float> &d,
 				const scn::Scene<VectorType> &scene, const med::Medium &medium,
 				smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance) const;
-#endif
 
 	void scatterDeriv(const VectorType<Float> &p, const VectorType<Float> &d,
 					const scn::Scene<VectorType> &scene, const med::Medium &medium,

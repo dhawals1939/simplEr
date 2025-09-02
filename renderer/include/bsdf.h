@@ -5,6 +5,7 @@
  *      Author: igkiou
  */
 
+#pragma once
 #ifndef BSDF_H_
 #define BSDF_H_
 

@@ -4,7 +4,7 @@
  *  Created on: Nov 24, 2015
  *      Author: igkiou
  */
-
+#pragma once
 #ifndef RNG_SSE_H_
 #define RNG_SSE_H_
 
@@ -31,7 +31,7 @@ public:
 	}
 
 	inline Float operator()() {
-#ifdef USE_DOUBLE_PRECISION
+#if USE_DOUBLE_PRECISION
 		/* Trick from MTGP: generate an uniformly distributed
 		   single precision number in [1,2) and subtract 1. */
 		union {

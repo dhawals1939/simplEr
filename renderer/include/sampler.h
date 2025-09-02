@@ -4,13 +4,13 @@
  *  Created on: Nov 24, 2015
  *      Author: igkiou
  */
-
+#pragma once
 #ifndef SAMPLER_H_
 #define SAMPLER_H_
 
 #include "constants.h"
 
-#ifdef USE_SFMT
+#if USE_SFMT
 #include "rng_sse.h"
 #else
 #include "rng_boost.h"
@@ -18,7 +18,7 @@
 
 namespace smp {
 
-#ifdef USE_SFMT
+#if USE_SFMT
 typedef rng::SSEEngineSeedType SeedType;
 typedef rng::SSEEngine Sampler;
 #else

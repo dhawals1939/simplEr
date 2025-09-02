@@ -39,7 +39,7 @@ PYBIND11_MODULE(scene_pybind, m) {
 	            const Float&,
 	            const bool&,
 	            //Ultrasound parameters: a lot of them are currently not used
-	#ifdef FUS_RIF
+	#if USE_RIF_FUS
 	            const Float&,
 	            const Float&,
 	            const Float&,
@@ -73,13 +73,13 @@ PYBIND11_MODULE(scene_pybind, m) {
 	            const tvec::TVector3<Float>&,
 	            const Float&,
 	            const Float&, const Float&, const int&, const Float&, const Float&, const bool&
-	#ifdef SPLINE_RIF
+	#if USE_RIF_SPLINE
 	//          , const Float xmin[], const Float xmax[],  const int N[]
 	            , const std::string&
 	#endif
             >())
             .def("set_f_u", &scn::Scene<tvec::TVector3>::set_f_u)
-    #ifdef FUS_RIF
+    #if USE_RIF_FUS
             .def("set_n_scaling", &scn::Scene<tvec::TVector3>::set_n_scaling)
             .def("set_phase1", &scn::Scene<tvec::TVector3>::set_phase1)
             .def("set_phase2", &scn::Scene<tvec::TVector3>::set_phase2)

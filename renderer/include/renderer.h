@@ -4,7 +4,7 @@
  *  Created on: Nov 21, 2015
  *      Author: igkiou
  */
-
+#pragma once
 #ifndef RENDERER_H_
 #define RENDERER_H_
 
@@ -21,7 +21,8 @@
 #include "medium.h"
 #include "photon.h"
 #include "util.h"
-
+#include <fmt/core.h>
+#include <fmt/color.h>
 #include <omp.h>
 
 #endif	/* RENDERER_H_ */

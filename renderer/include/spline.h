@@ -6,7 +6,7 @@
  *      Author: apedired
  */
 
-
+#pragma once
 #ifndef SPLINE_H_
 #define SPLINE_H_
 

@@ -4,7 +4,7 @@
  *  Created on: Jul 11, 2019
  *      Author: igkiou
  */
-
+#pragma once
 #ifndef INCLUDE_PMF_H_
 #define INCLUDE_PMF_H_
 

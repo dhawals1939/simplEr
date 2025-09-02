@@ -1,8 +1,8 @@
 /*
     This file is adapted from Mitsuba, a physically based rendering system.
 */
-
-#include "tvector.h"
+#pragma once
+#include <tvector.h>
 #include <boost/static_assert.hpp>
 #define FINLINE inline //hack for now
 /**

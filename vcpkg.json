@@ -11,6 +11,8 @@
     {
       "name": "eigen3",
       "default-features": false
-    }
+    },
+    "imath",
+    "nlohmann-json"
   ]
 }

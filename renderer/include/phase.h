@@ -4,7 +4,7 @@
  *  Created on: Nov 24, 2015
  *      Author: igkiou
  */
-
+#pragma once
 #ifndef PHASE_H_
 #define PHASE_H_
 

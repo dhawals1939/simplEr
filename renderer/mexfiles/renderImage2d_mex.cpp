@@ -101,7 +101,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	renderer.renderImage(img0, medium, scene, numPhotons);
 
 	/* Be sure to check for x and y here. */
-#ifdef USE_DOUBLE_PRECISION
+#if USE_DOUBLE_PRECISION
 	mxClassID matClassID = mxDOUBLE_CLASS;
 #else
 	mxClassID matClassID = mxSINGLE_CLASS;

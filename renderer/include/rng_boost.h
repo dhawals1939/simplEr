@@ -4,7 +4,7 @@
  *  Created on: Nov 28, 2015
  *      Author: igkiou
  */
-
+#pragma once
 #ifndef RNG_BOOST_H_
 #define RNG_BOOST_H_
 

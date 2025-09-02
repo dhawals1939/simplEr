@@ -45,7 +45,7 @@ SamplerSet::SamplerSet(const int numSamplers, const unsigned int seedValue)
 	for (int iter = 0; iter < m_numSamplers; ++iter) {
 		m_samplers[iter].seed(seedValue);
 	}
-#ifndef NDEBUG
+#if NDEBUG
 	std::cout << "seeding all samplers to " << seedValue << std::endl;
 #endif
 }

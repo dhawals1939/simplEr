@@ -10,7 +10,7 @@
 #include <iterator>
 #include <iostream>
 
-#ifdef USE_CUDA
+#if USE_CUDA
 #include "cuda_renderer.h"
 #endif
 
@@ -27,7 +27,7 @@ bool Renderer<VectorType>::scatterOnce(VectorType<Float> &p, VectorType<Float> &
 		medium.getPhaseFunction()->sample(d/magnitude, sampler, d1);
 		d = magnitude*d1;
 		dist = getMoveStep(medium, sampler);
-#ifdef PRINT_DEBUGLOG
+#if PRINT_DEBUGLOG
 		std::cout << "sampler before move photon:" << sampler() << "\n";
 #endif
 		return scene.movePhoton(p, d, dist, totalOpticalDistance, sampler, scaling);
@@ -87,16 +87,10 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 }
 
 template <template <typename> class VectorType>
-#ifdef USE_CERES
-void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<Float> &d,
-					const scn::Scene<VectorType> &scene, const med::Medium &medium,
-					smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance,
-					scn::NEECostFunction<VectorType> &costFunction, Problem &problem, double *initialization) const {
-#else
+
 void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<Float> &d,
 					const scn::Scene<VectorType> &scene, const med::Medium &medium,
 					smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance) const {
-#endif
 
 	Assert(scene.getMediumBlock().inside(p));
 
@@ -109,7 +103,7 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 			return;
 		}
 
-#ifdef PRINT_DEBUGLOG
+#if PRINT_DEBUGLOG
 		std::cout << "dist: " << dist << "\n";
 		std::cout << "pos: (" << pos.x << ", " << pos.y << ", " << pos.z << ") " << "\n";
 		std::cout << "dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ") " << "\n";
@@ -120,17 +114,13 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
 			if(m_useAngularSampling)
                 scene.addEnergyInParticle(img, pos, dir, totalOpticalDistance, depth, weight, medium, sampler, scaling);
-#ifdef USE_CERES
-			else
-				scene.addEnergy(img, pos, dir, totalOpticalDistance, depth, weight, medium, sampler, scaling, costFunction, problem, initialization);
-#endif
 			if (!scatterOnce(pos, dir, dist, scene, medium, totalOpticalDistance, sampler, scaling)){
-#ifdef PRINT_DEBUGLOG
+#if PRINT_DEBUGLOG
 				std::cout << "sampler after failing scatter once:" << sampler() << std::endl;
 #endif
 				break;
 			}
-#ifdef PRINT_DEBUGLOG
+#if PRINT_DEBUGLOG
 			std::cout << "sampler after succeeding scatter once:" << sampler() << std::endl;
 
 			std::cout << "dist: " << dist << "\n";
@@ -226,7 +216,7 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 //		VectorType<Float> pos(p), dir(d);
 //
 //		Float dist = getMoveStep(samplingMedium, sampler);
-//#ifdef USE_PRINTING
+//#if USE_PRINTING
 //		std::cout << "sampled first = " << dist << std::endl;
 //#endif
 //		if (!scene.movePhoton(pos, dir, dist, sampler)) {
@@ -244,7 +234,7 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 //		Float sumScoreGVal = FPCONST(0.0);
 //		while ((m_maxDepth < 0 || depth <= m_maxDepth) &&
 //				(m_maxPathlength < 0 || totalDist <= m_maxPathlength)) {
-//#ifdef USE_PRINTING
+//#if USE_PRINTING
 //		std::cout << "total to add = " << totalDist << std::endl;
 //#endif
 ////			if (depth == 2) {
@@ -258,7 +248,7 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 //								medium, samplingMedium, sampler)) {
 //				break;
 //			}
-//#ifdef USE_PRINTING
+//#if USE_PRINTING
 //			std::cout << "sampled = " << dist << std::endl;
 //#endif
 //			totalDist += dist;
@@ -278,11 +268,11 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 				const med::Medium &medium, const scn::Scene<VectorType> &scene,
 				const int64 numPhotons) const {
 
-#ifdef USE_CUDA
+#if USE_CUDA
 	cuda::CudaRenderer cuRenderer = cuda::CudaRenderer(m_maxDepth, m_maxPathlength, m_useDirect, m_useAngularSampling);
 	cuRenderer.renderImage(img0, medium, scene, numPhotons);
 #else
-#ifdef USE_THREADED
+#if USE_THREADED
 	int numThreads = omp_get_num_procs();
 	if(m_threads > 0)
 		numThreads = std::min(m_threads, numThreads);
@@ -291,19 +281,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 	int numThreads = 1;
 #endif /* USE_THREADED */
 
-#ifdef USE_CERES
-	/* Set-up least squares problem for doing next event estimation */
-	Problem *problem = new Problem[numThreads];
-	scn::NEECostFunction<tvec::TVector3> *costFunctions[numThreads];
-	double *initializations = new double[numThreads*3]; // The initial parameter values (3 dimensional for x,y,z)
-
-	for(int i=0; i<numThreads; i++){
-		costFunctions[i] = new scn::NEECostFunction<tvec::TVector3>(&scene);
-		problem[i].AddResidualBlock((CostFunction*)costFunctions[i], NULL, initializations +i*3);
-	}
-#endif
-
-#ifndef NDEBUG
+#if NDEBUG
 	std::cout << "numthreads = " << numThreads << std::endl;
 	std::cout << "numphotons = " << numPhotons << std::endl;
 #endif
@@ -313,21 +291,21 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 	img.zero();
 
 	Float weight = getWeight(medium, scene, numPhotons);
-#ifdef USE_PRINTING
+#if USE_PRINTING
 	Float Li = scene.getAreaSource().getLi();
 	std::cout << "weight " << weight << " Li " << Li << std::endl;
 #endif
 
-#ifdef USE_THREADED
+#if USE_THREADED
 	#pragma omp parallel for
 #endif
 	for (int64 omp_i = 0; omp_i < numPhotons; ++omp_i) {
-#ifdef USE_THREADED
+#if USE_THREADED
 		const int id = omp_get_thread_num();
 #else
 		const int id = 0;
 #endif
-#ifdef PRINT_DEBUGLOG
+#if PRINT_DEBUGLOG
 		std::cout << "id:" << id << "\n";
 		std::cout << "sampler:" << sampler[id]() << "\n";
 #endif
@@ -340,7 +318,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 			 * TODO: Direct energy computation is not implemented.
 			 */
 
-#ifdef PRINT_DEBUGLOG
+#if PRINT_DEBUGLOG
 			Float scaling = 1; //Hack to match the logs.
 #else
 			Float scaling = std::max(std::min(std::sin(scene.getUSPhi_min() + scene.getUSPhi_range()*sampler[id]()), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
@@ -352,21 +330,11 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 #endif
 			if(m_useDirect)
 					directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
-#ifdef USE_CERES
-			scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance, *costFunctions[id], problem[id], initializations+id*3);
-#else
 			scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance);
-#endif
 		}
 	}
 
 	img.mergeImages(img0);
-#ifdef USE_CERES
-	for(int i=0; i<numThreads; i++){
-		delete costFunctions[i];
-	}
-	delete[] initializations;
-#endif
 //	delete[] problem;
 #endif /* USE_CUDA */
 }
@@ -377,7 +345,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 //					const med::Medium &medium, const scn::Scene<VectorType> &scene,
 //					const int64 numPhotons) const {
 //
-//#ifdef USE_THREADED
+//#if USE_THREADED
 //	int numThreads = omp_get_num_procs();
 //	omp_set_num_threads(numThreads);
 //#else
@@ -403,17 +371,17 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 //	dGVal.zero();
 //
 //	Float weight = getWeight(medium, scene, numPhotons);
-//#ifdef USE_PRINTING
+//#if USE_PRINTING
 //	Float Li = scene.getAreaSource().getLi();
 //	std::cout << "weight " << weight << " Li " << Li << std::endl;
 //#endif
 //
-//#ifdef USE_THREADED
+//#if USE_THREADED
 //	#pragma omp parallel for
 //#endif
 //	for (int64 omp_i = 0; omp_i < numPhotons; ++omp_i) {
 //
-//#ifdef USE_THREADED
+//#if USE_THREADED
 //		const int id = omp_get_thread_num();
 //#else
 //		const int id = 0;
@@ -442,7 +410,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 //					const med::Medium &medium, const med::Medium &samplingMedium,
 //					const scn::Scene<VectorType> &scene, const int64 numPhotons) const {
 //
-//#ifdef USE_THREADED
+//#if USE_THREADED
 //	int numThreads = omp_get_num_procs();
 //	omp_set_num_threads(numThreads);
 //#else
@@ -468,17 +436,17 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 //	dGVal.zero();
 //
 //	Float weight = getWeight(medium, scene, numPhotons);
-//#ifdef USE_PRINTING
+//#if USE_PRINTING
 //	Float Li = scene.getAreaSource().getLi();
 //	std::cout << "weight " << weight << " Li " << Li << std::endl;
 //#endif
 //
-//#ifdef USE_THREADED
+//#if USE_THREADED
 //	#pragma omp parallel for
 //#endif
 //	for (int64 omp_i = 0; omp_i < numPhotons; ++omp_i) {
 //
-//#ifdef USE_THREADED
+//#if USE_THREADED
 //		const int id = omp_get_thread_num();
 //#else
 //		const int id = 0;

@@ -8,6 +8,7 @@
 /*
  * Inspired by mitsuba.
  */
+#pragma once
 #ifndef SSE_H_
 #define SSE_H_
 
