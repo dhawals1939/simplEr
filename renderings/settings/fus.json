@@ -1,0 +1,77 @@
+{
+    "threads": -1,
+    "stricts": true,
+    "outFilePrefix": "FUS",
+
+    "precision": 4,
+    "numPhotons": 10000,
+
+    "sigmaT": 0.0,
+    "albedo": 0.9,
+    "gVal": 0.9,
+
+    "f_u": 2000000.0,
+    "speed_u": 1500.0,
+    "n_o": 1.3333,
+    "n_scaling": 0.0000215,
+    "n_coeff": 1,
+
+    "radius": 0.0508,
+
+    "center1": [0.0, 0.0, -0.0508],
+    "center2": [0.0, -0.0508, 0.0],
+
+    "active1": true,
+    "active2": true,
+
+    "phase1": 3.141592653589793,
+    "phase2": 3.141592653589793,
+
+    "chordlength": 0.0127,
+    "theta_sources": 100,
+    "trans_z_sources": 51,
+    "er_stepsize": 0.0001,
+    "directTol": 0.000001,
+
+    "rrWeight": 0.001,
+
+    "projectorTexture": "./renderer/images/Disk_501.pfm",
+
+    "useDirect": true,
+    "useAngularSampling": true,
+    "useBounceDecomposition": false,
+
+    "maxDepth": -1,
+    "maxPathlength": 100000.0,
+
+    "pathLengthMin": 0.0,
+    "pathLengthMax": 100000.0,
+    "pathLengthBins": 1,
+
+    "spatialX": 1024,
+    "spatialY": 1024,
+
+    "mediumLx": -0.00635,
+    "mediumRx": 0.00635,
+
+    "distribution": "none",
+    "gOrKappa": 1.0,
+    "halfThetaLimit": 0.0,
+
+    "emitter_gap": 0.0,
+    "emitter_size": 0.001,
+    "emitter_distance": 0.0,
+    "emitter_lens_aperture": 0.3,
+    "emitter_lens_focal_length": 0.3,
+    "emitter_lens_active": false,
+    
+    "sensor_gap": 0.0,
+    "sensor_size": 0.001,
+    "sensor_distance": 0.0,
+    "sensor_lens_aperture": 0.3,
+    "sensor_lens_focal_length": 0.3,
+    "sensor_lens_active": false,
+    
+    "useInitializationHack": false,
+    "printInputs": true
+}
