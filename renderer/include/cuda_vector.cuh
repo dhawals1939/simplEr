@@ -165,21 +165,6 @@ __device__ inline TVector2<T> normalize(const TVector2<T> &v) {
 	return v / v.length();
 }
 
-//template <>
-//__device__ inline TVector2<int> TVector2<int>::operator/(int s) const {
-//	ASSERT(fabsf(static_cast<Float>(s)) > M_EPSILON);
-//	return TVector2(x/s, y/s);
-//}
-//
-//template <>
-//__device__ inline TVector2<int> &TVector2<int>::operator/=(int s) {
-//	ASSERT(fabsf(static_cast<Float>(s)) > M_EPSILON);
-//	x /= s;
-//	y /= s;
-//	return *this;
-//}
-
-
 // Adapted from Mitsuba's TVector3 class
 template <typename T> struct TVector3 {
 	T x, y, z;

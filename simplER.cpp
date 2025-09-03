@@ -47,7 +47,7 @@ int main(int argc, char **argv)
     /*
      * output file prefix
      */
-    std::string outFilePrefix = "USOCTRendering";
+    std::string out_file_prefix = "USOCTRendering";
 
     /*
      * System parameters
@@ -56,16 +56,16 @@ int main(int argc, char **argv)
     /*
      * film parameters
      */
-    Float pathLengthMin = FPCONST(0.0);  // This is for path length binning
-    Float pathLengthMax = FPCONST(64.0); // This is for path length binning
-    int pathLengthBins = 128;
-    int spatialX = 128; // X resolution of the film
-    int spatialY = 128; // Y resolution of the film
+    Float path_length_min = FPCONST(0.0);  // This is for path length binning
+    Float path_length_max = FPCONST(64.0); // This is for path length binning
+    int path_length_bins = 128;
+    int spatial_x = 128; // X resolution of the film
+    int spatial_y = 128; // Y resolution of the film
 
     /*
      * adhoc parameters -- Should be assigned to a better block. Very hacky now.
      */
-    Float halfThetaLimit = FPCONST(12.8e-3);
+    Float half_theta_limit = FPCONST(12.8e-3);
     Float emitter_size = FPCONST(0.002); // size of emitter (square shaped)
     Float sensor_size = FPCONST(0.002);  // size of sensor (square shaped)
     Float emitter_distance = FPCONST(0.0);
@@ -74,31 +74,31 @@ int main(int argc, char **argv)
     /*
      * Initialize scattering parameters.
      */
-    Float sigmaT = FPCONST(0.0);
+    Float sigma_t = FPCONST(0.0);
     Float albedo = FPCONST(1.0);
-    Float gVal = FPCONST(0.0);
+    Float g_val = FPCONST(0.0);
 
     /*
      * Initialize scene parameters.
      */
     Float ior = FPCONST(1.3333);
-    tvec::Vec3f mediumL(-FPCONST(.015), -FPCONST(5.0), -FPCONST(5.0));
-    tvec::Vec3f mediumR(FPCONST(.015), FPCONST(5.0), FPCONST(5.0));
+    tvec::Vec3f medium_l(-FPCONST(.015), -FPCONST(5.0), -FPCONST(5.0));
+    tvec::Vec3f medium_r(FPCONST(.015), FPCONST(5.0), FPCONST(5.0));
 
     /*
      * Initialize rendering parameters.
      */
-    int64 numPhotons = 500L;
-    int maxDepth = -1;
-    Float maxPathlength = -1;
-    bool useDirect = false;
-    bool useAngularSampling = true;
+    int64 num_photons = 500L;
+    int max_depth = -1;
+    Float max_pathlength = -1;
+    bool use_direct = false;
+    bool use_angular_sampling = true;
 
     /*
      * Initialize final path importance sampling parameters.
      */
     std::string distribution = "vmf"; // options are vmf, hg, uniform, none
-    Float gOrKappa = 4;
+    Float g_or_kappa = 4;
 
     /*
      * Initialize lens parameters.
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
     Float sensor_lens_focal_length = .015;
     bool sensor_lens_active = false;
 
-    bool printInputs = true;
+    bool print_inputs = true;
 
     /*
      * Initialize US parameters
@@ -151,11 +151,11 @@ int main(int argc, char **argv)
     Float sensor_gap = .0;  // distance from the transducer to medium boundary (towards sensor) till which only scattering medium is present and no US . Building this feature for Matteo
     Float er_stepsize = 1e-3;
     int precision = 8;                 // Number of dec. precision bits till which we accurately make er_step either because the sampled distances are not an integral multiple of the er_stepsize or because the boundary is hit before.
-    Float directTol = 1e-5;            // 10 um units
-    bool useInitializationHack = true; // initializationHack forces the direction connections to start from the line connecting both the end points
-    Float rrWeight = 1e-2;             // only one in hundred survives second path call
+    Float direct_to_l = 1e-5;            // 10 um units
+    bool use_initialization_hack = true; // initializationHack forces the direction connections to start from the line connecting both the end points
+    Float rr_weight = 1e-2;             // only one in hundred survives second path call
 
-    bool useBounceDecomposition = true; // true is bounce decomposition and false is transient.
+    bool use_bounce_decomposition = true; // true is bounce decomposition and false is transient.
     /*
      * Spline approximation, spline parameters
      */
@@ -163,17 +163,17 @@ int main(int argc, char **argv)
     //  Float xmin[] = {-0.01, -0.01};
     //  Float xmax[] = { 0.01,  0.01};
     //  int N[] = {21, 21};
-    std::string rifgridFile = "us";
+    std::string rifgrid_file = "us";
     #endif
     /*
      * Projector texture
      */
-    std::string projectorTexture("/home/dhawals1939/repos/simplER/renderer/images/White.pfm");
+    std::string projector_texture("/home/dhawals1939/repos/simplER/renderer/images/White.pfm");
 
     bool stricts = false;
-    std::string configFile = (argc > 1) ? argv[1] : "config.json";
-    fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::green), "Using config file: {}\n", configFile);
-    std::ifstream file(configFile);
+    std::string config_file = (argc > 1) ? argv[1] : "config.json";
+    fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::green), "Using config file: {}\n", config_file);
+    std::ifstream file(config_file);
     if (!file.is_open())
     {
         fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::red), "Failed to open config.json\n");
@@ -195,23 +195,23 @@ int main(int argc, char **argv)
         stricts = get_exact<bool>(config, "stricts");
         threads = get_num<int>(config, "threads");
         precision = get_num<int>(config, "precision");
-        numPhotons = get_num<int>(config, "numPhotons");
-        outFilePrefix = get_exact<std::string>(config, "outFilePrefix");
+        num_photons = get_num<int>(config, "num_photons");
+        out_file_prefix = get_exact<std::string>(config, "out_file_prefix");
 
-        // Append current date and time to outFilePrefix in format YYYY_MM_DD_HR_MIN
+        // Append current date and time to out_file_prefix in format YYYY_MM_DD_HR_MIN
         {
             auto t = std::time(nullptr);
             auto tm = *std::localtime(&t);
             char datetime[32];
             std::strftime(datetime, sizeof(datetime), "%Y_%m_%d_%H_%M", &tm);
-            outFilePrefix += "_";
-            outFilePrefix += datetime;
+            out_file_prefix += "_";
+            out_file_prefix += datetime;
         }
 
         // numeric fields — read as double (or float if you prefer)
-        sigmaT = get_num<Float>(config, "sigmaT");
+        sigma_t = get_num<Float>(config, "sigma_t");
         albedo = get_num<Float>(config, "albedo");
-        gVal = get_num<Float>(config, "gVal");
+        g_val = get_num<Float>(config, "g_val");
 
     #if USE_RIF_FUS
         f_u = get_num<Float>(config, "f_u");
@@ -251,27 +251,27 @@ int main(int argc, char **argv)
         emitter_gap = get_num<Float>(config, "emitter_gap");
         sensor_gap = get_num<Float>(config, "sensor_gap");
         er_stepsize = get_num<Float>(config, "er_stepsize");
-        directTol = get_num<Float>(config, "directTol");
-        useInitializationHack = get_exact<bool>(config, "useInitializationHack");
-        rrWeight = get_num<Float>(config, "rrWeight");
-        projectorTexture = get_exact<std::string>(config, "projectorTexture");
-        useDirect = get_exact<bool>(config, "useDirect");
-        useAngularSampling = get_exact<bool>(config, "useAngularSampling");
-        useBounceDecomposition = get_exact<bool>(config, "useBounceDecomposition");
-        maxDepth = get_num<int>(config, "maxDepth");
-        maxPathlength = get_num<Float>(config, "maxPathlength");
-        pathLengthMin = get_num<Float>(config, "pathLengthMin");
-        pathLengthMax = get_num<Float>(config, "pathLengthMax");
-        pathLengthBins = get_num<int>(config, "pathLengthBins");
-        spatialX = get_num<int>(config, "spatialX");
-        spatialY = get_num<int>(config, "spatialY");
-        halfThetaLimit = get_num<Float>(config, "halfThetaLimit");
+        direct_to_l = get_num<Float>(config, "direct_to_l");
+        use_initialization_hack = get_exact<bool>(config, "use_initialization_hack");
+        rr_weight = get_num<Float>(config, "rr_weight");
+        projector_texture = get_exact<std::string>(config, "projector_texture");
+        use_direct = get_exact<bool>(config, "use_direct");
+        use_angular_sampling = get_exact<bool>(config, "use_angular_sampling");
+        use_bounce_decomposition = get_exact<bool>(config, "use_bounce_decomposition");
+        max_depth = get_num<int>(config, "max_depth");
+        max_pathlength = get_num<Float>(config, "max_pathlength");
+        path_length_min = get_num<Float>(config, "path_length_min");
+        path_length_max = get_num<Float>(config, "path_length_max");
+        path_length_bins = get_num<int>(config, "path_length_bins");
+        spatial_x = get_num<int>(config, "spatial_x");
+        spatial_y = get_num<int>(config, "spatial_y");
+        half_theta_limit = get_num<Float>(config, "half_theta_limit");
         emitter_size = get_num<Float>(config, "emitter_size");
         sensor_size = get_num<Float>(config, "sensor_size");
-        mediumL[0] = get_num<Float>(config, "mediumLx");
-        mediumR[0] = get_num<Float>(config, "mediumRx");
+        medium_l[0] = get_num<Float>(config, "medium_lx");
+        medium_r[0] = get_num<Float>(config, "medium_rx");
         distribution = get_exact<std::string>(config, "distribution");
-        gOrKappa = get_num<Float>(config, "gOrKappa");
+        g_or_kappa = get_num<Float>(config, "g_or_kappa");
         emitter_distance = get_num<Float>(config, "emitter_distance");
         emitter_lens_aperture = get_num<Float>(config, "emitter_lens_aperture");
         emitter_lens_focal_length = get_num<Float>(config, "emitter_lens_focal_length");
@@ -280,10 +280,10 @@ int main(int argc, char **argv)
         sensor_lens_aperture = get_num<Float>(config, "sensor_lens_aperture");
         sensor_lens_focal_length = get_num<Float>(config, "sensor_lens_focal_length");
         sensor_lens_active = get_exact<bool>(config, "sensor_lens_active");
-        printInputs = get_exact<bool>(config, "printInputs");
-        
+        print_inputs = get_exact<bool>(config, "print_inputs");
+
         #if USE_RIF_SPLINE
-        rifgridFile = get_exact<std::string>(config, "rifgridFile");
+        rifgrid_file = get_exact<std::string>(config, "rifgrid_file");
         #endif
     }
     catch(const std::exception& e)
@@ -295,13 +295,13 @@ int main(int argc, char **argv)
 
     std::cout<< "simplER renderer started with the following parameters:\n";
 
-    if (printInputs)
+    if (print_inputs)
     {
-        fmt::print(fmt::fg(fmt::color::green), "numPhotons = {}\n", numPhotons);
-        fmt::print(fmt::fg(fmt::color::green), "outFilePrefix = {}\n", outFilePrefix);
-        fmt::print(fmt::fg(fmt::color::green), "sigmaT = {}\n", sigmaT);
+        fmt::print(fmt::fg(fmt::color::green), "num_photons = {}\n", num_photons);
+        fmt::print(fmt::fg(fmt::color::green), "out_file_prefix = {}\n", out_file_prefix);
+        fmt::print(fmt::fg(fmt::color::green), "sigma_t = {}\n", sigma_t);
         fmt::print(fmt::fg(fmt::color::green), "albedo = {}\n", albedo);
-        fmt::print(fmt::fg(fmt::color::green), "gVal = {}\n", gVal);
+        fmt::print(fmt::fg(fmt::color::green), "g_val = {}\n", g_val);
         #if USE_RIF_FUS
         fmt::print(fmt::fg(fmt::color::green), "f_u = {}\n", f_u);
         fmt::print(fmt::fg(fmt::color::green), "speed_u = {}\n", speed_u);
@@ -330,23 +330,23 @@ int main(int argc, char **argv)
         #endif
         fmt::print(fmt::fg(fmt::color::green), "emitter_gap = {}\n", emitter_gap);
         fmt::print(fmt::fg(fmt::color::green), "sensor_gap = {}\n", sensor_gap);
-        fmt::print(fmt::fg(fmt::color::green), "projectorTexture = {}\n", projectorTexture);
-        fmt::print(fmt::fg(fmt::color::green), "useDirect = {}\n", useDirect);
-        fmt::print(fmt::fg(fmt::color::green), "useAngularSampling = {}\n", useAngularSampling);
-        fmt::print(fmt::fg(fmt::color::green), "useBounceDecomposition = {}\n", useBounceDecomposition);
-        fmt::print(fmt::fg(fmt::color::green), "maxDepth = {}\n", maxDepth);
-        fmt::print(fmt::fg(fmt::color::green), "maxPathlength = {}\n", maxPathlength);
-        fmt::print(fmt::fg(fmt::color::green), "Total medium length = {}\n", mediumR[0] - mediumL[0]);
-        fmt::print(fmt::fg(fmt::color::green), "pathLengthMin = {}\n", pathLengthMin);
-        fmt::print(fmt::fg(fmt::color::green), "pathLengthMax = {}\n", pathLengthMax);
-        fmt::print(fmt::fg(fmt::color::green), "pathLengthBins = {}\n", pathLengthBins);
-        fmt::print(fmt::fg(fmt::color::green), "spatialX = {}\n", spatialX);
-        fmt::print(fmt::fg(fmt::color::green), "spatialY = {}\n", spatialY);
-        fmt::print(fmt::fg(fmt::color::green), "halfThetaLimit = {}\n", halfThetaLimit);
+        fmt::print(fmt::fg(fmt::color::green), "projector_texture = {}\n", projector_texture);
+        fmt::print(fmt::fg(fmt::color::green), "use_direct = {}\n", use_direct);
+        fmt::print(fmt::fg(fmt::color::green), "use_angular_sampling = {}\n", use_angular_sampling);
+        fmt::print(fmt::fg(fmt::color::green), "use_bounce_decomposition = {}\n", use_bounce_decomposition);
+        fmt::print(fmt::fg(fmt::color::green), "max_depth = {}\n", max_depth);
+        fmt::print(fmt::fg(fmt::color::green), "max_pathlength = {}\n", max_pathlength);
+        fmt::print(fmt::fg(fmt::color::green), "Total medium length = {}\n", medium_r[0] - medium_l[0]);
+        fmt::print(fmt::fg(fmt::color::green), "pathLengthMin = {}\n", path_length_min);
+        fmt::print(fmt::fg(fmt::color::green), "pathLengthMax = {}\n", path_length_max);
+        fmt::print(fmt::fg(fmt::color::green), "pathLengthBins = {}\n", path_length_bins);
+        fmt::print(fmt::fg(fmt::color::green), "spatialX = {}\n", spatial_x);
+        fmt::print(fmt::fg(fmt::color::green), "spatialY = {}\n", spatial_y);
+        fmt::print(fmt::fg(fmt::color::green), "halfThetaLimit = {}\n", half_theta_limit);
         fmt::print(fmt::fg(fmt::color::green), "emitter_size = {}\n", emitter_size);
         fmt::print(fmt::fg(fmt::color::green), "sensor_size = {}\n", sensor_size);
         fmt::print(fmt::fg(fmt::color::green), "distribution = {}\n", distribution);
-        fmt::print(fmt::fg(fmt::color::green), "gOrKappa = {}\n", gOrKappa);
+        fmt::print(fmt::fg(fmt::color::green), "gOrKappa = {}\n", g_or_kappa);
         fmt::print(fmt::fg(fmt::color::green), "emitter_distance = {}\n", emitter_distance);
         fmt::print(fmt::fg(fmt::color::green), "emitter_lens_aperture = {}\n", emitter_lens_aperture);
         fmt::print(fmt::fg(fmt::color::green), "emitter_lens_focal_length = {}\n", emitter_lens_focal_length);
@@ -356,9 +356,9 @@ int main(int argc, char **argv)
         fmt::print(fmt::fg(fmt::color::green), "sensor_lens_focal_length = {}\n", sensor_lens_focal_length);
         fmt::print(fmt::fg(fmt::color::green), "sensor_lens_active = {}\n", sensor_lens_active);
         #if USE_RIF_SPLINE
-        fmt::print(fmt::fg(fmt::color::green), "rifgridFile = {}\n", rifgridFile);
+        fmt::print(fmt::fg(fmt::color::green), "rifgridFile = {}\n", rifgrid_file);
         #endif
-        fmt::print(fmt::fg(fmt::color::green), "printInputs = {}\n", printInputs);
+        fmt::print(fmt::fg(fmt::color::green), "printInputs = {}\n", print_inputs);
     }
 
     // some sanity checks
@@ -383,17 +383,17 @@ int main(int argc, char **argv)
             std::cout << "lens_active and sensor_distance = " << sensor_distance << ". sensor_distance should be strictly positive (>1e-4) " << std::endl;
             exit(EXIT_FAILURE);
         }
-        if (emitter_gap < 0 || emitter_gap > (mediumR[0] - mediumL[0]))
+        if (emitter_gap < 0 || emitter_gap > (medium_r[0] - medium_l[0]))
         {
             std::cout << "invalid gap between the emitter and the US:" << emitter_gap << std::endl;
             exit(EXIT_FAILURE);
         }
-        if (sensor_gap < 0 || sensor_gap > (mediumR[0] - mediumL[0]))
+        if (sensor_gap < 0 || sensor_gap > (medium_r[0] - medium_l[0]))
         {
             std::cout << "invalid gap between the sensor and the US:" << sensor_gap << std::endl;
             exit(EXIT_FAILURE);
         }
-        if ((sensor_gap + emitter_gap) > (mediumR[0] - mediumL[0]))
+        if ((sensor_gap + emitter_gap) > (medium_r[0] - medium_l[0]))
         {
             std::cout << "sum of sensor and emitter gaps is more than the medium size; sum of gaps is " << (sensor_gap + emitter_gap) << std::endl;
             exit(EXIT_FAILURE);
@@ -414,17 +414,17 @@ int main(int argc, char **argv)
     trans_z_max = chordlength / 2;
     #endif
 
-    pfunc::HenyeyGreenstein *phase = new pfunc::HenyeyGreenstein(gVal);
+    pfunc::HenyeyGreenstein *phase = new pfunc::HenyeyGreenstein(g_val);
 
-    tvec::Vec3f emitter_lens_origin(mediumR[0], FPCONST(0.0), FPCONST(0.0));
+    tvec::Vec3f emitter_lens_origin(medium_r[0], FPCONST(0.0), FPCONST(0.0));
     Float EgapEndLocX = emitter_lens_origin.x - emitter_gap;
-    tvec::Vec3f sensor_lens_origin(mediumL[0], FPCONST(0.0), FPCONST(0.0));
+    tvec::Vec3f sensor_lens_origin(medium_l[0], FPCONST(0.0), FPCONST(0.0));
     Float SgapBeginLocX = sensor_lens_origin.x + sensor_gap; // ADI: VERIFY ME
 
     /*
      * Initialize source parameters.
      */
-    const tvec::Vec3f lightOrigin(mediumR[0] + emitter_distance, FPCONST(0.0), FPCONST(0.0));
+    const tvec::Vec3f lightOrigin(medium_r[0] + emitter_distance, FPCONST(0.0), FPCONST(0.0));
     const Float lightAngle = FPCONST(M_PI);
     const tvec::Vec3f lightDir(std::cos(lightAngle), std::sin(lightAngle),
                                FPCONST(0.0));
@@ -434,13 +434,13 @@ int main(int argc, char **argv)
     /*
      * Initialize camera parameters.
      */
-    const tvec::Vec3f viewOrigin(mediumL[0] - sensor_distance, FPCONST(0.0), FPCONST(0.0));
+    const tvec::Vec3f viewOrigin(medium_l[0] - sensor_distance, FPCONST(0.0), FPCONST(0.0));
     const tvec::Vec3f viewDir(-FPCONST(1.0), FPCONST(0.0), FPCONST(0.0));
     const tvec::Vec3f viewX(FPCONST(0.0), -FPCONST(1.0), FPCONST(0.0));
     const tvec::Vec2f viewPlane(sensor_size, sensor_size);
-    const tvec::Vec2f pathlengthRange(pathLengthMin, pathLengthMax);
+    const tvec::Vec2f pathlengthRange(path_length_min, path_length_max);
 
-    const tvec::Vec3i viewReso(spatialX, spatialY, pathLengthBins);
+    const tvec::Vec3i viewReso(spatial_x, spatial_y, path_length_bins);
 
     /*
      * Initialize rendering parameters.
@@ -449,12 +449,12 @@ int main(int argc, char **argv)
     const tvec::Vec3f axis_ux(FPCONST(0.0), FPCONST(0.0), FPCONST(1.0));
     const tvec::Vec3f p_u(FPCONST(0.0), FPCONST(0.0), FPCONST(0.0));
 
-    const med::Medium medium(sigmaT, albedo, phase);
+    const med::Medium medium(sigma_t, albedo, phase);
 
-    scn::Scene<tvec::TVector3> scene(ior, mediumL, mediumR,
-                                     lightOrigin, lightDir, halfThetaLimit, projectorTexture, lightPlane, Li,
-                                     viewOrigin, viewDir, viewX, viewPlane, pathlengthRange, useBounceDecomposition,
-                                     distribution, gOrKappa,
+    scn::Scene<tvec::TVector3> scene(ior, medium_l, medium_r,
+                                     lightOrigin, lightDir, half_theta_limit, projector_texture, lightPlane, Li,
+                                     viewOrigin, viewDir, viewX, viewPlane, pathlengthRange, use_bounce_decomposition,
+                                     distribution, g_or_kappa,
                                      emitter_lens_origin, emitter_lens_aperture, emitter_lens_focal_length, emitter_lens_active,
                                      sensor_lens_origin, sensor_lens_aperture, sensor_lens_focal_length, sensor_lens_active,
                                      #if USE_RIF_FUS
@@ -462,7 +462,7 @@ int main(int argc, char **argv)
                                      #else
                                      f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode,
                                      #endif
-                                     axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight, precision, EgapEndLocX, SgapBeginLocX, useInitializationHack
+                                     axis_uz, axis_ux, p_u, er_stepsize, direct_to_l, rr_weight, precision, EgapEndLocX, SgapBeginLocX, use_initialization_hack
                                      #if USE_RIF_SPLINE
                                      ,
                                      rifgridFile
@@ -470,12 +470,12 @@ int main(int argc, char **argv)
                                      #endif
     );
 
-    photon::Renderer<tvec::TVector3> renderer(maxDepth, maxPathlength, useDirect, useAngularSampling, threads);
+    photon::Renderer<tvec::TVector3> renderer(max_depth, max_pathlength, use_direct, use_angular_sampling, threads);
 
     image::SmallImage img(viewReso.x, viewReso.y, viewReso.z);
-    renderer.renderImage(img, medium, scene, numPhotons);
+    renderer.renderImage(img, medium, scene, num_photons);
 
-    img.writePFM3D(outFilePrefix + ".pfm3d");
+    img.writePFM3D(out_file_prefix + ".pfm3d");
 
     delete phase;
 

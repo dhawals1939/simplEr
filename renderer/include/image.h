@@ -227,23 +227,6 @@ private:
 				for (size_t i=0; i < length_; ++i) {
 					m_pixels[i] = static_cast<T>(double_pixels[i]);
 				}
-
-	//			if (this->is_little_big_endianness_swap()){
-	//				std::cout << "little-big endianness transformation is needed.\n";
-	//				// little-big endianness transformation is needed.
-	//				union {
-	//					T f;
-	//					unsigned char u8[sizeof(T)];
-	//				} source, dest;
-	//
-	//				for (int i = 0; i < length_; ++i) {
-	//					source.f = m_pixels[i];
-	//					for (unsigned int k = 0, s_T = sizeof(T); k < s_T; k++)
-	//						dest.u8[k] = source.u8[s_T - k - 1];
-	//					m_pixels[i] = dest.f;
-	//					//cout << dest.f << ", ";
-	//				}
-	//			}
 				delete[] img;
 				free(double_pixels);
 			}
@@ -438,22 +421,6 @@ public:
 					m_pixels[i] = static_cast<float>(double_pixels[i]);
 				}
 
-	//			if (this->is_little_big_endianness_swap()){
-	//				std::cout << "little-big endianness transformation is needed.\n";
-	//				// little-big endianness transformation is needed.
-	//				union {
-	//					T f;
-	//					unsigned char u8[sizeof(T)];
-	//				} source, dest;
-	//
-	//				for (int i = 0; i < length_; ++i) {
-	//					source.f = m_pixels[i];
-	//					for (unsigned int k = 0, s_T = sizeof(T); k < s_T; k++)
-	//						dest.u8[k] = source.u8[s_T - k - 1];
-	//					m_pixels[i] = dest.f;
-	//					//cout << dest.f << ", ";
-	//				}
-	//			}
 				delete[] img;
 
 			}

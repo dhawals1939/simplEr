@@ -28,8 +28,6 @@ public:
 		m_ior1 = in.m_ior1; m_ior2 = in.m_ior2;
 	}
 
-    //virtual Float eval(const tvec::Vec3f &in, const tvec::Vec3f &n, const tvec::Vec3f &out) const;
-
 	void sample(const VectorType<Float> &in, const VectorType<Float> &n,
 				smp::Sampler &sampler, VectorType<Float> &out) const;
 

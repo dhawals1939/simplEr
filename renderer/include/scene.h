@@ -824,7 +824,7 @@ namespace scn
                   m_us(f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, EgapEndLocX, SgapBeginLocX, useInitializationHack
 #endif
 #if USE_RIF_SPLINE
-                         , xmin, xmax, N
+                        //  , xmin, xmax, N
                          , rifgridFile)
 #else
 #ifndef USE_RIF_FUS

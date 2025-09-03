@@ -40,22 +40,7 @@ inline Float kernel<0>(Float x){
     if(x > 1)
         return (ONE_SIXTH*(2-x)*(2-x)*(2-x));
     return (TWO_THIRD - x*x + HALF*x*x*x);
-//      Float y = 0;
-//  if(x > 2 || x < -2)
-//      return y;
-//  if(x > -2){
-//      y += (x+2)*(x+2)*(x+2);
-//      if(x > -1){
-//          y += -4*(x+1)*(x+1)*(x+1);
-//          if(x > 0){
-//              y += 6*x*x*x;
-//              if(x > 1){
-//                  y += -4*(x-1)*(x-1)*(x-1);
-//              }
-//          }
-//      }
-//  }
-//  return ONE_SIXTH*y;
+
 }
 template<>
 inline Float kernel<1>(Float x){
@@ -66,22 +51,7 @@ inline Float kernel<1>(Float x){
     if(x > 1)
         return s*(-HALF*(2-x)*(2-x));
     return s*((1.5*x - 2)*x);
-//      Float y = 0;
-//  if(x > 2 || x < -2)
-//      return y;
-//  if(x > -2){
-//      y += (x+2)*(x+2);
-//      if(x > -1){
-//          y += -4*(x+1)*(x+1);
-//          if(x > 0){
-//              y += 6*x*x;
-//              if(x > 1){
-//                  y += -4*(x-1)*(x-1);
-//              }
-//          }
-//      }
-//  }
-//  return HALF*y;
+
 }
 template<>
 inline Float kernel<2>(Float x){
@@ -91,22 +61,6 @@ inline Float kernel<2>(Float x){
     if(x > 1)
         return 2-x;
     return 3*x-2;
-//      Float y = 0;
-//  if(x > 2 || x < -2)
-//      return y;
-//  if(x > -2){
-//      y += (x+2);
-//      if(x > -1){
-//          y += -4*(x+1);
-//          if(x > 0){
-//              y += 6*x;
-//              if(x > 1){
-//                  y += -4*(x-1);
-//              }
-//          }
-//      }
-//  }
-//  return y;
 }
 
 }
@@ -384,23 +338,9 @@ public:
         Float precomputeK0z;
         Float precomputeCoeff;
 
-//        int wrap_index1, wrap_index2, wrap_index3; // hack as usage never warrants this case
         for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
-//            wrap_index1 = modulo(index1, 2*N[0]-2);
-//            if(wrap_index1 >= N[0]){
-//                wrap_index1 = 2*N[0] - 2 - wrap_index1;
-//            }
             for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
-//                wrap_index2 = modulo(index2, 2*N[1]-2);
-//                if(wrap_index2 >= N[1]){
-//                    wrap_index2 = 2*N[1] - 2 - wrap_index2;
-//                }
                 for(int index3 = ceil(x[2]-2); index3 <= floor(x[2]+2); index3++){
-//                    wrap_index3 = modulo(index3, 2*N[2]-2);
-//                    if(wrap_index3 >= N[2]){
-//                        wrap_index3 = 2*N[2] - 2 - wrap_index3;
-//                    }
-//                  precomputeCoeff = coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]];
                     precomputeCoeff = coeff[index1+index2*N[0]+index3*N[0]*N[1]];
                     precomputeK0x   = kernel<0>(x[0]-index1);
                     precomputeK0y   = kernel<0>(x[1]-index2);
@@ -438,24 +378,9 @@ public:
         Float precomputeCoeff;
 
 
-//        int wrap_index1, wrap_index2, wrap_index3; // hack as usage never warrants this case
         for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
-//            wrap_index1 = modulo(index1, 2*N[0]-2);
-//            if(wrap_index1 >= N[0]){
-//                wrap_index1 = 2*N[0] - 2 - wrap_index1;
-//            }
             for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
-//                wrap_index2 = modulo(index2, 2*N[1]-2);
-//                if(wrap_index2 >= N[1]){
-//                    wrap_index2 = 2*N[1] - 2 - wrap_index2;
-//                }
                 for(int index3 = ceil(x[2]-2); index3 <= floor(x[2]+2); index3++){
-//                    wrap_index3 = modulo(index3, 2*N[2]-2);
-//                    if(wrap_index3 >= N[2]){
-//                        wrap_index3 = 2*N[2] - 2 - wrap_index3;
-//                    }
-
-//                    precomputeCoeff = coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]];
                     precomputeCoeff = coeff[index1+index2*N[0]+index3*N[0]*N[1]];
                     precomputeK0x   = kernel<0>(x[0]-index1);
                     precomputeK0y   = kernel<0>(x[1]-index2);
@@ -659,42 +584,10 @@ public:
                        Hzx, Hyz, Hzz);
     }
 
-//  inline void transform(const Transform &worldToVolume){
-//        if(DIM != 3){
-//          std::cerr << "Error: transform is defined only for " << DIM << "dimensions \n";
-//            exit (EXIT_FAILURE);
-//        }
-//        PointF p(xres[0], xres[1], xres[2]);
-//        p = worldToVolume(p);
-////        volumeToWorld(p);
-//        for(int i=0; i<DIM; i++){
-//          dxres[i] = p[i];
-//          dxres2[i] = dxres[i]*dxres[i];
-//        }
-//  }
-
     inline Float getStride(int dim) const{
         return 1.0/xres[dim];
     }
-
-    /*    template<int DX, int DY, int DZ>
-    inline Float value(const Float x[]) const{
-        Float y[DIM]; // make a duplicate
-        for(int i=0; i<DIM; i++){
-            y[i] = x[i];
-        }
-        if(DIM == 1)
-            return value1d<DX>(y);
-        if(DIM == 2)
-            return value2d<DX, DY>(y);
-        if(DIM == 3)
-            return value3d<DX, DY, DZ>(y);
-        std::cerr << "Error: Current implementation of spline interpolation works only upto 3 dimensions \n";
-        exit (EXIT_FAILURE);
-    }
-*/
 private:
-//public:
     Float xmin[DIM];
     Float xmax[DIM];
     Float xres[DIM];
@@ -716,63 +609,6 @@ private:
     inline Float kernel(Float x) const{
         return detail::kernel<D>(x);
     }
-
-//
-//    template<int D>
-//    inline Float kernel(Float x) const{
-//      Float y = 0;
-//      if(D == 0){
-//          if(x > 2 || x < -2)
-//              return y;
-//          if(x > -2){
-//              y += (x+2)*(x+2)*(x+2);
-//              if(x > -1){
-//                  y += -4*(x+1)*(x+1)*(x+1);
-//                  if(x > 0){
-//                      y += 6*x*x*x;
-//                      if(x > 1){
-//                          y += -4*(x-1)*(x-1)*(x-1);
-//                      }
-//                  }
-//              }
-//          }
-//          return y/6;
-//      }else if(D == 1){
-//          if(x > 2 || x < -2)
-//              return y;
-//          if(x > -2){
-//              y += (x+2)*(x+2);
-//              if(x > -1){
-//                  y += -4*(x+1)*(x+1);
-//                  if(x > 0){
-//                      y += 6*x*x;
-//                      if(x > 1){
-//                          y += -4*(x-1)*(x-1);
-//                      }
-//                  }
-//              }
-//          }
-//          return y/2;
-//      }else if(D == 2){
-//          if(x > 2 || x < -2)
-//              return y;
-//          if(x > -2){
-//              y += (x+2);
-//              if(x > -1){
-//                  y += -4*(x+1);
-//                  if(x > 0){
-//                      y += 6*x;
-//                      if(x > 1){
-//                          y += -4*(x-1);
-//                      }
-//                  }
-//              }
-//          }
-//          return y;
-//      }else{
-//          std::cerr << "Error: More than double derivative is not defined \n";
-//      }
-//    }
 
     template<int DX>
     inline Float value1d(Float x[]) const{
@@ -826,23 +662,9 @@ private:
     inline Float value3d(Float x[]) const{
         convertToX(x);
         Float v = 0;
-//        int wrap_index1, wrap_index2, wrap_index3;
         for(int index1 = ceil(x[0]-2); index1 <= floor(x[0]+2); index1++){
-//            wrap_index1 = modulo(index1, 2*N[0]-2);
-//            if(wrap_index1 >= N[0]){
-//                wrap_index1 = 2*N[0] - 2 - wrap_index1;
-//            }
             for(int index2 = ceil(x[1]-2); index2 <= floor(x[1]+2); index2++){
-//                wrap_index2 = modulo(index2, 2*N[1]-2);
-//                if(wrap_index2 >= N[1]){
-//                    wrap_index2 = 2*N[1] - 2 - wrap_index2;
-//                }
                 for(int index3 = ceil(x[2]-2); index3 <= floor(x[2]+2); index3++){
-//                    wrap_index3 = modulo(index3, 2*N[2]-2);
-//                    if(wrap_index3 >= N[2]){
-//                        wrap_index3 = 2*N[2] - 2 - wrap_index3;
-//                    }
-//                    v += coeff[wrap_index1+wrap_index2*N[0]+wrap_index3*N[0]*N[1]] * kernel<DX>(x[0]-index1) * kernel<DY>(x[1]-index2) * kernel<DZ>(x[2]-index3);
                     v += coeff[index1+index2*N[0]+index3*N[0]*N[1]] * kernel<DX>(x[0]-index1) * kernel<DY>(x[1]-index2) * kernel<DZ>(x[2]-index3);
                 }
             }

@@ -1,14 +1,14 @@
 {
     "threads": -1,
     "stricts": true,
-    "outFilePrefix": "FUS",
+    "out_file_prefix": "FUS",
 
     "precision": 4,
-    "numPhotons": 10000,
+    "num_photons": 10000,
 
-    "sigmaT": 0.0,
+    "sigma_t": 0.0,
     "albedo": 0.9,
-    "gVal": 0.9,
+    "g_val": 0.9,
 
     "f_u": 2000000.0,
     "speed_u": 1500.0,
@@ -31,32 +31,32 @@
     "theta_sources": 100,
     "trans_z_sources": 51,
     "er_stepsize": 0.0001,
-    "directTol": 0.000001,
+    "direct_to_l": 0.000001,
 
-    "rrWeight": 0.001,
+    "rr_weight": 0.001,
 
-    "projectorTexture": "./renderer/images/Disk_501.pfm",
+    "projector_texture": "./renderer/images/Disk_501.pfm",
 
-    "useDirect": true,
-    "useAngularSampling": true,
-    "useBounceDecomposition": false,
+    "use_direct": true,
+    "use_angular_sampling": true,
+    "use_bounce_decomposition": false,
 
-    "maxDepth": -1,
-    "maxPathlength": 100000.0,
+    "max_depth": -1,
+    "max_pathlength": 100000.0,
 
-    "pathLengthMin": 0.0,
-    "pathLengthMax": 100000.0,
-    "pathLengthBins": 1,
+    "path_length_min": 0.0,
+    "path_length_max": 100000.0,
+    "path_length_bins": 1,
 
-    "spatialX": 1024,
-    "spatialY": 1024,
+    "spatial_x": 1024,
+    "spatial_y": 1024,
 
-    "mediumLx": -0.00635,
-    "mediumRx": 0.00635,
+    "medium_lx": -0.00635,
+    "medium_rx": 0.00635,
 
     "distribution": "none",
-    "gOrKappa": 1.0,
-    "halfThetaLimit": 0.0,
+    "g_or_kappa": 1.0,
+    "half_theta_limit": 0.0,
 
     "emitter_gap": 0.0,
     "emitter_size": 0.001,
@@ -72,6 +72,6 @@
     "sensor_lens_focal_length": 0.3,
     "sensor_lens_active": false,
     
-    "useInitializationHack": false,
-    "printInputs": true
+    "use_initialization_hack": false,
+    "print_inputs": true
 }
