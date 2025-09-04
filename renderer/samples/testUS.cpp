@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
 	/*
 	 * Spline approximation, spline parameters
 	 */
-#if USE_RIF_SPLINE
+#if USE_RIF_INTERPOLATED
 	Float xmin[] = {-0.01, -0.01};
 	Float xmax[] = { 0.01,  0.01};
 	int N[] = {101, 101};
@@ -350,7 +350,7 @@ int main(int argc, char **argv) {
 						lightOrigin, lightDir, halfThetaLimit, projectorTexture, lightPlane, Li,
 						viewOrigin, viewDir, viewX, viewPlane, pathlengthRange,
 						f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight
-#if USE_RIF_SPLINE
+#if USE_RIF_INTERPOLATED
 						, xmin, xmax, N
 #endif
 						);

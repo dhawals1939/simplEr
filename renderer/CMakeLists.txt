@@ -23,8 +23,8 @@ set(USE_WEIGHT_NORMALIZATION 0)
 set(USE_SIMPLIFIED_TIMING 0)
 set(USE_OMEGA_TRACKING 0)
 set(USE_CUDA 0)
-set(USE_RIF_SPLINE 0)
-set(USE_RIF_FUS 0)
+set(USE_RIF_INTERPOLATED 0)
+set(USE_RIF_SOURCES 0)
 
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)

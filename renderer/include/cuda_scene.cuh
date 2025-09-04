@@ -406,7 +406,7 @@ protected:
 class US {
 public:
     Float    wavelength_u; // (m)
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
     Float f_u;
     Float speed_u;
     Float n_o;
@@ -463,7 +463,7 @@ public:
     __device__ inline Float RIF(const TVector3<Float> &p, const Float &scaling) const{
         if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
             return n_o;
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
         return fus_RIF(p, scaling);
 #else
         return bessel_RIF(p, scaling);
@@ -473,7 +473,7 @@ public:
     __device__ inline const TVector3<Float> dRIF(const TVector3<Float> &p, const Float &scaling) const{
         if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
             return TVector3<Float>(0.0);
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
         return fus_dRIF(p, scaling);
 #else
         return bessel_dRIF(p, scaling);
@@ -486,7 +486,7 @@ public:
     //  return bessel_HessianRIF(p, scaling);
     //}
 
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
     __device__ inline double fus_RIF(const TVector3<Float> &p, Float scaling) const{
         Float rif=0;
         for(int c=1; c<=n_coeff; c++){
@@ -521,7 +521,7 @@ public:
     }
 #endif
 
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
     __device__ const TVector3<Float> fus_dRIF(const TVector3<Float> &p, Float scaling) const{
         TVector3<Float> dn(0.0,
                              0.0, 
@@ -617,7 +617,7 @@ public:
 
 protected:
     US(const scn::US<tvec::TVector3>& us) {
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
         f_u = us.f_u;
         speed_u = us.speed_u;
         n_o = us.n_o;
@@ -821,7 +821,7 @@ public:
         return m_us->RIF(p, scaling);
     }
 
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
     __device__ inline Float getUSPhi_min() const{
         return 0.;
     }

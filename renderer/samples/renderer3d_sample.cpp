@@ -41,9 +41,9 @@ std::vector<std::string> tokenize(const std::string &string, const std::string &
 int main(int argc, char **argv) {
 
 
-#if USE_RIF_SPLINE 
-#if USE_RIF_FUS
-    static_assert(false, "Cannot use both spline_RIF and USE_RIF_FUS");
+#if USE_RIF_INTERPOLATED 
+#if USE_RIF_SOURCES
+    static_assert(false, "Cannot use both spline_RIF and USE_RIF_SOURCES");
 #endif
 #endif
 
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
     /*
      * Initialize US parameters
      */
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
     Float f_u = 5*1e6;
     Float speed_u = 1500;
     Float n_o = 1.3333;
@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
     /*
      * Spline approximation, spline parameters
      */
-#if USE_RIF_SPLINE
+#if USE_RIF_INTERPOLATED
 //  Float xmin[] = {-0.01, -0.01};
 //  Float xmax[] = { 0.01,  0.01};
 //  int N[] = {21, 21};
@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
     bool bsigmaT=false;
     bool balbedo=false;
     bool bgVal=false;
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
     bool bf_u=false;
     bool bspeed_u=false;
     bool bn_o=false;
@@ -244,7 +244,7 @@ int main(int argc, char **argv) {
     bool bsensor_lens_active=false;
     bool bprintInputs=false;
 
-#if USE_RIF_SPLINE
+#if USE_RIF_INTERPOLATED
     bool brifgridFile=false;
 #endif
 
@@ -285,7 +285,7 @@ int main(int argc, char **argv) {
         }else if(param[0].compare("gVal")==0){
             bgVal=true;
             gVal = stof(param[1]);
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
         }else if(param[0].compare("f_u")==0){
             bf_u=true;
             f_u = stof(param[1]);
@@ -550,7 +550,7 @@ int main(int argc, char **argv) {
                 std::cerr << "printInputs should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
                 return -1;
             }
-#if USE_RIF_SPLINE
+#if USE_RIF_INTERPOLATED
         }else if(param[0].compare("rifgridFile")==0){
             brifgridFile=true;
             rifgridFile = param[1];
@@ -566,7 +566,7 @@ int main(int argc, char **argv) {
                       << "sigmaT, "
                       << "albedo, "
                       << "gVal, "
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
                       << "f_u, "
                       << "speed_u, "
                       << "n_o, "
@@ -627,7 +627,7 @@ int main(int argc, char **argv) {
                       << "sensor_lens_aperture, "
                       << "sensor_lens_focalLength, "
                       << "sensor_lens_active, "
-#if USE_RIF_SPLINE
+#if USE_RIF_INTERPOLATED
                       << "rifgridFile, "
 #endif
                       << "printInputs "
@@ -644,7 +644,7 @@ int main(int argc, char **argv) {
         if(!bsigmaT) {std::cout << "sigmaT is not specified " << std::endl;}
         if(!balbedo) {std::cout << "albedo is not specified " << std::endl;}
         if(!bgVal) {std::cout << "gVal is not specified " << std::endl;}
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
         if(!bf_u) {std::cout << "f_u is not specified " << std::endl;}
         if(!bspeed_u) {std::cout << "speed_u is not specified " << std::endl;}
         if(!bn_o) {std::cout << "n_o is not specified " << std::endl;}
@@ -702,12 +702,12 @@ int main(int argc, char **argv) {
         if(!bsensor_lens_aperture) {std::cout << "sensor_lens_aperture is not specified " << std::endl;}
         if(!bsensor_lens_focalLength) {std::cout << "sensor_lens_focalLength is not specified " << std::endl;}
         if(!bsensor_lens_active) {std::cout << "sensor_lens_active is not specified " << std::endl;}
-#if USE_RIF_SPLINE
+#if USE_RIF_INTERPOLATED
         if(!brifgridFile) {std::cout << "rifgridFile is not specified " << std::endl;}
 #endif
         if(!bprintInputs) {std::cout << "printInputs is not specified " << std::endl;}
         if(!(bthreads && bprecision && bnumPhotons && boutFilePrefix && bsigmaT && balbedo && bgVal && 
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
             bf_u && bspeed_u && bn_o && bn_scaling && bn_coeff && bradius && bcenter1 && bcenter2 && bactive1 && bactive2 && bphase1 && bphase2 && bchordlength && btheta_sources && btrans_z_sources && 
 #else
             bf_u && bspeed_u && bn_o && bn_max && bn_clip && bphi_min && bphi_max && bmode && 
@@ -724,7 +724,7 @@ int main(int argc, char **argv) {
         std::cout << "sigmaT = "    << sigmaT       << std::endl;
         std::cout << "albedo = "    << albedo       << std::endl;
         std::cout << "gVal = "      << gVal         << std::endl;
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
         std::cout << "f_u = " << f_u << std::endl;
         std::cout << "speed_u = " << speed_u << std::endl;
         std::cout << "n_o = " << n_o << std::endl;
@@ -777,7 +777,7 @@ int main(int argc, char **argv) {
         std::cout << "sensor_lens_aperture = " << sensor_lens_aperture << std::endl;
         std::cout << "sensor_lens_focalLength = " << sensor_lens_focalLength << std::endl;
         std::cout << "sensor_lens_active = " << sensor_lens_active << std::endl;
-#if USE_RIF_SPLINE
+#if USE_RIF_INTERPOLATED
         std::cout << "rifgridFile = " << rifgridFile << std::endl;
 #endif
         std::cout << "printInputs = " << printInputs << std::endl;
@@ -792,13 +792,13 @@ int main(int argc, char **argv) {
         if(bemitter_gap && (emitter_gap < 0 || emitter_gap > (mediumR[0] - mediumL[0]))){std::cout << "invalid gap between the emitter and the US:" << emitter_gap << std::endl; exit (EXIT_FAILURE);}
         if(bsensor_gap && (sensor_gap < 0 || sensor_gap > (mediumR[0] - mediumL[0]))){std::cout << "invalid gap between the sensor and the US:" << sensor_gap << std::endl; exit (EXIT_FAILURE);}
         if(bemitter_gap && bsensor_gap && ((sensor_gap + emitter_gap) > (mediumR[0] - mediumL[0]))){std::cout << "sum of sensor and emitter gaps is more than the medium size; sum of gaps is " << (sensor_gap + emitter_gap) << std::endl; exit (EXIT_FAILURE);}
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
         if(phi_max < phi_min){std::cout << "phi_max must be greater than or equal to phi min" << std::endl; exit (EXIT_FAILURE);}
 #endif
     }
 
 
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
     theta_min= -asin(chordlength/(2*radius));
     theta_max=  asin(chordlength/(2*radius));
     trans_z_min = -chordlength/2;
@@ -848,13 +848,13 @@ int main(int argc, char **argv) {
                         distribution, gOrKappa,
                         emitter_lens_origin, emitter_lens_aperture, emitter_lens_focalLength, emitter_lens_active,
                         sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active,
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
                         f_u, speed_u, n_o, n_scaling, n_coeff, radius, center1, center2, active1, active2, phase1, phase2, theta_min, theta_max, theta_sources, trans_z_min, trans_z_max, trans_z_sources, 
 #else
                         f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode, 
 #endif
                         axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight, precision, EgapEndLocX, SgapBeginLocX, useInitializationHack
-#if USE_RIF_SPLINE
+#if USE_RIF_INTERPOLATED
                         , rifgridFile
 //                      , xmin, xmax, N
 #endif

@@ -441,7 +441,7 @@ namespace scn
         Float R;            // Radius of the ultrasound wavefront (m)
         Float inv_R2;       // 1/R^2
 
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
         Float f_u;
         Float speed_u;
         Float n_o;
@@ -494,31 +494,31 @@ namespace scn
 
         bool m_useInitializationHack;
 
-#if USE_RIF_SPLINE
+#if USE_RIF_INTERPOLATED
         //    spline::Spline<2> m_spline;
         spline::Spline<3> m_spline;
 #endif
 
         US(
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
             const Float &f_u, const Float &speed_u, const Float &n_o, const Float &n_scaling, const Float &n_coeff, const Float &radius, const VectorType<Float> &center1, const VectorType<Float> &center2, const bool &active1, const bool &active2, const Float &phase1, const Float &phase2, const Float &theta_min, const Float &theta_max, const int &theta_sources, const Float &trans_z_min, const Float &trans_z_max, const int &trans_z_sources,
 #else
             const Float &f_u, const Float &speed_u, const Float &n_o, const Float &n_max, const Float &n_clip, const Float &phi_min, const Float &phi_max, const int &mode,
 #endif
             const VectorType<Float> &axis_uz, const VectorType<Float> &axis_ux, const VectorType<Float> &p_u, const Float &er_stepsize,
             const Float &tol, const Float &rrWeight, const int &precision, const Float &EgapEndLocX, const Float &SgapBeginLocX, const bool &useInitializationHack
-#if USE_RIF_SPLINE
+#if USE_RIF_INTERPOLATED
             //               , const Float xmin[], const Float xmax[],  const int N[]
             ,
             const std::string &rifgridFile
 #endif
             )
-#if USE_RIF_SPLINE
+#if USE_RIF_INTERPOLATED
             //                   :m_spline(xmin, xmax, N)
             : m_spline(rifgridFile)
 #endif
         {
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
             this->f_u = f_u;
             this->speed_u = speed_u;
             this->n_o = n_o;
@@ -608,11 +608,11 @@ namespace scn
         {
             if (p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
                 return n_o;
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
             return fus_RIF(p, scaling);
 #elif USE_RIF_PARABOLIC
             return parabolic_RIF(p, scaling);
-#elif USE_RIF_SPLINE
+#elif USE_RIF_INTERPOLATED
             return spline_RIF(p, scaling);
 #else
             return bessel_RIF(p, scaling);
@@ -623,11 +623,11 @@ namespace scn
         {
             if (p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
                 return VectorType<Float>(0.0);
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
         return fus_dRIF(p, scaling);
 #elif USE_RIF_PARABOLIC
         return parabolic_dRIF(p, scaling);
-#elif USE_RIF_SPLINE
+#elif USE_RIF_INTERPOLATED
         return spline_dRIF(p, scaling);
 #else
         return bessel_dRIF(p, scaling);     
@@ -638,11 +638,11 @@ namespace scn
         {
             if (p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
                 return Matrix3x3(0.0);
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
             return fus_HessianRIF(p, scaling);
 #elif PARABOLIC_RIF
             return parabolic_HessianRIF(p, scaling);
-#elif USE_RIF_SPLINE
+#elif USE_RIF_INTERPOLATED
             return spline_HessianRIF(p, scaling);
 #else
             return bessel_HessianRIF(p, scaling);
@@ -650,14 +650,14 @@ namespace scn
         }
 
 
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
 
         inline double fus_RIF(const VectorType<Float> &p, const Float &scaling) const;
 
         inline const VectorType<Float> fus_dRIF(const VectorType<Float> &q, const Float &scaling) const;
 
         inline const Matrix3x3 fus_HessianRIF(const VectorType<Float> &p, const Float &scaling) const;
-#elif USE_RIF_SPLINE
+#elif USE_RIF_INTERPOLATED
         inline double spline_RIF(const VectorType<Float> &p, const Float &scaling) const
         {
             Float temp[3];
@@ -768,7 +768,7 @@ namespace scn
              const Float &sensor_lens_focalLength,
              const bool &sensor_lens_active,
      // Ultrasound parameters: a lot of them are currently not used
-#if      USE_RIF_FUS
+#if      USE_RIF_SOURCES
              const Float& f_u,
              const Float& speed_u,
              const Float& n_o,
@@ -802,7 +802,7 @@ namespace scn
              const VectorType<Float> &p_u,
              const Float &er_stepsize,
              const Float &tol, const Float &rrWeight, const int &precision, const Float &EgapEndLocX, const Float &SgapBeginLocX, const bool &useInitializationHack
-#if USE_RIF_SPLINE
+#if USE_RIF_INTERPOLATED
  //          , const Float xmin[], const Float xmax[],  const int N[]
              , const std::string &rifgridFile
 #endif
@@ -818,16 +818,16 @@ namespace scn
 #endif
                  m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange, useBounceDecomposition, sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active),
                  m_bsdf(FPCONST(1.0), ior),
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
                  m_us(f_u, speed_u, n_o, n_scaling, n_coeff, radius, center1, center2, active1, active2, phase1, phase2, theta_min, theta_max, theta_sources, trans_z_min, trans_z_max, trans_z_sources, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, EgapEndLocX, SgapBeginLocX, useInitializationHack) // Need to fix this
 #else
                   m_us(f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, EgapEndLocX, SgapBeginLocX, useInitializationHack
 #endif
-#if USE_RIF_SPLINE
+#if USE_RIF_INTERPOLATED
                         //  , xmin, xmax, N
                          , rifgridFile)
 #else
-#ifndef USE_RIF_FUS
+#ifndef USE_RIF_SOURCES
                   )
 #endif
 #endif
@@ -876,7 +876,7 @@ namespace scn
          m_us.f_u = value;
      }
 
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
      inline const Float getUSPhi_min() const
      {
          return 0.;

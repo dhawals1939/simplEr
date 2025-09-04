@@ -137,7 +137,7 @@ bool AreaTexturedSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorTyp
 //      std::cout << "Diffuse source not implemented; only directional source is implemented";
 }
 
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
 template <template <typename> class VectorType>
 double US<VectorType>::fus_RIF(const VectorType<Float> &p, const Float &scaling) const{ //scaling is ignored for now
 
@@ -211,8 +211,6 @@ double US<VectorType>::bessel_RIF(const VectorType<Float> &p, const Float &scali
     Float dotp = dot(p-p_axis, axis_ux);
     Float detp = dot(cross(axis_ux, p-p_axis), axis_uz);
     Float phi  = std::atan2(detp, dotp);
-//    Float r   = std::sqrt(p.x*p.x + p.y*p.y);
-//    Float phi = std::atan2(p.y, p.x);
 
     return n_o + n_max * scaling * jn(mode, k_r*r) * std::cos(mode*phi);
 }
@@ -238,10 +236,6 @@ const VectorType<Float> US<VectorType>::bessel_dRIF(const VectorType<Float> &q, 
 
     Float krr = k_r * r;
 
-//    Float besselj   = boost::math::cyl_bessel_j(mode, krr);
-//
-//    Float dbesselj  = mode/(krr) * besselj - boost::math::cyl_bessel_j(mode+1, krr);
-//
     Float besselj   = jn(mode, krr);
 
     Float dbesselj  = mode/(krr) * besselj - jn(mode+1, krr);

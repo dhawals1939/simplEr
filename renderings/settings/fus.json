@@ -1,77 +1,90 @@
 {
-    "threads": -1,
     "stricts": true,
-    "out_file_prefix": "FUS",
-
+    
+    "rendering_type": "rif_sources",
+    
+    "threads": -1,
     "precision": 4,
-    "num_photons": 10000,
-
-    "sigma_t": 0.0,
-    "albedo": 0.9,
-    "g_val": 0.9,
-
-    "f_u": 2000000.0,
-    "speed_u": 1500.0,
-    "n_o": 1.3333,
-    "n_scaling": 0.0000215,
-    "n_coeff": 1,
-
-    "radius": 0.0508,
-
-    "center1": [0.0, 0.0, -0.0508],
-    "center2": [0.0, -0.0508, 0.0],
-
-    "active1": true,
-    "active2": true,
-
-    "phase1": 3.141592653589793,
-    "phase2": 3.141592653589793,
-
-    "chordlength": 0.0127,
-    "theta_sources": 100,
-    "trans_z_sources": 51,
+    "emitter_gap": 0.0,
+    "sensor_gap": 0.0,
     "er_stepsize": 0.0001,
     "direct_to_l": 0.000001,
-
-    "rr_weight": 0.001,
-
-    "projector_texture": "./renderer/images/Disk_501.pfm",
-
-    "use_direct": true,
-    "use_angular_sampling": true,
-    "use_bounce_decomposition": false,
-
-    "max_depth": -1,
-    "max_pathlength": 100000.0,
-
-    "path_length_min": 0.0,
-    "path_length_max": 100000.0,
-    "path_length_bins": 1,
-
-    "spatial_x": 1024,
-    "spatial_y": 1024,
-
-    "medium_lx": -0.00635,
-    "medium_rx": 0.00635,
-
-    "distribution": "none",
-    "g_or_kappa": 1.0,
-    "half_theta_limit": 0.0,
-
-    "emitter_gap": 0.0,
-    "emitter_size": 0.001,
-    "emitter_distance": 0.0,
-    "emitter_lens_aperture": 0.3,
-    "emitter_lens_focal_length": 0.3,
-    "emitter_lens_active": false,
-    
-    "sensor_gap": 0.0,
-    "sensor_size": 0.001,
-    "sensor_distance": 0.0,
-    "sensor_lens_aperture": 0.3,
-    "sensor_lens_focal_length": 0.3,
-    "sensor_lens_active": false,
-    
     "use_initialization_hack": false,
-    "print_inputs": true
+    "rr_weight": 0.001,
+    "use_bounce_decomposition": false,
+    "print_inputs": true,
+    "projector_texture": "./renderer/images/Disk_501.pfm",
+    
+    "film_parameters": {
+        "path_length": {
+            "min": 0.0,
+            "max": 100000.0,
+            "bins": 1
+        },
+        "spatial": {
+            "x": 1024,
+            "y": 1024
+        }
+    },
+
+    "adoc_parameters":{
+        "half_theta_limit": 0.0,
+        "emitter_size": 0.001,
+        "sensor_size": 0.001,
+        "emitter_distance": 0.0,
+        "sensor_distance": 0.0
+    },
+
+    "scattering_parameters": {
+        "sigma_t": 0.0,
+        "albedo": 0.9,
+        "g_val": 0.9
+    },
+    
+    "rendering_parameters":{
+        "num_photons": 10000,
+        "use_direct": true,
+        "max_depth": -1,
+        "max_pathlength": 100000.0,
+        "use_angular_sampling": true
+    },
+
+    "importance_sampling_parameters": {
+        "distribution": "none",
+        "g_or_kappa": 1.0
+    },
+
+    "scene_parameters": {
+        "medium_lx": -0.00635,
+        "medium_rx": 0.00635
+    },
+
+    "rif_parameters":{
+        "f_u": 2000000.0,
+        "speed_u": 1500.0,
+        "n_o": 1.3333,
+        "n_scaling": 0.0000215,
+        "n_coeff": 1,
+        "radius": 0.0508,
+        "center1": [0.0, 0.0, -0.0508],
+        "center2": [0.0, -0.0508, 0.0],
+        "active1": true,
+        "active2": true,
+        "phase1": 3.141592653589793,
+        "phase2": 3.141592653589793,
+        "chordlength": 0.0127,
+        "theta_sources": 100,
+        "trans_z_sources": 51
+    },    
+
+    "lens_parameters":{
+        "emitter_lens_aperture": 0.3,
+        "emitter_lens_focal_length": 0.3,
+        "emitter_lens_active": false,
+
+        "sensor_lens_aperture": 0.3,
+        "sensor_lens_focal_length": 0.3,
+        "sensor_lens_active": false
+    }   
+
 }

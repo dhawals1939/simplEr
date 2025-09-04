@@ -691,7 +691,7 @@ __global__ void renderPhotons() {
     if (idx < d_constants.numPhotons) {
 	init_rand(idx);
         if (scene.genRay(pos, dir, totalDistance)) {
-#if USE_RIF_FUS
+#if USE_RIF_SOURCES
             scaling = 1.0f;
 #else
             scaling = max(min(sinf(scene.getUSPhi_min() + scene.getUSPhi_range() * uniform_sample()), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
