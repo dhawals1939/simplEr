@@ -105,24 +105,17 @@ int main(int argc, char **argv)
         if (!rif_params)
             throw std::runtime_error("rif_sources expected, but rif_params holds another type");
 
+        #if USE_RIF_SOURCES
         scene = new scn::Scene<tvec::TVector3>(ior, settings.scene_params.medium_l, settings.scene_params.medium_r,
                                                light_origin, light_dir, settings.adoc_geometry_params.half_theta_limit, settings.projector_texture, light_plane, Li,
                                                view_origin, view_dir, view_x, view_plane, pathlength_range, settings.use_bounce_decomposition,
                                                settings.importance_sampling_params.distribution, settings.importance_sampling_params.g_or_kappa,
                                                emitter_lens_origin, settings.lens_params.emitter_lens_aperture, settings.lens_params.emitter_lens_focal_length, settings.lens_params.emitter_lens_active,
                                                sensor_lens_origin, settings.lens_params.sensor_lens_aperture, settings.lens_params.sensor_lens_focal_length, settings.lens_params.sensor_lens_active,
-                                               #if USE_RIF_SOURCES
                                                rif_params->f_u, rif_params->speed_u, rif_params->n_o, rif_params->n_scaling, rif_params->n_coeff, rif_params->radius, rif_params->center1, rif_params->center2, rif_params->active1, rif_params->active2, rif_params->phase1, rif_params->phase2, rif_params->theta_min, rif_params->theta_max, rif_params->theta_sources, rif_params->trans_z_min, rif_params->trans_z_max, rif_params->trans_z_sources,
-                                             #else
-                                               rif_params->f_u, rif_params->speed_u, rif_params->n_o, rif_params->n_max, rif_params->n_clip, rif_params->phi_min, rif_params->phi_max, rif_params->mode,
-#endif
                                                axis_uz, axis_ux, p_u, settings.er_stepsize, settings.direct_to_l, settings.rr_weight, settings.precision, EgapEndLocX, SgapBeginLocX, settings.use_initialization_hack
-#if USE_RIF_INTERPOLATED
-                                               ,
-                                               rif_params->rifgrid_file
-        //                      , xmin, xmax, N
-#endif
         );
+        #endif
     }
     else if (settings.rendering_type == "rif_analytical")
     {
@@ -136,17 +129,8 @@ int main(int argc, char **argv)
                                                settings.importance_sampling_params.distribution, settings.importance_sampling_params.g_or_kappa,
                                                emitter_lens_origin, settings.lens_params.emitter_lens_aperture, settings.lens_params.emitter_lens_focal_length, settings.lens_params.emitter_lens_active,
                                                sensor_lens_origin, settings.lens_params.sensor_lens_aperture, settings.lens_params.sensor_lens_focal_length, settings.lens_params.sensor_lens_active,
-#if USE_RIF_SOURCES
-                                               rif_params->f_u, rif_params->speed_u, rif_params->n_o, rif_params->n_scaling, rif_params->n_coeff, rif_params->radius, rif_params->center1, rif_params->center2, rif_params->active1, rif_params->active2, rif_params->phase1, rif_params->phase2, rif_params->theta_min, rif_params->theta_max, rif_params->theta_sources, rif_params->trans_z_min, rif_params->trans_z_max, rif_params->trans_z_sources,
-#else
                                                rif_params->f_u, rif_params->speed_u, rif_params->n_o, rif_params->n_max, rif_params->n_clip, rif_params->phi_min, rif_params->phi_max, rif_params->mode,
-#endif
                                                axis_uz, axis_ux, p_u, settings.er_stepsize, settings.direct_to_l, settings.rr_weight, settings.precision, EgapEndLocX, SgapBeginLocX, settings.use_initialization_hack
-#if USE_RIF_INTERPOLATED
-                                               ,
-                                               rif_params->rifgrid_file
-        //                      , xmin, xmax, N
-#endif
         );
     }
     else if (settings.rendering_type == "rif_interpolated")
@@ -155,23 +139,19 @@ int main(int argc, char **argv)
         if (!rif_params)
             throw std::runtime_error("rif_interpolated expected, but rif_params holds another type");
 
+        #if USE_RIF_INTERPOLATED
         scene = new scn::Scene<tvec::TVector3>(ior, settings.scene_params.medium_l, settings.scene_params.medium_r,
                                        light_origin, light_dir, settings.adoc_geometry_params.half_theta_limit, settings.projector_texture, light_plane, Li,
                                        view_origin, view_dir, view_x, view_plane, pathlength_range, settings.use_bounce_decomposition,
                                        settings.importance_sampling_params.distribution, settings.importance_sampling_params.g_or_kappa,
                                        emitter_lens_origin, settings.lens_params.emitter_lens_aperture, settings.lens_params.emitter_lens_focal_length, settings.lens_params.emitter_lens_active,
                                        sensor_lens_origin, settings.lens_params.sensor_lens_aperture, settings.lens_params.sensor_lens_focal_length, settings.lens_params.sensor_lens_active,
-#if USE_RIF_SOURCES
-                                       rif_params->f_u, rif_params->speed_u, rif_params->n_o, rif_params->n_scaling, rif_params->n_coeff, rif_params->radius, rif_params->center1, rif_params->center2, rif_params->active1, rif_params->active2, rif_params->phase1, rif_params->phase2, rif_params->theta_min, rif_params->theta_max, rif_params->theta_sources, rif_params->trans_z_min, rif_params->trans_z_max, rif_params->trans_z_sources,
-#else
                                        rif_params->f_u, rif_params->speed_u, rif_params->n_o, rif_params->n_max, rif_params->n_clip, rif_params->phi_min, rif_params->phi_max, rif_params->mode,
-#endif
                                        axis_uz, axis_ux, p_u, settings.er_stepsize, settings.direct_to_l, settings.rr_weight, settings.precision, EgapEndLocX, SgapBeginLocX, settings.use_initialization_hack
-#if USE_RIF_INTERPOLATED
                                        ,
                                        rif_params->rifgrid_file
-#endif
-        );
+                                    );
+        #endif
     }
 
 
