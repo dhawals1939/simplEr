@@ -5,12 +5,10 @@
  *      Author: igkiou
  */
 #pragma once
-#ifndef RNG_SSE_H_
-#define RNG_SSE_H_
 
 #include <stdint.h>
 
-#include "constants.h"
+#include <constants.h>
 
 namespace rng {
 
@@ -75,5 +73,3 @@ private:
 };
 
 } /* namespace rng */
-
-#endif /* RNG_SSE_H_ */

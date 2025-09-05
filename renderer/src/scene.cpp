@@ -4,14 +4,13 @@
  *  Created on: Nov 26, 2015
  *      Author: igkiou
  */
-
-#include "scene.h"
-#include "util.h"
+#include <scene.h>
+#include <util.h>
 #include <cstdio>
 #include <iostream>
-#include "math.h"
+#include <math.h>
 #include <boost/math/special_functions.hpp>
-
+#include <rif.h>
 #include <bits/stdc++.h>
 #include <chrono>
 

@@ -5,11 +5,9 @@
  *      Author: igkiou
  */
 #pragma once
-#ifndef UTIL_H_
-#define UTIL_H_
 
-#include "tvector.h"
-#include "constants.h"
+#include <tvector.h>
+#include <constants.h>
 #include <vector>
 #include <iterator>
 #include <algorithm>
@@ -121,5 +119,3 @@ inline bool rayIntersectBox(const VectorType<T> &p, const VectorType<T> &d,
 
 
 }	/* namespace util */
-
-#endif /* UTIL_H_ */

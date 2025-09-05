@@ -6,8 +6,8 @@
 #define __MITSUBA_CORE_VMF_H_
 
 
-#include "util.h"
-#include "sampler.h"
+#include <util.h>
+#include <sampler.h>
 
 /**
  * \brief Von Mises-Fisher distribution on the 2-sphere

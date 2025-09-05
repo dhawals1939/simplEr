@@ -5,8 +5,6 @@
  *      Author: igkiou
  */
 #pragma once
-#ifndef RNG_BOOST_H_
-#define RNG_BOOST_H_
 
 #include <boost/random.hpp>
 #include <boost/generator_iterator.hpp>
@@ -59,5 +57,3 @@ private:
 };
 
 } /* namespace rng */
-
-#endif /* RNG_BOOST_H_ */

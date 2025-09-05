@@ -5,8 +5,6 @@
  *      Author: igkiou
  */
 #pragma once
-#ifndef IMAGE_H_
-#define IMAGE_H_
 
 #include <cstdint>
 #include <malloc.h>
@@ -22,9 +20,9 @@
 const Imf::PixelType kEXRFloatUsed = Imf::FLOAT;
 #endif
 
-#include "constants.h"
-#include "util.h"
-#include "tvector.h"
+#include <constants.h>
+#include <util.h>
+#include <tvector.h>
 
 namespace image {
 
@@ -603,5 +601,3 @@ typedef Image3<Float> SmallImage;
 typedef Image3Set<Float> SmallImageSet;
 
 } /* namespace image */
-
-#endif /* IMAGE_H_ */

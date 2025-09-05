@@ -5,14 +5,12 @@
  *      Author: igkiou
  */
 #pragma once
-#ifndef PHASE_H_
-#define PHASE_H_
 
 #include <string>
 #include <vector>
-#include "sampler.h"
-#include "tvector.h"
-#include "constants.h"
+#include <sampler.h>
+#include <tvector.h>
+#include <constants.h>
 
 namespace pfunc {
 
@@ -45,5 +43,3 @@ private:
 };
 
 }	/* namespace pfunc */
-
-#endif /* PHASE_H_ */

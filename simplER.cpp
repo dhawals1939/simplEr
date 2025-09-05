@@ -1,4 +1,4 @@
-#include <render_settings_parser.h>
+#include <settings_parser.h>
 #include <renderer.h>
 #include <util.h>
 #include <sampler.h>
@@ -105,6 +105,7 @@ int main(int argc, char **argv)
         if (!rif_params)
         throw std::runtime_error("rif_sources expected, but rif_params holds another type");
         
+        std::cout<< "rif parms type = " << *rif_params << std::endl;
         #if USE_RIF_SOURCES
         scene = new scn::Scene<tvec::TVector3>(ior, settings.scene_params.medium_l, settings.scene_params.medium_r,
                                                light_origin, light_dir, settings.adoc_geometry_params.half_theta_limit, settings.projector_texture, light_plane, Li,
@@ -115,7 +116,6 @@ int main(int argc, char **argv)
                                                rif_params->f_u, rif_params->speed_u, rif_params->n_o, rif_params->n_scaling, rif_params->n_coeff, rif_params->radius, rif_params->center1, rif_params->center2, rif_params->active1, rif_params->active2, rif_params->phase1, rif_params->phase2, rif_params->theta_min, rif_params->theta_max, rif_params->theta_sources, rif_params->trans_z_min, rif_params->trans_z_max, rif_params->trans_z_sources,
                                                axis_uz, axis_ux, p_u, settings.er_stepsize, settings.direct_to_l, settings.rr_weight, settings.precision, EgapEndLocX, SgapBeginLocX, settings.use_initialization_hack
         );
-        fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::blue), "reached here\n");
         #endif
     }
     else if (settings.rendering_type == "rif_analytical")

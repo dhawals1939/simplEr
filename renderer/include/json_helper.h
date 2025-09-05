@@ -293,6 +293,11 @@ const T &get_exact_path(const AnyMap &root, const std::string &path)
     return std::any_cast<const T &>(must_get_path(root, path));
 }
 
+inline const std::string &get_str_path(const AnyMap &root, const std::string &path)
+{
+    return get_exact_path<std::string>(root, path);
+}
+
 template <typename T>
 std::vector<T> get_num_array_path(const AnyMap &root, const std::string &path)
 {

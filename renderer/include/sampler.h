@@ -5,15 +5,13 @@
  *      Author: igkiou
  */
 #pragma once
-#ifndef SAMPLER_H_
-#define SAMPLER_H_
 
-#include "constants.h"
+#include <constants.h>
 
 #if USE_SFMT
-#include "rng_sse.h"
+#include <rng_sse.h>
 #else
-#include "rng_boost.h"
+#include <rng_boost.h>
 #endif
 
 namespace smp {
@@ -25,35 +23,6 @@ typedef rng::SSEEngine Sampler;
 typedef rng::BoostEngineSeedType SeedType;
 typedef rng::BoostEngine Sampler;
 #endif
-
-//class Sampler {
-//public:
-//	Sampler()
-//		: m_rng(),
-//		  m_distrib(),
-//		  m_sampler(m_rng, m_distrib) {	}
-//
-//	Sampler(const unsigned int seedval)
-//		: m_rng(),
-//		  m_distrib(),
-//		  m_sampler(m_rng, m_distrib) {
-//		m_rng.seed(seedval);
-//	}
-//
-//	inline Float operator()() {
-////		return static_cast<Float>(m_sampler());
-//		return m_sampler();
-//	}
-//
-//	inline void seed(const unsigned int seedval) {
-//		m_rng.seed(seedval);
-//	}
-//
-//private:
-//	Engine m_rng;
-//	RealDistribution m_distrib;
-//	Generator m_sampler;
-//};
 
 class SamplerSet {
 public:
@@ -79,5 +48,3 @@ protected:
 };
 
 }	/* namespace smp */
-
-#endif /* SAMPLER_H_ */

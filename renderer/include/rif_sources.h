@@ -101,30 +101,29 @@ public:
         this->recompute_derived_();
     }
 
-    std::string to_string() const override
+    friend std::ostream& operator<<(std::ostream& os, const rif_sources& obj)
     {
-        std::ostringstream oss;
-        oss << "rif_sources:\n";
-        oss << "  f_u = " << this->f_u << "\n";
-        oss << "  speed_u = " << this->speed_u << "\n";
-        oss << "  n_o = " << this->n_o << "\n";
-        oss << "  n_scaling = " << this->n_scaling << "\n";
-        oss << "  n_coeff = " << this->n_coeff << "\n";
-        oss << "  radius = " << this->radius << "\n";
-        oss << "  center1 = (" << this->center1[0] << ", " << this->center1[1] << ", " << this->center1[2] << ")\n";
-        oss << "  center2 = (" << this->center2[0] << ", " << this->center2[1] << ", " << this->center2[2] << ")\n";
-        oss << "  active1 = " << (this->active1 ? "true" : "false") << "\n";
-        oss << "  active2 = " << (this->active2 ? "true" : "false") << "\n";
-        oss << "  phase1 = " << this->phase1 << "\n";
-        oss << "  phase2 = " << this->phase2 << "\n";
-        oss << "  chordlength = " << this->chordlength << "\n";
-        oss << "  theta_min = " << this->theta_min << "\n";
-        oss << "  theta_max = " << this->theta_max << "\n";
-        oss << "  theta_sources = " << this->theta_sources << "\n";
-        oss << "  trans_z_min = " << this->trans_z_min << "\n";
-        oss << "  trans_z_max = " << this->trans_z_max << "\n";
-        oss << "  trans_z_sources = " << this->trans_z_sources << "\n";
-        return oss.str();
+        os << "rif_sources:\n"
+           << "  f_u = " << obj.f_u << "\n"
+           << "  speed_u = " << obj.speed_u << "\n"
+           << "  n_o = " << obj.n_o << "\n"
+           << "  n_scaling = " << obj.n_scaling << "\n"
+           << "  n_coeff = " << obj.n_coeff << "\n"
+           << "  radius = " << obj.radius << "\n"
+           << "  center1 = (" << obj.center1[0] << ", " << obj.center1[1] << ", " << obj.center1[2] << ")\n"
+           << "  center2 = (" << obj.center2[0] << ", " << obj.center2[1] << ", " << obj.center2[2] << ")\n"
+           << "  active1 = " << (obj.active1 ? "true" : "false") << "\n"
+           << "  active2 = " << (obj.active2 ? "true" : "false") << "\n"
+           << "  phase1 = " << obj.phase1 << "\n"
+           << "  phase2 = " << obj.phase2 << "\n"
+           << "  chordlength = " << obj.chordlength << "\n"
+           << "  theta_min = " << obj.theta_min << "\n"
+           << "  theta_max = " << obj.theta_max << "\n"
+           << "  theta_sources = " << obj.theta_sources << "\n"
+           << "  trans_z_min = " << obj.trans_z_min << "\n"
+           << "  trans_z_max = " << obj.trans_z_max << "\n"
+           << "  trans_z_sources = " << obj.trans_z_sources << "\n";
+        return os;
     }
 
 private:

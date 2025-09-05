@@ -5,8 +5,6 @@
  *      Author: igkiou
  */
 #pragma once
-#ifndef CONSTANTS_H_
-#define CONSTANTS_H_
 
 #include <limits>
 #include <stdint.h>
@@ -70,4 +68,3 @@ typedef float Float;
 #define TWO_THIRD    0.66666666666666666667f
 #endif
 
-#endif /* CONSTANTS_H_ */

@@ -6,14 +6,12 @@
  */
 
 #pragma once
-#ifndef BSDF_H_
-#define BSDF_H_
 
 #include <string>
 #include <vector>
-#include "sampler.h"
-#include "tvector.h"
-#include "constants.h"
+#include <sampler.h>
+#include <tvector.h>
+#include <constants.h>
 
 namespace bsdf {
 
@@ -46,4 +44,3 @@ private:
 
 } //namespace bsdf
 
-#endif /* BSDF_H_ */

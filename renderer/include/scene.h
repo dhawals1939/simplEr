@@ -5,27 +5,26 @@
  *      Author: igkiou
  */
 
-#ifndef SCENE_H_
-#define SCENE_H_
+#pragma once
 
 #include <stdio.h>
 #include <vector>
 #include <chrono>
 
-#include "constants.h"
-#include "image.h"
-#include "phase.h"
-#include "pmf.h"
-#include "vmf.h"
-#include "warp.h"
-#include "matrix.h"
-#include "tvector.h"
-#include "sampler.h"
-#include "spline.h"
-#include "tvector.h"
-#include "medium.h"
-#include "bsdf.h"
-#include "util.h"
+#include <constants.h>
+#include <image.h>
+#include <phase.h>
+#include <pmf.h>
+#include <vmf.h>
+#include <warp.h>
+#include <matrix.h>
+#include <tvector.h>
+#include <sampler.h>
+#include <spline.h>
+#include <tvector.h>
+#include <medium.h>
+#include <bsdf.h>
+#include <util.h>
 
 #include <omp.h>
 
@@ -1092,5 +1091,3 @@ namespace scn
     };
 
 } /* namespace scn */
-
-#endif /* SCENE_H_ */

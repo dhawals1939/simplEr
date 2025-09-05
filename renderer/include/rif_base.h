@@ -6,5 +6,8 @@ class rif
 {
 public:
     virtual ~rif() = default;
-    virtual std::string to_string() const = 0; // pretty-printer
+    friend std::ostream& operator<<(std::ostream& os, const rif& obj)
+    {
+        return os << "rif instance";
+    }
 };

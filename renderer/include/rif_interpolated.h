@@ -26,14 +26,13 @@ public:
     rif_interpolated(Float f_u_, Float speed_u_, Float n_o_, std::string rifgrid_file_)
         : f_u(f_u_), speed_u(speed_u_), n_o(n_o_), rifgrid_file(std::move(rifgrid_file_)) {}
 
-    std::string to_string() const override
+    friend std::ostream& operator<<(std::ostream& os, const rif_interpolated& obj)
     {
-        std::ostringstream oss;
-        oss << "rif_interpolated:\n";
-        oss << "  f_u = " << this->f_u << "\n";
-        oss << "  speed_u = " << this->speed_u << "\n";
-        oss << "  n_o = " << this->n_o << "\n";
-        oss << "  rifgrid_file = " << this->rifgrid_file << "\n";
-        return oss.str();
+        os << "rif_interpolated:\n"
+           << "  f_u = " << obj.f_u << "\n"
+           << "  speed_u = " << obj.speed_u << "\n"
+           << "  n_o = " << obj.n_o << "\n"
+           << "  rifgrid_file = " << obj.rifgrid_file << "\n";
+        return os;
     }
 };

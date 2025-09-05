@@ -6,8 +6,8 @@
 #if !defined(__MITSUBA_CORE_WARP_H_)
 #define __MITSUBA_CORE_WARP_H_
 
-#include "util.h"
-#include "math.h"
+#include <util.h>
+#include <math.h>
 /**
  * \brief Implements common warping techniques that map from the unit
  * square to other domains, such as spheres, hemispheres, etc.

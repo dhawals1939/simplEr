@@ -7,8 +7,6 @@
  */
 
 #pragma once
-#ifndef SPLINE_H_
-#define SPLINE_H_
 
 #include<string>
 #include<fstream>
@@ -767,7 +765,3 @@ private:
 };
 
 }   /* namespace spline */
-
-#endif /* SPLINE_H_ */
-
-

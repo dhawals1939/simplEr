@@ -9,8 +9,6 @@
  * Inspired by mitsuba.
  */
 #pragma once
-#ifndef SSE_H_
-#define SSE_H_
 
 #include <stdio.h>
 #include <stdint.h>
@@ -103,5 +101,3 @@ public:
 	/// (0x80000000, 0x80000000, 0x80000000, 0x80000000)
 	static const MM_ALIGN16 SSEVector negation_mask;
 };
-
-#endif /* SSE_ */

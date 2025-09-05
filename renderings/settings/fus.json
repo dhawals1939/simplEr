@@ -27,7 +27,7 @@
         }
     },
 
-    "adoc_parameters":{
+    "adoc_geometry_parameters":{
         "half_theta_limit": 0.0,
         "emitter_size": 0.001,
         "sensor_size": 0.001,

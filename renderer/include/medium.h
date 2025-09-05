@@ -5,19 +5,17 @@
  *      Author: igkiou
  */
 #pragma once
-#ifndef MEDIUM_H_
-#define MEDIUM_H_
 
 #include <stdio.h>
 #include <iostream>
 #include <vector>
 
-#include "constants.h"
-#include "image.h"
-#include "phase.h"
-#include "sampler.h"
-#include "tvector.h"
-#include "util.h"
+#include <constants.h>
+#include <image.h>
+#include <phase.h>
+#include <sampler.h>
+#include <tvector.h>
+#include <util.h>
 
 namespace med {
 
@@ -75,5 +73,3 @@ protected:
 };
 
 }	/* namespace med */
-
-#endif /* MEDIUM_H_ */

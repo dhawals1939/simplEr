@@ -5,8 +5,6 @@
  *      Author: igkiou
  */
 #pragma once
-#ifndef TVECTOR_H_
-#define TVECTOR_H_
 
 #include <iostream>
 #include <cmath>
@@ -14,8 +12,8 @@
 #include <vector>
 #include <deque>
 #include <list>
-#include "constants.h"
-#include "debug_util.h"
+#include <constants.h>
+#include <debug_util.h>
 
 namespace tvec {
 
@@ -443,5 +441,3 @@ typedef TVector3<double> Vec3d;
 //typedef TVector3<Float> Vec3F;
 
 }	/* namespace tvec */
-
-#endif /* TVECTOR_H_ */

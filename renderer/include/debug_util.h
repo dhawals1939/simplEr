@@ -5,8 +5,6 @@
  *      Author: igkiou
  */
 #pragma once
-#ifndef DEBUG_UTIL_H_
-#define DEBUG_UTIL_H_
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -29,5 +27,3 @@
 		#cond, __FILE__, __LINE__); \
 	} while (0)
 #endif
-
-#endif /* DEBUG_UTIL_H_ */

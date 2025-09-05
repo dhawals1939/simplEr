@@ -5,11 +5,9 @@
  *      Author: igkiou
  */
 #pragma once
-#ifndef MEX_WRAPPER_H_
-#define MEX_WRAPPER_H_
 
-#include "mex.h"
-#include "matrix.h"
+#include <mex.h>
+#include <matrix.h>
 
 namespace wrapper {
 
@@ -18,5 +16,3 @@ const char * const ERROR_ID = "MATLAB:simulator";
 //#define assert mxAssert
 
 }
-
-#endif /* MEX_WRAPPER_H_ */

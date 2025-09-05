@@ -5,10 +5,8 @@
  *      Author: igkiou
  */
 #pragma once
-#ifndef INCLUDE_PMF_H_
-#define INCLUDE_PMF_H_
 
-#include "debug_util.h"
+#include <debug_util.h>
 #include <sstream>
 
 /**
@@ -199,7 +197,3 @@ private:
 	Float m_sum, m_normalization;
 	bool m_normalized;
 };
-
-
-
-#endif /* INCLUDE_PMF_H_ */

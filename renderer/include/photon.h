@@ -5,19 +5,17 @@
  *      Author: igkiou
  */
 #pragma once
-#ifndef PHOTON_H_
-#define PHOTON_H_
 
 #include <stdio.h>
 #include <vector>
 
-#include "constants.h"
-#include "image.h"
-#include "phase.h"
-#include "sampler.h"
-#include "tvector.h"
-#include "medium.h"
-#include "scene.h"
+#include <constants.h>
+#include <image.h>
+#include <phase.h>
+#include <sampler.h>
+#include <tvector.h>
+#include <medium.h>
+#include <scene.h>
 
 #include <omp.h>
 
@@ -118,5 +116,3 @@ protected:
 };
 
 }	/* namespace photon */
-
-#endif /* PHOTON_H_ */

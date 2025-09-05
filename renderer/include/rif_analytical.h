@@ -49,18 +49,17 @@ public:
         this->mode = mode_;
     }
 
-    std::string to_string() const override
+    friend std::ostream& operator<<(std::ostream& os, const rif_analytical& rif)
     {
-        std::ostringstream oss;
-        oss << "rif_analytical:\n";
-        oss << "  f_u = " << this->f_u << "\n";
-        oss << "  speed_u = " << this->speed_u << "\n";
-        oss << "  n_o = " << this->n_o << "\n";
-        oss << "  n_max = " << this->n_max << "\n";
-        oss << "  n_clip = " << this->n_clip << "\n";
-        oss << "  phi_min = " << this->phi_min << "\n";
-        oss << "  phi_max = " << this->phi_max << "\n";
-        oss << "  mode = " << this->mode << "\n";
-        return oss.str();
+        os << "rif_analytical:\n"
+           << "  f_u = " << rif.f_u << "\n"
+           << "  speed_u = " << rif.speed_u << "\n"
+           << "  n_o = " << rif.n_o << "\n"
+           << "  n_max = " << rif.n_max << "\n"
+           << "  n_clip = " << rif.n_clip << "\n"
+           << "  phi_min = " << rif.phi_min << "\n"
+           << "  phi_max = " << rif.phi_max << "\n"
+           << "  mode = " << rif.mode << "\n";
+        return os;
     }
 };
