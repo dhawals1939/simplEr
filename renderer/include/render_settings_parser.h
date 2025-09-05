@@ -78,6 +78,7 @@ typedef struct settings
 {
     // Output and system parameters
     std::string rendering_type = "analytic_rif";
+    std::string output_file_name = "";
     int threads = -1; // default number of threads
 
     // adoc geometry parameters
@@ -132,6 +133,7 @@ void parse_config(const AnyMap &config, struct settings &settings, bool &stricts
         settings.projector_texture = get_exact<std::string>(config, "projector_texture");
 
         // ---- validate + timestamp ----
+        // create output_file_name
         {
             if (settings.rendering_type != "rif_analytical" &&
                 settings.rendering_type != "rif_sources" &&
@@ -147,8 +149,8 @@ void parse_config(const AnyMap &config, struct settings &settings, bool &stricts
             auto tm = *std::localtime(&t);
             char datetime[32];
             std::strftime(datetime, sizeof(datetime), "%Y_%m_%d_%H_%M", &tm);
-            settings.rendering_type += "_";
-            settings.rendering_type += datetime;
+            settings.output_file_name = settings.rendering_type + "_";
+            settings.output_file_name += datetime;
         }
 
         // ---- nested: film_parameters ----
