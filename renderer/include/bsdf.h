@@ -15,7 +15,7 @@
 
 namespace bsdf {
 
-template <template <typename> class VectorType>
+template <template <typename> class vector_type>
 class SmoothDielectric {
 public:
 	SmoothDielectric(Float ior1, Float ior2) :
@@ -26,8 +26,8 @@ public:
 		m_ior1 = in.m_ior1; m_ior2 = in.m_ior2;
 	}
 
-	void sample(const VectorType<Float> &in, const VectorType<Float> &n,
-				smp::Sampler &sampler, VectorType<Float> &out) const;
+	void sample(const vector_type<Float> &in, const vector_type<Float> &n,
+				smp::Sampler &sampler, vector_type<Float> &out) const;
 
 	inline Float getIor1() const {
 		return m_ior1;

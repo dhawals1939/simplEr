@@ -21,7 +21,7 @@ namespace med {
 
 struct Medium {
 
-	Medium(const Float sigmaT, const Float albedo, pfunc::HenyeyGreenstein *phase)
+	Medium(const Float sigmaT, const Float albedo, pfunc::henyey_greenstein *phase)
 		: m_sigmaT(sigmaT),
 		  m_albedo(albedo),
 		  m_sigmaS(albedo * sigmaT),
@@ -57,7 +57,7 @@ struct Medium {
 		return m_albedo;
 	}
 
-	inline const pfunc::HenyeyGreenstein *getPhaseFunction() const {
+	inline const pfunc::henyey_greenstein *getPhaseFunction() const {
 		return m_phase;
 	}
 
@@ -69,7 +69,7 @@ protected:
 	Float m_sigmaS;
 	Float m_sigmaA;
 	Float m_mfp;
-	pfunc::HenyeyGreenstein *m_phase;
+	pfunc::henyey_greenstein *m_phase;
 };
 
 }	/* namespace med */

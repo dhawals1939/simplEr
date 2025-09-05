@@ -22,9 +22,9 @@ Float BSDF::eval(const tvec::Vec3f &in, const tvec::Vec3f &n, const tvec::Vec3f 
  * calling routine will apply the eta*eta radiance scaling. See Veach, page 141.
  */
 
-template <template <typename> class VectorType>
-void SmoothDielectric<VectorType>::sample(const VectorType<Float> &in, const VectorType<Float> &n,
-                              smp::Sampler &sampler, VectorType<Float> &out) const {
+template <template <typename> class vector_type>
+void SmoothDielectric<vector_type>::sample(const vector_type<Float> &in, const vector_type<Float> &n,
+                              smp::Sampler &sampler, vector_type<Float> &out) const {
 
 	if (std::abs(m_ior1 - m_ior2) < M_EPSILON) {
 		// index matched
@@ -40,12 +40,12 @@ void SmoothDielectric<VectorType>::sample(const VectorType<Float> &in, const Vec
 			eta = m_ior1/m_ior2;
 		}
 
-		VectorType<Float> outT;
+		vector_type<Float> outT;
 		if (!util::refract(in, n, eta, outT)) {
 			// TIR
 			out = outT;
 		} else {
-			VectorType<Float> outR;
+			vector_type<Float> outR;
 			util::reflect(in, n, outR);
 
 			Float cosI = tvec::absDot(n, in), cosT = tvec::absDot(n, outT);

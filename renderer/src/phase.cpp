@@ -14,14 +14,14 @@
 namespace pfunc {
 
 template <>
-Float HenyeyGreenstein::f(const tvec::Vec3f &in, const tvec::Vec3f &out) const {
+Float henyey_greenstein::f(const tvec::Vec3f &in, const tvec::Vec3f &out) const {
 	Float cosTheta = tvec::dot(in, out);
 	return static_cast<Float>(FPCONST(1.0) / (4.0 * M_PI)) * (FPCONST(1.0) - m_g * m_g) /
 			std::pow(FPCONST(1.0) + m_g * m_g - FPCONST(2.0) * m_g * cosTheta, FPCONST(1.5));
 }
 
 template <>
-Float HenyeyGreenstein::derivf(const tvec::Vec3f &in, const tvec::Vec3f &out) const {
+Float henyey_greenstein::derivf(const tvec::Vec3f &in, const tvec::Vec3f &out) const {
 	Float cosTheta = tvec::dot(in, out);
 	return static_cast<Float>(FPCONST(1.0) / (4.0 * M_PI)) *
 		(m_g * m_g * m_g + m_g * m_g * cosTheta - FPCONST(5.0) * m_g + FPCONST(3.0) * cosTheta) /
@@ -29,7 +29,7 @@ Float HenyeyGreenstein::derivf(const tvec::Vec3f &in, const tvec::Vec3f &out) co
 }
 
 template <>
-Float HenyeyGreenstein::score(const tvec::Vec3f &in, const tvec::Vec3f &out) const {
+Float henyey_greenstein::score(const tvec::Vec3f &in, const tvec::Vec3f &out) const {
 	Float cosTheta = tvec::dot(in, out);
 	return (m_g * m_g * m_g + m_g * m_g * cosTheta - FPCONST(5.0) * m_g + FPCONST(3.0) * cosTheta) /
 				(FPCONST(1.0) - m_g * m_g) /
@@ -37,7 +37,7 @@ Float HenyeyGreenstein::score(const tvec::Vec3f &in, const tvec::Vec3f &out) con
 }
 
 template <>
-Float HenyeyGreenstein::sample(const tvec::Vec3f &in, smp::Sampler &sampler, tvec::Vec3f &out) const {
+Float henyey_greenstein::sample(const tvec::Vec3f &in, smp::Sampler &sampler, tvec::Vec3f &out) const {
 
 //	tvec::Vec2f sample;
 //	sample.x = sampler();
@@ -77,14 +77,14 @@ Float HenyeyGreenstein::sample(const tvec::Vec3f &in, smp::Sampler &sampler, tve
 
 
 template <>
-Float HenyeyGreenstein::f(const tvec::Vec2f &in, const tvec::Vec2f &out) const {
+Float henyey_greenstein::f(const tvec::Vec2f &in, const tvec::Vec2f &out) const {
 	Float cosTheta = tvec::dot(in, out);
 	return static_cast<Float>(FPCONST(1.0) / (2.0 * M_PI)) * (FPCONST(1.0) - m_g * m_g)
 								/ (FPCONST(1.0) + m_g * m_g - FPCONST(2.0) * m_g * cosTheta);
 }
 
 template <>
-Float HenyeyGreenstein::derivf(const tvec::Vec2f &in, const tvec::Vec2f &out) const {
+Float henyey_greenstein::derivf(const tvec::Vec2f &in, const tvec::Vec2f &out) const {
 	Float cosTheta = tvec::dot(in, out);
 	Float denominator = FPCONST(1.0) + m_g * m_g - FPCONST(2.0) * m_g * cosTheta;
 	return static_cast<Float>(FPCONST(1.0) / M_PI) *
@@ -93,7 +93,7 @@ Float HenyeyGreenstein::derivf(const tvec::Vec2f &in, const tvec::Vec2f &out) co
 }
 
 template <>
-Float HenyeyGreenstein::score(const tvec::Vec2f &in, const tvec::Vec2f &out) const {
+Float henyey_greenstein::score(const tvec::Vec2f &in, const tvec::Vec2f &out) const {
 	Float cosTheta = tvec::dot(in, out);
 	return (cosTheta + cosTheta * m_g * m_g - FPCONST(2.0) * m_g) * FPCONST(2.0)
 			/ (FPCONST(1.0) - m_g * m_g)
@@ -101,7 +101,7 @@ Float HenyeyGreenstein::score(const tvec::Vec2f &in, const tvec::Vec2f &out) con
 }
 
 template <>
-Float HenyeyGreenstein::sample(const tvec::Vec2f &in, smp::Sampler &sampler, tvec::Vec2f &out) const {
+Float henyey_greenstein::sample(const tvec::Vec2f &in, smp::Sampler &sampler, tvec::Vec2f &out) const {
 
 	Float sampleVal = FPCONST(1.0) - FPCONST(2.0) * sampler();
 

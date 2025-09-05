@@ -16,13 +16,13 @@
 
 namespace photon {
 
-template <template <typename> class VectorType>
-bool Renderer<VectorType>::scatterOnce(VectorType<Float> &p, VectorType<Float> &d, Float &dist,
-						const scn::Scene<VectorType> &scene, const med::Medium &medium, Float &totalOpticalDistance,
+template <template <typename> class vector_type>
+bool Renderer<vector_type>::scatterOnce(vector_type<Float> &p, vector_type<Float> &d, Float &dist,
+						const scn::Scene<vector_type> &scene, const med::Medium &medium, Float &totalOpticalDistance,
 						smp::Sampler &sampler, const Float &scaling) const {
 
 	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
-		VectorType<Float> d1;
+		vector_type<Float> d1;
 		Float magnitude = d.length();
 		medium.getPhaseFunction()->sample(d/magnitude, sampler, d1);
 		d = magnitude*d1;
@@ -37,13 +37,13 @@ bool Renderer<VectorType>::scatterOnce(VectorType<Float> &p, VectorType<Float> &
 	}
 }
 
-template <template <typename> class VectorType>
-void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const VectorType<Float> &d,
-					const scn::Scene<VectorType> &scene, const med::Medium &medium,
+template <template <typename> class vector_type>
+void Renderer<vector_type>::directTracing(const vector_type<Float> &p, const vector_type<Float> &d,
+					const scn::Scene<vector_type> &scene, const med::Medium &medium,
 					smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance) const { // Adithya: Should this be in scene.cpp
 
-	VectorType<Float> p1 = p;
-	VectorType<Float> d1 = d;
+	vector_type<Float> p1 = p;
+	vector_type<Float> d1 = d;
 
 	Float distToSensor;
 	if(!scene.movePhotonTillSensor(p1, d1, distToSensor, totalOpticalDistance, sampler, scaling))
@@ -54,7 +54,7 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 	d1.normalize();
 #endif
 	Float ior = scene.getMediumIor(p1, scaling);
-	VectorType<Float> refrDirToSensor = d1;
+	vector_type<Float> refrDirToSensor = d1;
 
 	if (ior > FPCONST(1.0)) {
 		refrDirToSensor.x = refrDirToSensor.x/ior;
@@ -67,7 +67,7 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 #endif
 	}
 
-	Float foreshortening = dot(refrDirToSensor, scene.getCamera().getDir())/dot(d1, scene.getCamera().getDir());
+	Float foreshortening = dot(refrDirToSensor, scene.getCamera().get_dir())/dot(d1, scene.getCamera().get_dir());
 	Assert(foreshortening >= FPCONST(0.0));
 
 #if USE_SIMPLIFIED_TIMING
@@ -86,16 +86,16 @@ void Renderer<VectorType>::directTracing(const VectorType<Float> &p, const Vecto
 	scene.addEnergyToImage(img, p1, totalOpticalDistance, depth, totalPhotonValue);
 }
 
-template <template <typename> class VectorType>
+template <template <typename> class vector_type>
 
-void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<Float> &d,
-					const scn::Scene<VectorType> &scene, const med::Medium &medium,
+void Renderer<vector_type>::scatter(const vector_type<Float> &p, const vector_type<Float> &d,
+					const scn::Scene<vector_type> &scene, const med::Medium &medium,
 					smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance) const {
 
 	Assert(scene.getMediumBlock().inside(p));
 
 	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
-		VectorType<Float> pos(p), dir(d);
+		vector_type<Float> pos(p), dir(d);
 
 		Float dist = getMoveStep(medium, sampler);
 
@@ -135,9 +135,9 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 	}
 }
 
-//template <template <typename> class VectorType>
-//void Renderer<VectorType>::scatterDeriv(const VectorType<Float> &p, const VectorType<Float> &d,
-//							const scn::Scene<VectorType> &scene, const med::Medium &medium,
+//template <template <typename> class vector_type>
+//void Renderer<vector_type>::scatterDeriv(const vector_type<Float> &p, const vector_type<Float> &d,
+//							const scn::Scene<vector_type> &scene, const med::Medium &medium,
 //							smp::Sampler &sampler, image::SmallImage &img,
 //							image::SmallImage &dSigmaT, image::SmallImage &dAlbedo,
 //							image::SmallImage &dGVal, Float weight) const {
@@ -145,7 +145,7 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 //	Assert(scene.getMediumBlock().inside(p));
 //
 //	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
-//		VectorType<Float> pos(p), dir(d);
+//		vector_type<Float> pos(p), dir(d);
 //
 //		Float dist = getMoveStep(medium, sampler);
 //		if (!scene.movePhoton(pos, dir, dist, sampler)) {
@@ -153,7 +153,7 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 //		}
 //
 //		int depth = 1;
-//		VectorType<Float> prevDir(d);
+//		vector_type<Float> prevDir(d);
 //		Float totalDist = dist;
 //		Float sumScoreSigmaT = (FPCONST(1.0) - medium.getSigmaT() * dist);
 //		Float sumScoreAlbedo = FPCONST(1.0) / medium.getAlbedo();
@@ -177,15 +177,15 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 //	}
 //}
 
-//template <template <typename> class VectorType>
-//bool Renderer<VectorType>::scatterOnceWeight(VectorType<Float> &p, VectorType<Float> &d, Float &weight,
-//						Float &dist, const scn::Scene<VectorType> &scene,
+//template <template <typename> class vector_type>
+//bool Renderer<vector_type>::scatterOnceWeight(vector_type<Float> &p, vector_type<Float> &d, Float &weight,
+//						Float &dist, const scn::Scene<vector_type> &scene,
 //						const med::Medium &medium, const med::Medium &samplingMedium,
 //						smp::Sampler &sampler) const {
 //
 //	if ((samplingMedium.getAlbedo() > FPCONST(0.0)) && ((samplingMedium.getAlbedo() >= FPCONST(1.0))
 //			|| (sampler() < samplingMedium.getAlbedo()))) {
-//		VectorType<Float> d1;
+//		vector_type<Float> d1;
 //		samplingMedium.getPhaseFunction()->sample(d, sampler, d1);
 //		dist = getMoveStep(samplingMedium, sampler);
 //
@@ -201,9 +201,9 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 //	}
 //}
 
-//template <template <typename> class VectorType>
-//void Renderer<VectorType>::scatterDerivWeight(const VectorType<Float> &p, const VectorType<Float> &d,
-//							const scn::Scene<VectorType> &scene, const med::Medium &medium,
+//template <template <typename> class vector_type>
+//void Renderer<vector_type>::scatterDerivWeight(const vector_type<Float> &p, const vector_type<Float> &d,
+//							const scn::Scene<vector_type> &scene, const med::Medium &medium,
 //							const med::Medium &samplingMedium,
 //							smp::Sampler &sampler, image::SmallImage &img,
 //							image::SmallImage &dSigmaT, image::SmallImage &dAlbedo,
@@ -213,7 +213,7 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 //
 //	if ((samplingMedium.getAlbedo() > FPCONST(0.0)) && ((samplingMedium.getAlbedo() >= FPCONST(1.0)) ||
 //		(sampler() < samplingMedium.getAlbedo()))) {
-//		VectorType<Float> pos(p), dir(d);
+//		vector_type<Float> pos(p), dir(d);
 //
 //		Float dist = getMoveStep(samplingMedium, sampler);
 //#if USE_PRINTING
@@ -224,7 +224,7 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 //		}
 //
 //		int depth = 1;
-//		VectorType<Float> prevDir(d);
+//		vector_type<Float> prevDir(d);
 //		Float totalDist = dist;
 //		weight *= (medium.getAlbedo() / samplingMedium.getAlbedo()) *
 //				((medium.getSigmaT() * std::exp(-medium.getSigmaT() * dist)) /
@@ -263,9 +263,9 @@ void Renderer<VectorType>::scatter(const VectorType<Float> &p, const VectorType<
 /**
  * Render an image.
  **/
-template <template <typename> class VectorType>
-void Renderer<VectorType>::renderImage(image::SmallImage &img0,
-				const med::Medium &medium, const scn::Scene<VectorType> &scene,
+template <template <typename> class vector_type>
+void Renderer<vector_type>::renderImage(image::SmallImage &img0,
+				const med::Medium &medium, const scn::Scene<vector_type> &scene,
 				const int64 numPhotons) const {
 
 #if USE_CUDA
@@ -292,7 +292,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 
 	Float weight = getWeight(medium, scene, numPhotons);
 #if USE_PRINTING
-	Float Li = scene.getAreaSource().getLi();
+	Float Li = scene.getAreaSource().get_li();
 	std::cout << "weight " << weight << " Li " << Li << std::endl;
 #endif
 
@@ -311,7 +311,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 #endif
 		// FIXME: Remove
 		sampler[id].seed(omp_i);
-		VectorType<Float> pos, dir;
+		vector_type<Float> pos, dir;
 		Float totalDistance = 0;
 		if (scene.genRay(pos, dir, sampler[id], totalDistance)) {
 			/*
@@ -339,10 +339,10 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 #endif /* USE_CUDA */
 }
 
-//template <template <typename> class VectorType>
-//void Renderer<VectorType>::renderDerivImage(image::SmallImage &img0, image::SmallImage &dSigmaT0,
+//template <template <typename> class vector_type>
+//void Renderer<vector_type>::renderDerivImage(image::SmallImage &img0, image::SmallImage &dSigmaT0,
 //					image::SmallImage &dAlbedo0, image::SmallImage &dGVal0,
-//					const med::Medium &medium, const scn::Scene<VectorType> &scene,
+//					const med::Medium &medium, const scn::Scene<vector_type> &scene,
 //					const int64 numPhotons) const {
 //
 //#if USE_THREADED
@@ -372,7 +372,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 //
 //	Float weight = getWeight(medium, scene, numPhotons);
 //#if USE_PRINTING
-//	Float Li = scene.getAreaSource().getLi();
+//	Float Li = scene.getAreaSource().get_li();
 //	std::cout << "weight " << weight << " Li " << Li << std::endl;
 //#endif
 //
@@ -386,7 +386,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 //#else
 //		const int id = 0;
 //#endif
-//		VectorType<Float> pos, dir;
+//		vector_type<Float> pos, dir;
 //		if (scene.genRay(pos, dir, sampler[id])) {
 //
 //			/*
@@ -404,11 +404,11 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 //	dGVal.mergeImages(dGVal0);
 //}
 //
-//template <template <typename> class VectorType>
-//void Renderer<VectorType>::renderDerivImageWeight(image::SmallImage &img0, image::SmallImage &dSigmaT0,
+//template <template <typename> class vector_type>
+//void Renderer<vector_type>::renderDerivImageWeight(image::SmallImage &img0, image::SmallImage &dSigmaT0,
 //					image::SmallImage &dAlbedo0, image::SmallImage &dGVal0,
 //					const med::Medium &medium, const med::Medium &samplingMedium,
-//					const scn::Scene<VectorType> &scene, const int64 numPhotons) const {
+//					const scn::Scene<vector_type> &scene, const int64 numPhotons) const {
 //
 //#if USE_THREADED
 //	int numThreads = omp_get_num_procs();
@@ -437,7 +437,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 //
 //	Float weight = getWeight(medium, scene, numPhotons);
 //#if USE_PRINTING
-//	Float Li = scene.getAreaSource().getLi();
+//	Float Li = scene.getAreaSource().get_li();
 //	std::cout << "weight " << weight << " Li " << Li << std::endl;
 //#endif
 //
@@ -451,7 +451,7 @@ void Renderer<VectorType>::renderImage(image::SmallImage &img0,
 //#else
 //		const int id = 0;
 //#endif
-//		VectorType<Float> pos, dir;
+//		vector_type<Float> pos, dir;
 //		if (scene.genRay(pos, dir, sampler[id])) {
 //
 //			/*

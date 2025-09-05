@@ -11,7 +11,7 @@ PYBIND11_MODULE(medium_pybind, m) {
 
     py::class_<med::Medium>(m, "Medium")
 			.def(py::init<
-					Float, Float, pfunc::HenyeyGreenstein*
+					Float, Float, pfunc::henyey_greenstein*
 			>());
 
 }

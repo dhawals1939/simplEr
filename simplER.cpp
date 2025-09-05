@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 
     sanity_checks(settings);
 
-    pfunc::HenyeyGreenstein *phase = new pfunc::HenyeyGreenstein(settings.scattering_params.g_val);
+    pfunc::henyey_greenstein *phase = new pfunc::henyey_greenstein(settings.scattering_params.g_val);
 
     tvec::Vec3f emitter_lens_origin(settings.scene_params.medium_r[0], FPCONST(0.0), FPCONST(0.0));
     Float EgapEndLocX = emitter_lens_origin.x - settings.emitter_gap;
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
         * Initialize source parameters.
         */
     const tvec::Vec3f light_origin(settings.scene_params.medium_r[0] + settings.adoc_geometry_params.emitter_distance, FPCONST(0.0), FPCONST(0.0));
-    const Float light_angle = 3.14159265358979323846f;
+    const Float light_angle = M_PI;
     const tvec::Vec3f light_dir(std::cos(light_angle), std::sin(light_angle),
                                 FPCONST(0.0));
     const tvec::Vec2f light_plane(settings.adoc_geometry_params.emitter_size, settings.adoc_geometry_params.emitter_size);

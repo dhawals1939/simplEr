@@ -217,7 +217,7 @@ theta_max=  math.asin(chordlength/(2*radius))
 trans_z_min = -chordlength/2
 trans_z_max =  chordlength/2 
 
-phase = phase_pybind.HenyeyGreenstein(gVal)
+phase = phase_pybind.henyey_greenstein(gVal)
 
 emitter_lens_origin = tvector_pybind.Vec3f(mediumR.index(0), 0.0, 0.0)
 EgapEndLocX = emitter_lens_origin.index(0) - emitter_gap

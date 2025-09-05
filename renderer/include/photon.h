@@ -21,7 +21,7 @@
 
 namespace photon {
 
-template <template <typename> class VectorType>
+template <template <typename> class vector_type>
 class Renderer {
 public:
 	Renderer(const int maxDepth, const Float maxPathlength, const bool useDirect, const bool useAngularSampling, const int64_t threads) :
@@ -39,31 +39,31 @@ public:
 #endif
 	}
 
-	bool scatterOnce(VectorType<Float> &p, VectorType<Float> &d, Float &dist,
-					const scn::Scene<VectorType> &scene, const med::Medium &medium, Float &totalOpticalDistance,
+	bool scatterOnce(vector_type<Float> &p, vector_type<Float> &d, Float &dist,
+					const scn::Scene<vector_type> &scene, const med::Medium &medium, Float &totalOpticalDistance,
 					smp::Sampler &sampler, const Float &scaling) const;
 
-	void directTracing(const VectorType<Float> &pos, const VectorType<Float> &dir,
-					   const scn::Scene<VectorType> &scene, const med::Medium &medium,
+	void directTracing(const vector_type<Float> &pos, const vector_type<Float> &dir,
+					   const scn::Scene<vector_type> &scene, const med::Medium &medium,
 					   smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance) const; // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
 
-	void scatter(const VectorType<Float> &p, const VectorType<Float> &d,
-				const scn::Scene<VectorType> &scene, const med::Medium &medium,
+	void scatter(const vector_type<Float> &p, const vector_type<Float> &d,
+				const scn::Scene<vector_type> &scene, const med::Medium &medium,
 				smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance) const;
 
-	void scatterDeriv(const VectorType<Float> &p, const VectorType<Float> &d,
-					const scn::Scene<VectorType> &scene, const med::Medium &medium,
+	void scatterDeriv(const vector_type<Float> &p, const vector_type<Float> &d,
+					const scn::Scene<vector_type> &scene, const med::Medium &medium,
 					smp::Sampler &sampler, image::SmallImage &img,
 					image::SmallImage &dSigmaT, image::SmallImage &dAlbedo,
 					image::SmallImage &dGVal, Float weight) const;
 
-	bool scatterOnceWeight(VectorType<Float> &p, VectorType<Float> &d, Float &weight,
-							Float &dist, const scn::Scene<VectorType> &scene,
+	bool scatterOnceWeight(vector_type<Float> &p, vector_type<Float> &d, Float &weight,
+							Float &dist, const scn::Scene<vector_type> &scene,
 							const med::Medium &medium, const med::Medium &samplingMedium,
 							smp::Sampler &sampler) const;
 
-	void scatterDerivWeight(const VectorType<Float> &p, const VectorType<Float> &d,
-						const scn::Scene<VectorType> &scene, const med::Medium &medium,
+	void scatterDerivWeight(const vector_type<Float> &p, const vector_type<Float> &d,
+						const scn::Scene<vector_type> &scene, const med::Medium &medium,
 						const med::Medium &samplingMedium,
 						smp::Sampler &sampler, image::SmallImage &img,
 						image::SmallImage &dSigmaT, image::SmallImage &dAlbedo,
@@ -73,25 +73,25 @@ public:
 		return -medium.getMfp() * std::log(sampler());
 	}
 
-	static inline Float getWeight(const med::Medium &, const scn::Scene<VectorType> &scene,
+	static inline Float getWeight(const med::Medium &, const scn::Scene<vector_type> &scene,
 						const int64 numPhotons) {
-		return scene.getAreaSource().getLi() * scene.getFresnelTrans()
+		return scene.getAreaSource().get_li() * scene.getFresnelTrans()
 				/ static_cast<Float>(numPhotons);
 	}
 
 	void renderImage(image::SmallImage &img0,
-					const med::Medium &medium, const scn::Scene<VectorType> &scene,
+					const med::Medium &medium, const scn::Scene<vector_type> &scene,
 					const int64 numPhotons) const;
 
 	void renderDerivImage(image::SmallImage &img0, image::SmallImage &dSigmaT0,
 					image::SmallImage &dAlbedo0, image::SmallImage &dGVal0,
-					const med::Medium &medium, const scn::Scene<VectorType> &scene,
+					const med::Medium &medium, const scn::Scene<vector_type> &scene,
 					const int64 numPhotons) const;
 
 	void renderDerivImageWeight(image::SmallImage &img0, image::SmallImage &dSigmaT0,
 					image::SmallImage &dAlbedo0, image::SmallImage &dGVal0,
 					const med::Medium &medium, const med::Medium &samplingMedium,
-					const scn::Scene<VectorType> &scene, const int64 numPhotons) const;
+					const scn::Scene<vector_type> &scene, const int64 numPhotons) const;
 
 	inline int getMaxDepth() const {
 		return m_maxDepth;

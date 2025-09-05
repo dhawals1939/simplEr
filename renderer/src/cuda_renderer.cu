@@ -140,7 +140,7 @@ __device__ inline void SmoothDielectric::sample(const TVector3<Float> &in, const
 }
 
 // Sample random ray
-__device__ bool AreaTexturedSource::sampleRay(TVector3<Float> &pos, TVector3<Float> &dir,
+__device__ bool area_textured_source::sample_ray(TVector3<Float> &pos, TVector3<Float> &dir,
                                               Float &totalDistance) const{
     pos = *m_origin;
 
@@ -173,7 +173,7 @@ __device__ inline Float getMoveStep(const Medium *medium) {
     return -medium->getMfp() * logf(uniform_sample());
 }
 
-__device__ Float HenyeyGreenstein::sample(const TVector2<Float> &in,
+__device__ Float henyey_greenstein::sample(const TVector2<Float> &in,
                         TVector2<Float> &out)  const {
     Float sampleVal = FPCONST(1.0) - FPCONST(2.0) * uniform_sample();
 
@@ -194,7 +194,7 @@ __device__ Float HenyeyGreenstein::sample(const TVector2<Float> &in,
     return cosTheta;
 }
 
-__device__ Float HenyeyGreenstein::sample(const TVector3<Float> &in, TVector3<Float> &out) const {
+__device__ Float henyey_greenstein::sample(const TVector3<Float> &in, TVector3<Float> &out) const {
 
     Float samplex = uniform_sample();
     Float sampley = uniform_sample();
@@ -325,7 +325,7 @@ __device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVect
 
 	TVector3<Float> dirToSensor;
 
-	if( (p.x-m_camera->getOrigin().x) < 1e-4) // Hack to get rid of inf problems for direct connection
+	if( (p.x-m_camera->get_origin().x) < 1e-4) // Hack to get rid of inf problems for direct connection
 		return;
 
 	sampleRandomDirection(dirToSensor); // Samples by assuming that the sensor is in +x direction.
@@ -356,7 +356,7 @@ __device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVect
 			/ ior / ior;
 #endif
 	}
-	Float foreshortening = dot(refrDirToSensor, m_camera->getDir())/dot(dirToSensor, m_camera->getDir());
+	Float foreshortening = dot(refrDirToSensor, m_camera->get_dir())/dot(dirToSensor, m_camera->get_dir());
 	ASSERT(foreshortening >= FPCONST(0.0));
 
 #if USE_SIMPLIFIED_TIMING
@@ -432,9 +432,9 @@ __device__ bool Scene::movePhotonTillSensor(TVector3<Float> &p, TVector3<Float> 
 		norm = normalt; // A HACK
 
         // check if we hit the sensor plane
-		if(fabsf(m_camera->getDir().x - norm.x) < M_EPSILON &&
-				fabsf(m_camera->getDir().y - norm.y) < M_EPSILON &&
-				fabsf(m_camera->getDir().z - norm.z) < M_EPSILON)
+		if(fabsf(m_camera->get_dir().x - norm.x) < M_EPSILON &&
+				fabsf(m_camera->get_dir().y - norm.y) < M_EPSILON &&
+				fabsf(m_camera->get_dir().z - norm.z) < M_EPSILON)
 			return true;
 
 		// if not, routine
@@ -469,13 +469,13 @@ __device__ inline void addPixel(int x, int y, int z, Float val) {
 }
 
 __device__ void Scene::addEnergyToImage(const TVector3<Float> &p, Float pathlength, int &depth, Float val) const {
-	Float x = dot(m_camera->getHorizontal(), p) - m_camera->getOrigin().y;
-	Float y = dot(m_camera->getVertical(), p) - m_camera->getOrigin().z;
+	Float x = dot(m_camera->getHorizontal(), p) - m_camera->get_origin().y;
+	Float y = dot(m_camera->getVertical(), p) - m_camera->get_origin().z;
 
 	if (((m_camera->getPathlengthRange().x == -1) && (m_camera->getPathlengthRange().y == -1)) ||
 		((pathlength > m_camera->getPathlengthRange().x) && (pathlength < m_camera->getPathlengthRange().y))) {
-		x = (x / m_camera->getPlane().x + FPCONST(0.5)) * static_cast<Float>(d_constants.x_res);
-		y = (y / m_camera->getPlane().y + FPCONST(0.5)) * static_cast<Float>(d_constants.y_res);
+		x = (x / m_camera->get_plane().x + FPCONST(0.5)) * static_cast<Float>(d_constants.x_res);
+		y = (y / m_camera->get_plane().y + FPCONST(0.5)) * static_cast<Float>(d_constants.y_res);
 
 		int ix = static_cast<int>(floorf(x));
 		int iy = static_cast<int>(floorf(y));
@@ -627,7 +627,7 @@ __device__ void directTracing(const TVector3<Float> &p, const TVector3<Float> &d
 #endif
 	}
 
-	Float foreshortening = dot(refrDirToSensor, camera.getDir())/dot(d1, camera.getDir());
+	Float foreshortening = dot(refrDirToSensor, camera.get_dir())/dot(d1, camera.get_dir());
 	ASSERT(foreshortening >= FPCONST(0.0));
 
 #if USE_SIMPLIFIED_TIMING

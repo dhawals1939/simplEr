@@ -52,7 +52,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/*
 	 * Initialize scattering parameters.
 	 */
-	pfunc::HenyeyGreenstein *phase = new pfunc::HenyeyGreenstein((Float) gVald);
+	pfunc::henyey_greenstein *phase = new pfunc::henyey_greenstein((Float) gVald);
 	const Float sigmaT = (Float) sigmaTd;
 	const Float albedo = (Float) albedod;
 

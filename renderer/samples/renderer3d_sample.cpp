@@ -805,7 +805,7 @@ int main(int argc, char **argv) {
     trans_z_max =  chordlength/2; 
 #endif
 
-    pfunc::HenyeyGreenstein *phase = new pfunc::HenyeyGreenstein(gVal);
+    pfunc::henyey_greenstein *phase = new pfunc::henyey_greenstein(gVal);
 
     tvec::Vec3f emitter_lens_origin(mediumR[0], FPCONST(0.0), FPCONST(0.0));
     Float EgapEndLocX = emitter_lens_origin.x - emitter_gap;

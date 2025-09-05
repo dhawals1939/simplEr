@@ -313,7 +313,7 @@ int main(int argc, char **argv) {
 		std::cout << "lens_active = " << lens_active << std::endl;
 		std::cout << "printInputs = " << printInputs << std::endl;
     }
-	pfunc::HenyeyGreenstein *phase = new pfunc::HenyeyGreenstein(gVal);
+	pfunc::henyey_greenstein *phase = new pfunc::henyey_greenstein(gVal);
 
     tvec::Vec3f lens_origin(mediumL[0], FPCONST(0.0), FPCONST(0.0));
 

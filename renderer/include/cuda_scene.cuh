@@ -217,13 +217,13 @@ public:
         return m_active;
     }
 
-    __device__ inline const TVector3<Float>& getOrigin() const {
+    __device__ inline const TVector3<Float>& get_origin() const {
         return *m_origin;
     }
 
 protected:
     __host__ Lens(const scn::Lens<tvec::TVector3> &lens) {
-        m_origin = TVector3<Float>::from(lens.getOrigin());
+        m_origin = TVector3<Float>::from(lens.get_origin());
         m_squareApertureRadius = lens.getSquareApertureRadius();
         m_focalLength = lens.getFocalLength();
         m_active = lens.isActive();
@@ -249,11 +249,11 @@ public:
 
     __device__ inline bool samplePosition(TVector3<Float> &pos) const;
 
-    __device__ inline const TVector3<Float>& getOrigin() const {
+    __device__ inline const TVector3<Float>& get_origin() const {
         return *m_origin;
     }
 
-    __device__ inline const TVector3<Float>& getDir() const {
+    __device__ inline const TVector3<Float>& get_dir() const {
         return *m_dir;
     }
 
@@ -265,7 +265,7 @@ public:
         return *m_vertical;
     }
 
-    __device__ inline const TVector2<Float>& getPlane() const {
+    __device__ inline const TVector2<Float>& get_plane() const {
         return *m_plane;
     }
 
@@ -301,12 +301,12 @@ private:
 
     __host__ Camera(const scn::Camera<tvec::TVector3>& camera) {
 
-        m_origin     = TVector3<Float>::from(camera.getOrigin());
-        m_dir        = TVector3<Float>::from(camera.getDir());
+        m_origin     = TVector3<Float>::from(camera.get_origin());
+        m_dir        = TVector3<Float>::from(camera.get_dir());
         m_horizontal = TVector3<Float>::from(camera.getHorizontal());
         m_vertical   = TVector3<Float>::from(camera.getVertical());
 
-        m_plane            = TVector2<Float>::from(camera.getPlane());
+        m_plane            = TVector2<Float>::from(camera.get_plane());
         m_pathlengthRange  = TVector2<Float>::from(camera.getPathlengthRange());
 
         m_useBounceDecomposition = camera.isBounceDecomposition();
@@ -323,38 +323,38 @@ private:
     Lens *m_lens;
 };
 
-// Currently only supporting AreaTexturedSource (which assumes PROJECTOR flag is on
+// Currently only supporting area_textured_source (which assumes PROJECTOR flag is on
 // for non-CUDA code).
-class AreaTexturedSource {
+class area_textured_source {
 
 public:
 
-    typedef scn::AreaTexturedSource<tvec::TVector3>::EmitterType EmitterType;
+    typedef scn::area_textured_source<tvec::TVector3>::EmitterType EmitterType;
 
-    /* Create a copy AreaTexturedSource on the GPU. */
-    __host__ static AreaTexturedSource *from(const scn::AreaTexturedSource<tvec::TVector3> &source) {
-        AreaTexturedSource result = AreaTexturedSource(source);
-        AreaTexturedSource *d_result;
-        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(AreaTexturedSource)));
-        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(AreaTexturedSource), cudaMemcpyHostToDevice));
+    /* Create a copy area_textured_source on the GPU. */
+    __host__ static area_textured_source *from(const scn::area_textured_source<tvec::TVector3> &source) {
+        area_textured_source result = area_textured_source(source);
+        area_textured_source *d_result;
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(area_textured_source)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(area_textured_source), cudaMemcpyHostToDevice));
         return d_result;
     }
 
-    __device__ bool sampleRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const;
+    __device__ bool sample_ray(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const;
 
-    __device__ inline const TVector3<Float>& getOrigin() const {
+    __device__ inline const TVector3<Float>& get_origin() const {
         return *m_origin;
     }
 
-    __device__ inline const TVector3<Float>& getDir() const {
+    __device__ inline const TVector3<Float>& get_dir() const {
         return *m_dir;
     }
 
-    __device__ inline const TVector2<Float>& getPlane() const {
+    __device__ inline const TVector2<Float>& get_plane() const {
         return *m_plane;
     }
 
-    __device__ inline Float getLi() const {
+    __device__ inline Float get_li() const {
         return m_Li;
     }
 
@@ -363,23 +363,23 @@ public:
         return m_lens->propagateTillLens(pos, dir, totalDistance);
     }
 
-    __host__ virtual ~AreaTexturedSource() { }
+    __host__ virtual ~area_textured_source() { }
 
 protected:
-    __host__ AreaTexturedSource(const scn::AreaTexturedSource<tvec::TVector3> &source)
+    __host__ area_textured_source(const scn::area_textured_source<tvec::TVector3> &source)
         : m_emittertype(source.getEmitterType()) {
-        m_origin         = TVector3<Float>::from(source.getOrigin());
-        m_dir            = TVector3<Float>::from(source.getDir());
+        m_origin         = TVector3<Float>::from(source.get_origin());
+        m_dir            = TVector3<Float>::from(source.get_dir());
         m_texture        = Image2<Float>::from(source.getTexture());
         m_lens           = Lens::from(source.getLens());
-        m_plane          = TVector2<Float>::from(source.getPlane());
-        m_Li             = source.getLi();
+        m_plane          = TVector2<Float>::from(source.get_plane());
+        m_Li             = source.get_li();
         m_halfThetaLimit = source.getHalfThetaLimit();
 
         float textureXRes = source.getTexture().getXRes();
         float textureYRes = source.getTexture().getYRes();
-        float planeX = source.getPlane().x;
-        float planeY = source.getPlane().y;
+        float planeX = source.get_plane().x;
+        float planeY = source.get_plane().y;
         tvec::TVector2<Float> pixelsize(planeX/textureXRes,
                                         planeY/textureYRes);
         m_pixelsize = TVector2<Float>::from(pixelsize);
@@ -677,18 +677,18 @@ protected:
     }
 };
 
-class HenyeyGreenstein {
+class henyey_greenstein {
 public:
 
-    __host__ static HenyeyGreenstein *from(const pfunc::HenyeyGreenstein* func) {
-        HenyeyGreenstein result = HenyeyGreenstein(func->getG());
-        HenyeyGreenstein *d_result;
-        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(HenyeyGreenstein)));
-        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(HenyeyGreenstein), cudaMemcpyHostToDevice));
+    __host__ static henyey_greenstein *from(const pfunc::henyey_greenstein* func) {
+        henyey_greenstein result = henyey_greenstein(func->getG());
+        henyey_greenstein *d_result;
+        CUDA_CALL(cudaMalloc((void **)&d_result, sizeof(henyey_greenstein)));
+        CUDA_CALL(cudaMemcpy(d_result, &result, sizeof(henyey_greenstein), cudaMemcpyHostToDevice));
         return d_result;
     }
 
-    __host__ ~HenyeyGreenstein() { }
+    __host__ ~henyey_greenstein() { }
 
     __device__ Float f(const TVector3<Float> &in, const TVector3<Float> &out) const {
         Float cosTheta = dot(in, out);
@@ -733,7 +733,7 @@ private:
     b = cross(c, a);
 }
 
-    __host__ HenyeyGreenstein(const Float g)
+    __host__ henyey_greenstein(const Float g)
                     : m_g(g) {  }
 
     Float m_g;
@@ -769,14 +769,14 @@ public:
         return m_albedo;
     }
 
-    __device__ inline const HenyeyGreenstein *getPhaseFunction() const {
+    __device__ inline const henyey_greenstein *getPhaseFunction() const {
         return m_phase;
     }
 
     __host__ virtual ~Medium() { }
 
 protected:
-    __host__ Medium(const Float sigmaT, const Float albedo, const pfunc::HenyeyGreenstein *phase)
+    __host__ Medium(const Float sigmaT, const Float albedo, const pfunc::henyey_greenstein *phase)
         : m_sigmaT(sigmaT),
           m_albedo(albedo),
           m_sigmaS(albedo * sigmaT),
@@ -790,7 +790,7 @@ protected:
             m_mfp = FPCONST(1.0);
             m_albedo = FPCONST(0.0);
         }
-        m_phase = HenyeyGreenstein::from(phase);
+        m_phase = henyey_greenstein::from(phase);
     }
 
     Float m_sigmaT;
@@ -798,7 +798,7 @@ protected:
     Float m_sigmaS;
     Float m_sigmaA;
     Float m_mfp;
-    HenyeyGreenstein *m_phase;
+    henyey_greenstein *m_phase;
 };
 
 class Scene {
@@ -814,7 +814,7 @@ public:
     }
 
     __device__ inline bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) {
-        return m_source->sampleRay(pos, dir, totalDistance);
+        return m_source->sample_ray(pos, dir, totalDistance);
     }
 
     __device__ inline Float getMediumIor(const TVector3<Float> &p, const Float &scaling) const {
@@ -887,7 +887,7 @@ public:
 private:
 
     __host__ Scene(const scn::Scene<tvec::TVector3> &scene) {
-        m_source  = AreaTexturedSource::from(scene.getAreaSource());
+        m_source  = area_textured_source::from(scene.getAreaSource());
         m_us      = US::from(scene.m_us);
         m_bsdf    = SmoothDielectric::from(scene.getBSDF());
         m_camera  = Camera::from(scene.getCamera());
@@ -896,7 +896,7 @@ private:
     Camera *m_camera;
     SmoothDielectric *m_bsdf;
     US *m_us;
-    AreaTexturedSource *m_source;
+    area_textured_source *m_source;
 };
 
 }

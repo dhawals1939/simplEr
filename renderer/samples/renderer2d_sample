@@ -15,7 +15,7 @@ int main() {
 	const Float sigmaT = FPCONST(10.0);
 	const Float albedo = FPCONST(0.9);
 	const Float gVal = FPCONST(0.8);
-	pfunc::HenyeyGreenstein *phase = new pfunc::HenyeyGreenstein(gVal);
+	pfunc::henyey_greenstein *phase = new pfunc::henyey_greenstein(gVal);
 
 	/*
 	 * Initialize sampling scattering parameters.
@@ -23,7 +23,7 @@ int main() {
 	const Float samplingSigmaT = FPCONST(1.0);
 	const Float samplingAlbedo = FPCONST(0.95);
 	const Float samplingGVal = FPCONST(0.0);
-	pfunc::HenyeyGreenstein *samplingPhase = new pfunc::HenyeyGreenstein(
+	pfunc::henyey_greenstein *samplingPhase = new pfunc::henyey_greenstein(
 																samplingGVal);
 
 	/*

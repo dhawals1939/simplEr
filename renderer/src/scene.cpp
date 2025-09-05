@@ -45,10 +45,10 @@ void sampleRandomDirection(tvec::Vec3f &randDirection, smp::Sampler &sampler){
  * disx is the smallest distance that must be traveled till intersection if outside the box. If inside the box, dis.x = 0;
  * disy is the smallest distance that must be traveled till intersection if inside the box.
  */
-template <template <typename> class VectorType>
-bool Block<VectorType>::intersect(const VectorType<Float> &p, const VectorType<Float> &d, Float &disx, Float &disy) const {
+template <template <typename> class vector_type>
+bool Block<vector_type>::intersect(const vector_type<Float> &p, const vector_type<Float> &d, Float &disx, Float &disy) const {
 
-    VectorType<Float> l(M_MIN), r(M_MAX);
+    vector_type<Float> l(M_MIN), r(M_MAX);
     for (int i = 0; i < p.dim; ++i) {
         if (std::abs(d[i]) > M_EPSILON * std::max(FPCONST(1.0), std::abs(d[i]))) {
             l[i] = (m_blockL[i] - p[i])/d[i];
@@ -73,8 +73,8 @@ bool Block<VectorType>::intersect(const VectorType<Float> &p, const VectorType<F
     return true;
 }
 
-// template <template <typename> class VectorType>
-// bool Camera<VectorType>::samplePosition(VectorType<Float> &pos, smp::Sampler &sampler) const {
+// template <template <typename> class vector_type>
+// bool Camera<vector_type>::samplePosition(vector_type<Float> &pos, smp::Sampler &sampler) const {
 //     pos = m_origin;
 //     for (int iter = 1; iter < m_origin.dim; ++iter) {
 //         pos[iter] += - m_plane[iter - 1] / FPCONST(2.0) + sampler() * m_plane[iter - 1];
@@ -82,8 +82,8 @@ bool Block<VectorType>::intersect(const VectorType<Float> &p, const VectorType<F
 //     return true;
 // }
 
-template <template <typename> class VectorType>
-bool Camera<VectorType>::samplePosition(VectorType<Float> &pos, smp::Sampler &sampler) const
+template <template <typename> class vector_type>
+bool Camera<vector_type>::samplePosition(vector_type<Float> &pos, smp::Sampler &sampler) const
 {
     pos = m_origin;
     for (int iter = 1; iter < m_origin.dim; ++iter)
@@ -93,8 +93,8 @@ bool Camera<VectorType>::samplePosition(VectorType<Float> &pos, smp::Sampler &sa
     return true;
 }
 
-template <template <typename> class VectorType>
-bool AreaSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler) const {
+template <template <typename> class vector_type>
+bool area_source<vector_type>::sample_ray(vector_type<Float> &pos, vector_type<Float> &dir, smp::Sampler &sampler) const {
     pos = m_origin;
     for (int iter = 1; iter < m_origin.dim; ++iter) {
         pos[iter] += - m_plane[iter - 1] / FPCONST(2.0) + sampler() * m_plane[iter - 1];
@@ -104,8 +104,8 @@ bool AreaSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorType<Float>
     return true;
 }
 
-template <template <typename> class VectorType>
-bool AreaTexturedSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorType<Float> &dir, smp::Sampler &sampler, Float &totalDistance) const {
+template <template <typename> class vector_type>
+bool area_textured_source<vector_type>::sample_ray(vector_type<Float> &pos, vector_type<Float> &dir, smp::Sampler &sampler, Float &totalDistance) const {
     pos = m_origin;
 
     // sample pixel position first
@@ -137,8 +137,8 @@ bool AreaTexturedSource<VectorType>::sampleRay(VectorType<Float> &pos, VectorTyp
 }
 
 #if USE_RIF_SOURCES
-template <template <typename> class VectorType>
-double US<VectorType>::fus_RIF(const VectorType<Float> &p, const Float &scaling) const{ //scaling is ignored for now
+template <template <typename> class vector_type>
+double US<vector_type>::fus_RIF(const vector_type<Float> &p, const Float &scaling) const{ //scaling is ignored for now
 
     Float rif=0;
     for(int c=1; c<=n_coeff; c++){
@@ -159,20 +159,20 @@ double US<VectorType>::fus_RIF(const VectorType<Float> &p, const Float &scaling)
     return n_o + n_scaling * rif;
 }
 
-template <template <typename> class VectorType>
-const VectorType<Float> US<VectorType>::fus_dRIF(const VectorType<Float> &p, const Float &scaling) const{
-    VectorType<Float> dn(0.0,
+template <template <typename> class vector_type>
+const vector_type<Float> US<vector_type>::fus_dRIF(const vector_type<Float> &p, const Float &scaling) const{
+    vector_type<Float> dn(0.0,
                          0.0, 
                          0.0
                          );
 
     for(int c=1; c<=n_coeff; c++){
         Float scalingfactor = 4*pow(-1, c+1)/(pow(c*M_PI, 2)*nsources);
-        VectorType<Float> tdn(0., 0., 0.);
+        vector_type<Float> tdn(0., 0., 0.);
 
         if (active1){
             for(int n=0; n<nsources; n++){
-                VectorType<Float> dirvec = p - centers1[n];
+                vector_type<Float> dirvec = p - centers1[n];
                 Float r = dirvec.length();
                 Float krrc = k_r*r*c;
                 Float commonterm = -(cos(krrc+phase1) + krrc * sin(krrc+phase1))/pow(r, 3); // avoiding complex number math by taking real numbers directly 
@@ -181,7 +181,7 @@ const VectorType<Float> US<VectorType>::fus_dRIF(const VectorType<Float> &p, con
         }
         if (active2){
             for(int n=0; n<nsources; n++){
-                VectorType<Float> dirvec = p - centers2[n];
+                vector_type<Float> dirvec = p - centers2[n];
                 Float r = dirvec.length();
                 Float krrc = k_r*r*c;
                 Float commonterm = -(cos(krrc+phase2) + krrc * sin(krrc+phase2))/pow(r, 3); // avoiding complex number math by taking real numbers directly 
@@ -194,17 +194,17 @@ const VectorType<Float> US<VectorType>::fus_dRIF(const VectorType<Float> &p, con
     return dn*n_scaling;
 }
 
-template <template <typename> class VectorType>
-const Matrix3x3 US<VectorType>::fus_HessianRIF(const VectorType<Float> &q, const Float &scaling) const{
+template <template <typename> class vector_type>
+const Matrix3x3 US<vector_type>::fus_HessianRIF(const vector_type<Float> &q, const Float &scaling) const{
     return Matrix3x3(0., 0., 0.,
                      0., 0., 0.,
                      0., 0., 0.);
 }
 
 #else
-template <template <typename> class VectorType>
-double US<VectorType>::bessel_RIF(const VectorType<Float> &p, const Float &scaling) const{
-    VectorType<Float> p_axis = p_u + dot(p - p_u , axis_uz)*axis_uz; // point on the axis closest to p
+template <template <typename> class vector_type>
+double US<vector_type>::bessel_RIF(const vector_type<Float> &p, const Float &scaling) const{
+    vector_type<Float> p_axis = p_u + dot(p - p_u , axis_uz)*axis_uz; // point on the axis closest to p
 
     Float r    = (p-p_axis).length();
     Float dotp = dot(p-p_axis, axis_ux);
@@ -214,12 +214,12 @@ double US<VectorType>::bessel_RIF(const VectorType<Float> &p, const Float &scali
     return n_o + n_max * scaling * jn(mode, k_r*r) * std::cos(mode*phi);
 }
 
-template <template <typename> class VectorType>
-const VectorType<Float> US<VectorType>::bessel_dRIF(const VectorType<Float> &q, const Float &scaling) const{
+template <template <typename> class vector_type>
+const vector_type<Float> US<vector_type>::bessel_dRIF(const vector_type<Float> &q, const Float &scaling) const{
 
-    VectorType<Float> p_axis = p_u + dot(q - p_u, axis_uz)*axis_uz; // point on the axis closest to p
+    vector_type<Float> p_axis = p_u + dot(q - p_u, axis_uz)*axis_uz; // point on the axis closest to p
 
-    VectorType<Float> p      = q - p_axis; // acts like p in case of axis aligned
+    vector_type<Float> p      = q - p_axis; // acts like p in case of axis aligned
 
     Float r    = p.length();
     Float dotp = dot(p, axis_ux);
@@ -245,21 +245,21 @@ const VectorType<Float> US<VectorType>::bessel_dRIF(const VectorType<Float> &q, 
     Float cosmp  = std::cos(mode * phi);
     Float sinmp  = std::sin(mode * phi);
 
-    VectorType<Float> dn(0.0,
+    vector_type<Float> dn(0.0,
                          n_max * scaling * (dbesselj * k_r * p.y * invr * cosmp - besselj*mode*sinmp*p.z*invr2),
                          n_max * scaling * (dbesselj * k_r * p.z * invr * cosmp + besselj*mode*sinmp*p.y*invr2)
                          );
-//    VectorType<Float> dn(0.0,
+//    vector_type<Float> dn(0.0,
 //                       n_max * (dbesselj * k_r * p.y * invr),
 //                         n_max * (dbesselj * k_r * p.z * invr)
 //                         ); // Adithya: FIXME: Assumed for now that ray is traveling in x direction.
     return dn;
 }
 
-template <template <typename> class VectorType>
-const Matrix3x3 US<VectorType>::bessel_HessianRIF(const VectorType<Float> &q, const Float &scaling) const{
-    VectorType<Float> p_axis = p_u + dot(q - p_u, axis_uz)*axis_uz; // point on the axis closest to p
-    VectorType<Float> p      = q - p_axis; // acts like p in case of axis aligned
+template <template <typename> class vector_type>
+const Matrix3x3 US<vector_type>::bessel_HessianRIF(const vector_type<Float> &q, const Float &scaling) const{
+    vector_type<Float> p_axis = p_u + dot(q - p_u, axis_uz)*axis_uz; // point on the axis closest to p
+    vector_type<Float> p      = q - p_axis; // acts like p in case of axis aligned
 
     Float r    = p.length();
     Float dotp = dot(p, axis_ux);
@@ -320,8 +320,8 @@ const Matrix3x3 US<VectorType>::bessel_HessianRIF(const VectorType<Float> &q, co
 }
 #endif
 
-template <template <typename> class VectorType>
-void Scene<VectorType>::er_step(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize, const Float &scaling) const{
+template <template <typename> class vector_type>
+void Scene<vector_type>::er_step(vector_type<Float> &p, vector_type<Float> &d, const Float &stepSize, const Float &scaling) const{
 #ifndef OMEGA_TRACKING
         //printf("dV1(p = (%.4f, %.4f, %.4f), d = (%.4f, %.4f, %.4f), scaling = %.4f) = (%.4f, %.4f, %.4f)\n", p.x, p.y, p.z, d.x, d.y, d.z, scaling, dV(p, d, scaling).x, dV(p, d, scaling).y, dV(p,d,scaling).z);
     d += HALF * stepSize * dV(p, d, scaling);
@@ -331,25 +331,25 @@ void Scene<VectorType>::er_step(VectorType<Float> &p, VectorType<Float> &d, cons
 #else
     Float two = 2; // To avoid type conversion
 
-    VectorType<Float> K1P = stepSize * dP(d);
-    VectorType<Float> K1O = stepSize * dOmega(p, d);
+    vector_type<Float> K1P = stepSize * dP(d);
+    vector_type<Float> K1O = stepSize * dOmega(p, d);
 
-    VectorType<Float> K2P = stepSize * dP(d + HALF*K1O);
-    VectorType<Float> K2O = stepSize * dOmega(p + HALF*K1P, d + HALF*K1O);
+    vector_type<Float> K2P = stepSize * dP(d + HALF*K1O);
+    vector_type<Float> K2O = stepSize * dOmega(p + HALF*K1P, d + HALF*K1O);
 
-    VectorType<Float> K3P = stepSize * dP(d + HALF*K2O);
-    VectorType<Float> K3O = stepSize * dOmega(p + HALF*K2P, d + HALF*K2O);
+    vector_type<Float> K3P = stepSize * dP(d + HALF*K2O);
+    vector_type<Float> K3O = stepSize * dOmega(p + HALF*K2P, d + HALF*K2O);
 
-    VectorType<Float> K4P = stepSize * dP(d + K3O);
-    VectorType<Float> K4O = stepSize * dOmega(p + K3P, d + K3O);
+    vector_type<Float> K4P = stepSize * dP(d + K3O);
+    vector_type<Float> K4O = stepSize * dOmega(p + K3P, d + K3O);
 
     p = p + ONE_SIXTH * (K1P + two*K2P + two*K3P + K4P);
     d = d + ONE_SIXTH * (K1O + two*K2O + two*K3O + K4O);
 #endif
 }
 
-template <template <typename> class VectorType>
-void Scene<VectorType>::er_derivativestep(VectorType<Float> &p, VectorType<Float> &v, Matrix3x3 &dpdv0, Matrix3x3 &dvdv0, const Float &stepSize, const Float &scaling) const{
+template <template <typename> class vector_type>
+void Scene<vector_type>::er_derivativestep(vector_type<Float> &p, vector_type<Float> &v, Matrix3x3 &dpdv0, Matrix3x3 &dvdv0, const Float &stepSize, const Float &scaling) const{
     v     += HALF * stepSize * dV(p, v, scaling);
     dvdv0 += HALF * stepSize * d2V(p, v, dpdv0, scaling);
     p     +=        stepSize * v/m_us.RIF(p, scaling);
@@ -358,8 +358,8 @@ void Scene<VectorType>::er_derivativestep(VectorType<Float> &p, VectorType<Float
     dvdv0 += HALF * stepSize * d2V(p, v, dpdv0, scaling);
 }
 
-//template <template <typename> class VectorType>
-//void Scene<VectorType>::er_derivativestep(VectorType<Float> &p, VectorType<Float> &d, const Float &stepSize, const Float &scaling) const{
+//template <template <typename> class vector_type>
+//void Scene<vector_type>::er_derivativestep(vector_type<Float> &p, vector_type<Float> &d, const Float &stepSize, const Float &scaling) const{
 //#ifndef OMEGA_TRACKING
 //    d += HALF * stepSize * dV(p, d, scaling);
 //    p +=        stepSize * d/m_us.RIF(p, scaling);
@@ -369,8 +369,8 @@ void Scene<VectorType>::er_derivativestep(VectorType<Float> &p, VectorType<Float
 //#endif
 //}
 
-template <template <typename> class VectorType>
-void Scene<VectorType>::trace(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, const Float &scaling) const{
+template <template <typename> class vector_type>
+void Scene<vector_type>::trace(vector_type<Float> &p, vector_type<Float> &d, const Float &dist, const Float &scaling) const{
     Float distance = dist;
     int steps = distance/m_us.er_stepsize;
     distance  = distance - steps * m_us.er_stepsize;
@@ -382,10 +382,10 @@ void Scene<VectorType>::trace(VectorType<Float> &p, VectorType<Float> &d, const 
 // ADI: CONVERT THIS TO A BISECTION SEARCH
 /* This code is similar to trace code and the intersect code of "Block" structure*/
 /* Based on ER equations, the ray is traced till we either meet end of a block or the distance (in that case, we have an error) */
-template <template <typename> class VectorType>
-void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, Float &disx, Float &disy, Float &totalOpticalDistance, const Float &scaling) const{
+template <template <typename> class vector_type>
+void Scene<vector_type>::traceTillBlock(vector_type<Float> &p, vector_type<Float> &d, const Float &dist, Float &disx, Float &disy, Float &totalOpticalDistance, const Float &scaling) const{
 
-    VectorType<Float> oldp, oldd;
+    vector_type<Float> oldp, oldd;
 
     Float distance = 0;
     long int maxsteps = dist/m_us.er_stepsize + 1, i, precision = m_us.getPrecision();
@@ -424,13 +424,13 @@ void Scene<VectorType>::traceTillBlock(VectorType<Float> &p, VectorType<Float> &
 
 }
 
-template <template <typename> class VectorType>
-void Scene<VectorType>::trace_optical_distance(VectorType<Float> &p, VectorType<Float> &d, const Float &dist, const Float &scaling) const{
+template <template <typename> class vector_type>
+void Scene<vector_type>::trace_optical_distance(vector_type<Float> &p, vector_type<Float> &d, const Float &dist, const Float &scaling) const{
     Float distance = dist;
     int maxSteps = distance/m_us.er_stepsize + 1;
     Float opticalPathLength = 0;
-    VectorType<Float> oldp;
-    VectorType<Float> oldd;
+    vector_type<Float> oldp;
+    vector_type<Float> oldd;
     for(int i = 0; i < maxSteps; i++){
         oldp = p;
         oldd = d;
@@ -446,8 +446,8 @@ void Scene<VectorType>::trace_optical_distance(VectorType<Float> &p, VectorType<
     er_step(p, d, distance, scaling);
 }
 
-template <template <typename> class VectorType>
-void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, const VectorType<Float> &p1, const VectorType<Float> &p2, Float &opticalPathLength, Float &t_l, const Float &scaling) const{
+template <template <typename> class vector_type>
+void Scene<vector_type>::computePathLengthstillZ(const vector_type<Float> &v_i, const vector_type<Float> &p1, const vector_type<Float> &p2, Float &opticalPathLength, Float &t_l, const Float &scaling) const{
 
     if(v_i.x > 0){ // surely failing case
         t_l = M_MAX;
@@ -469,7 +469,7 @@ void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, co
     int dec_precision = m_us.getPrecision();
     int nBisectionSearches = ceil(dec_precision/log10(2)); //ADI: Make a log10(2) constant
 
-    VectorType<Float> p = p1, oldp = p1, v = v_i, oldv;
+    vector_type<Float> p = p1, oldp = p1, v = v_i, oldv;
     v.normalize();
     v = v*m_us.RIF(p, scaling);
     oldv = v;
@@ -509,11 +509,11 @@ void Scene<VectorType>::computePathLengthstillZ(const VectorType<Float> &v_i, co
 //#endif
 }
 
-template <template <typename> class VectorType>
-void Scene<VectorType>::computefdfNEE(const VectorType<Float> &v_i, const VectorType<Float> &p1, const VectorType<Float> &p2, Matrix3x3 &dpdv0, Matrix3x3 &dvdv0, const Float &scaling, VectorType<Float> &error, Matrix3x3 &derror) const{
+template <template <typename> class vector_type>
+void Scene<vector_type>::computefdfNEE(const vector_type<Float> &v_i, const vector_type<Float> &p1, const vector_type<Float> &p2, Matrix3x3 &dpdv0, Matrix3x3 &dvdv0, const Float &scaling, vector_type<Float> &error, Matrix3x3 &derror) const{
 
     if(v_i.x > 0){ // surely failing case
-        error = VectorType<Float>(0);
+        error = vector_type<Float>(0);
         derror = Matrix3x3((Float)0);
     }
 
@@ -522,7 +522,7 @@ void Scene<VectorType>::computefdfNEE(const VectorType<Float> &v_i, const Vector
     int dec_precision = m_us.getPrecision();
     int nBisectionSearches = ceil(dec_precision/log10(2)); //ADI: Make a log10(2) constant
 
-    VectorType<Float> p = p1, oldp = p1, v = v_i, oldv = v;
+    vector_type<Float> p = p1, oldp = p1, v = v_i, oldv = v;
     Matrix3x3 olddpdv0 = dpdv0, olddvdv0 = dvdv0;
 
 
@@ -561,8 +561,8 @@ void Scene<VectorType>::computefdfNEE(const VectorType<Float> &v_i, const Vector
         }
     }
 
-    VectorType<Float> dpdt = v/m_us.RIF(p, scaling);
-    VectorType<Float> dgdQ(-1, 0, 0);
+    vector_type<Float> dpdt = v/m_us.RIF(p, scaling);
+    vector_type<Float> dgdQ(-1, 0, 0);
 
     Float dp = dot(dgdQ, dpdt);
     Matrix3x3 dQdV = (Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1) - Matrix3x3(dpdt, dgdQ)/dp)*dpdv0, dQdVt;
@@ -573,11 +573,11 @@ void Scene<VectorType>::computefdfNEE(const VectorType<Float> &v_i, const Vector
     derror =  dQdVt;
 }
 
-template <template <typename> class VectorType>
-bool Scene<VectorType>::genRay(VectorType<Float> &pos, VectorType<Float> &dir,
+template <template <typename> class vector_type>
+bool Scene<vector_type>::genRay(vector_type<Float> &pos, vector_type<Float> &dir,
                         smp::Sampler &sampler, Float &totalDistance) const {
 
-    if (m_source.sampleRay(pos, dir, sampler, totalDistance)) {
+    if (m_source.sample_ray(pos, dir, sampler, totalDistance)) {
 //      Float dist = FPCONST(0.0);
 //      Assert(std::abs(dir.x) >= M_EPSILON);
 //      if (dir.x >= M_EPSILON) {
@@ -594,13 +594,13 @@ bool Scene<VectorType>::genRay(VectorType<Float> &pos, VectorType<Float> &dir,
     }
 }
 
-template <template <typename> class VectorType>
-bool Scene<VectorType>::genRay(VectorType<Float> &pos, VectorType<Float> &dir,
+template <template <typename> class vector_type>
+bool Scene<vector_type>::genRay(vector_type<Float> &pos, vector_type<Float> &dir,
                         smp::Sampler &sampler,
-                        VectorType<Float> &possrc, VectorType<Float> &dirsrc,
+                        vector_type<Float> &possrc, vector_type<Float> &dirsrc,
                         Float &totalDistance) const {
 
-    if (m_source.sampleRay(pos, dir, sampler, totalDistance)) {
+    if (m_source.sample_ray(pos, dir, sampler, totalDistance)) {
         possrc = pos;
         dirsrc = dir;
 //      Float dist = FPCONST(0.0);
@@ -619,15 +619,15 @@ bool Scene<VectorType>::genRay(VectorType<Float> &pos, VectorType<Float> &dir,
 }
 
 
-template <template <typename> class VectorType>
-bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Float> &d, Float &distToSensor, Float &totalOpticalDistance,
+template <template <typename> class vector_type>
+bool Scene<vector_type>::movePhotonTillSensor(vector_type<Float> &p, vector_type<Float> &d, Float &distToSensor, Float &totalOpticalDistance,
                                     smp::Sampler &sampler, const Float& scaling) const {
     // moveTillSensor: moves the photon and reflects (with probability) and keeps going till it reaches sensor. TODO: change to weight
 
     Float LargeDist = (Float) 10000;
 
     Float disx, disy;
-    VectorType<Float> d1, norm;
+    vector_type<Float> d1, norm;
     //printf("traceTillBlock0: pos (%.4f %.4f %.4f) dir (%.4f %.4f %.4f) totalOpticalDistance %.4f, scaling %.4f\n", p.x, p.y, p.z, d.x, d.y, d.z, totalOpticalDistance, scaling);
     traceTillBlock(p, d, LargeDist, disx, disy, totalOpticalDistance, scaling);
     //printf("after traceTillBlock0: pos (%.4f %.4f %.4f) dir (%.4f %.4f %.4f) totalOpticalDistance %.4f, scaling %.4f\n", p.x, p.y, p.z, d.x, d.y, d.z, totalOpticalDistance, scaling);
@@ -654,7 +654,7 @@ bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Fl
 
         Float minDiff = M_MAX;
         Float minDir = FPCONST(0.0);
-        VectorType<Float> normalt;
+        vector_type<Float> normalt;
         normalt.zero();
         int chosenI = p.dim;
         for (i = 0; i < p.dim; ++i) {
@@ -676,9 +676,9 @@ bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Fl
         norm = normalt; // A HACK
 
         // check if we hit the sensor plane
-        if( std::abs(m_camera.getDir().x - norm.x) < M_EPSILON &&
-                std::abs(m_camera.getDir().y - norm.y) < M_EPSILON &&
-                std::abs(m_camera.getDir().z - norm.z) < M_EPSILON)
+        if( std::abs(m_camera.get_dir().x - norm.x) < M_EPSILON &&
+                std::abs(m_camera.get_dir().y - norm.y) < M_EPSILON &&
+                std::abs(m_camera.get_dir().z - norm.z) < M_EPSILON)
             return true;
 
         // if not, routine
@@ -703,8 +703,8 @@ bool Scene<VectorType>::movePhotonTillSensor(VectorType<Float> &p, VectorType<Fl
 }
 
 
-template <template <typename> class VectorType>
-bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
+template <template <typename> class vector_type>
+bool Scene<vector_type>::movePhoton(vector_type<Float> &p, vector_type<Float> &d,
                                     Float dist, Float &totalOpticalDistance, smp::Sampler &sampler, const Float &scaling) const {
 
     // Algorithm
@@ -713,7 +713,7 @@ bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
 
 
     Float disx, disy;
-    VectorType<Float> d1, norm;
+    vector_type<Float> d1, norm;
     traceTillBlock(p, d, dist, disx, disy, totalOpticalDistance, scaling);
 
     dist -= static_cast<Float>(disy);
@@ -735,7 +735,7 @@ bool Scene<VectorType>::movePhoton(VectorType<Float> &p, VectorType<Float> &d,
 
         Float minDiff = M_MAX;
         Float minDir = FPCONST(0.0);
-        VectorType<Float> normalt;
+        vector_type<Float> normalt;
         normalt.zero();
         int chosenI = p.dim;
         for (i = 0; i < p.dim; ++i) {
@@ -785,15 +785,15 @@ void Scene<tvec::TVector3>::addEnergyToImage(image::SmallImage &img, const tvec:
 
         //printf("Running addEnergyToImage(p = (%.4f, %.4f, %.4f), pathlength = %.4f, depth = %d, val = %.4f)\n", p.x, p.y, p.z, pathlength, depth, val);
 
-    Float x = tvec::dot(m_camera.getHorizontal(), p) - m_camera.getOrigin().y;
-    Float y = tvec::dot(m_camera.getVertical(), p) - m_camera.getOrigin().z;
+    Float x = tvec::dot(m_camera.getHorizontal(), p) - m_camera.get_origin().y;
+    Float y = tvec::dot(m_camera.getVertical(), p) - m_camera.get_origin().z;
 
-    Assert(((std::abs(x) < FPCONST(0.5) * m_camera.getPlane().x)
-                && (std::abs(y) < FPCONST(0.5) * m_camera.getPlane().y)));
+    Assert(((std::abs(x) < FPCONST(0.5) * m_camera.get_plane().x)
+                && (std::abs(y) < FPCONST(0.5) * m_camera.get_plane().y)));
     if (((m_camera.getPathlengthRange().x == -1) && (m_camera.getPathlengthRange().y == -1)) ||
         ((pathlength > m_camera.getPathlengthRange().x) && (pathlength < m_camera.getPathlengthRange().y))) {
-        x = (x / m_camera.getPlane().x + FPCONST(0.5)) * static_cast<Float>(img.getXRes());
-        y = (y / m_camera.getPlane().y + FPCONST(0.5)) * static_cast<Float>(img.getYRes());
+        x = (x / m_camera.get_plane().x + FPCONST(0.5)) * static_cast<Float>(img.getXRes());
+        y = (y / m_camera.get_plane().y + FPCONST(0.5)) * static_cast<Float>(img.getYRes());
 
 //      int ix = static_cast<int>(img.getXRes()/2) + static_cast<int>(std::floor(x));
 //      int iy = static_cast<int>(img.getYRes()/2) + static_cast<int>(std::floor(y));
@@ -832,12 +832,12 @@ template <>
 void Scene<tvec::TVector2>::addEnergyToImage(image::SmallImage &img, const tvec::Vec2f &p,
                             Float pathlength, int &depth, Float val) const {
 
-    Float x = tvec::dot(m_camera.getHorizontal(), p) - m_camera.getOrigin().y;
+    Float x = tvec::dot(m_camera.getHorizontal(), p) - m_camera.get_origin().y;
 
-    Assert(std::abs(x) < FPCONST(0.5) * m_camera.getPlane().x);
+    Assert(std::abs(x) < FPCONST(0.5) * m_camera.get_plane().x);
     if (((m_camera.getPathlengthRange().x == -1) && (m_camera.getPathlengthRange().y == -1)) ||
         ((pathlength > m_camera.getPathlengthRange().x) && (pathlength < m_camera.getPathlengthRange().y))) {
-        x = (x / m_camera.getPlane().x + FPCONST(0.5)) * static_cast<Float>(img.getXRes());
+        x = (x / m_camera.get_plane().x + FPCONST(0.5)) * static_cast<Float>(img.getXRes());
 
 //      int ix = static_cast<int>(img.getXRes()/2) + static_cast<int>(std::floor(x));
 //      int iy = static_cast<int>(img.getYRes()/2) + static_cast<int>(std::floor(y));
@@ -863,21 +863,21 @@ void Scene<tvec::TVector2>::addEnergyToImage(image::SmallImage &img, const tvec:
     }
 }
 
-template <template <typename> class VectorType>
-void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
-            const VectorType<Float> &p, const VectorType<Float> &d, Float distTravelled, int &depth,
+template <template <typename> class vector_type>
+void Scene<vector_type>::addEnergyInParticle(image::SmallImage &img,
+            const vector_type<Float> &p, const vector_type<Float> &d, Float distTravelled, int &depth,
             Float val, const med::Medium &medium, smp::Sampler &sampler, const Float &scaling) const {
 
-    VectorType<Float> p1 = p;
+    vector_type<Float> p1 = p;
 
-    VectorType<Float> dirToSensor;
+    vector_type<Float> dirToSensor;
 
-    if( (p.x-m_camera.getOrigin().x) < 1e-4) // Hack to get rid of inf problems for direct connection
+    if( (p.x-m_camera.get_origin().x) < 1e-4) // Hack to get rid of inf problems for direct connection
         return;
 
     sampleRandomDirection(dirToSensor, sampler); // Samples by assuming that the sensor is in +x direction.
 
-//  if(m_camera.getOrigin().x < m_source.getOrigin().x) // Direction to sensor is flipped. Compensate
+//  if(m_camera.get_origin().x < m_source.get_origin().x) // Direction to sensor is flipped. Compensate
 //      dirToSensor.x = -dirToSensor.x;
 
 #if PRINT_DEBUGLOG
@@ -897,7 +897,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
     dirToSensor.normalize();
 //#endif
 
-    VectorType<Float> refrDirToSensor = dirToSensor;
+    vector_type<Float> refrDirToSensor = dirToSensor;
     Float fresnelWeight = FPCONST(1.0);
     Float ior = getMediumIor(p1, scaling);
 
@@ -914,7 +914,7 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
             / ior / ior;
 #endif
     }
-    Float foreshortening = dot(refrDirToSensor, m_camera.getDir())/dot(dirToSensor, m_camera.getDir());
+    Float foreshortening = dot(refrDirToSensor, m_camera.get_dir())/dot(dirToSensor, m_camera.get_dir());
     Assert(foreshortening >= FPCONST(0.0));
 
 #if USE_SIMPLIFIED_TIMING
@@ -949,10 +949,10 @@ void Scene<VectorType>::addEnergyInParticle(image::SmallImage &img,
 template class Block<tvec::TVector3>;
 //template class Camera<tvec::TVector2>;
 template class Camera<tvec::TVector3>;
-//template class AreaSource<tvec::TVector2>;
-template class AreaSource<tvec::TVector3>;
-//template class AreaTexturedSource<tvec::TVector2>;
-template class AreaTexturedSource<tvec::TVector3>;
+//template class area_source<tvec::TVector2>;
+template class area_source<tvec::TVector3>;
+//template class area_textured_source<tvec::TVector2>;
+template class area_textured_source<tvec::TVector3>;
 //template class US<tvec::TVector2>;
 template class US<tvec::TVector3>;
 //template class Scene<tvec::TVector2>;

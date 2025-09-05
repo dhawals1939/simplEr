@@ -61,21 +61,21 @@ inline T safeSqrt(T x) {
     return x > static_cast<T>(0.0) ? std::sqrt(x) : static_cast<T>(0.0);
 }
 
-template <typename T, template <typename> class VectorType>
-inline void reflect(const VectorType<T> &a,
-					const VectorType<T> &n,
-					VectorType<T> &b) {
+template <typename T, template <typename> class vector_type>
+inline void reflect(const vector_type<T> &a,
+					const vector_type<T> &n,
+					vector_type<T> &b) {
     b = -static_cast<T>(2.0)*tvec::dot(a, n)*n + a;
 }
 
-template <typename T, template <typename> class VectorType>
-inline bool refract(const VectorType<T> &a,
-					const VectorType<T> &n,
+template <typename T, template <typename> class vector_type>
+inline bool refract(const vector_type<T> &a,
+					const vector_type<T> &n,
 					T eta,
-					VectorType<T> &b) {
+					vector_type<T> &b) {
 
-	VectorType<T> q = tvec::dot(a, n)*n;
-	VectorType<T> p = (a - q)/eta;
+	vector_type<T> q = tvec::dot(a, n)*n;
+	vector_type<T> p = (a - q)/eta;
     if ( p.length() > static_cast<T>(1.0) ) {
         reflect(a, n, b);
         return false;
@@ -87,9 +87,9 @@ inline bool refract(const VectorType<T> &a,
    }
 }
 
-template <typename T, template <typename> class VectorType>
-inline bool rayIntersectBox(const VectorType<T> &p, const VectorType<T> &d,
-                             const VectorType<T> &min, const VectorType<T> &max,
+template <typename T, template <typename> class vector_type>
+inline bool rayIntersectBox(const vector_type<T> &p, const vector_type<T> &d,
+                             const vector_type<T> &min, const vector_type<T> &max,
 							 T &t1, T &t2) {
 	t1 = M_MIN;
 	t2 = M_MAX;

@@ -14,25 +14,25 @@
 
 namespace pfunc {
 
-class HenyeyGreenstein {
+class henyey_greenstein {
 public:
-	HenyeyGreenstein(const Float g)
+	henyey_greenstein(const Float g)
 					: m_g(g) {	}
 
-	~HenyeyGreenstein() { }
+	~henyey_greenstein() { }
 
-	template <template <typename> class VectorType>
-	Float f(const VectorType<Float> &in, const VectorType<Float> &out) const;
+	template <template <typename> class vector_type>
+	Float f(const vector_type<Float> &in, const vector_type<Float> &out) const;
 
-	template <template <typename> class VectorType>
-	Float derivf(const VectorType<Float> &in, const VectorType<Float> &out) const;
+	template <template <typename> class vector_type>
+	Float derivf(const vector_type<Float> &in, const vector_type<Float> &out) const;
 
-	template <template <typename> class VectorType>
-	Float score(const VectorType<Float> &in, const VectorType<Float> &out) const;
+	template <template <typename> class vector_type>
+	Float score(const vector_type<Float> &in, const vector_type<Float> &out) const;
 
-	template <template <typename> class VectorType>
-	Float sample(const VectorType<Float> &in, smp::Sampler &sampler,
-					VectorType<Float> &out)  const;
+	template <template <typename> class vector_type>
+	Float sample(const vector_type<Float> &in, smp::Sampler &sampler,
+					vector_type<Float> &out)  const;
 
 	inline Float getG() const {
 		return m_g;
