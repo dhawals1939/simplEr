@@ -324,12 +324,12 @@ renderer.renderImage(img, medium, scene, numPhotons)
 print('Rendering completed.')
 
 # Adi: very slow and painful way to conver image to numpy array
-(xres, yres, zres) = (img.getXRes(), img.getYRes(), img.getZRes())
+(xres, yres, zres) = (img.get_x_res(), img.get_y_res(), img.getZRes())
 pixels = []
 for x in range(xres):
     for y in range(yres):
         for z in range(zres):
-            pixels.append(img.getPixel(x, y, z))
+            pixels.append(img.get_pixel(x, y, z))
 
 img_arr = np.array(pixels)
 img_arr = img_arr.reshape((xres, yres, zres))

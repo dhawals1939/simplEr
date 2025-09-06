@@ -54,7 +54,7 @@ namespace scn
     }
 
     template <template <typename> class VectorType>
-    Float area_source<VectorType>::get_li() const
+    Float area_source<VectorType>::get_Li() const
     {
         return this->m_Li;
     }

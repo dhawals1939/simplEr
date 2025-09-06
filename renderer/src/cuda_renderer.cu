@@ -165,7 +165,7 @@ __device__ bool area_textured_source::sample_ray(TVector3<Float> &pos, TVector3<
 	dir[1] = zt*cosf(phi);
 	dir[2] = zt*sinf(phi);
 	
-	return propagateTillMedium(pos, dir, totalDistance);
+	return propagate_till_medium(pos, dir, totalDistance);
 }
 
 
@@ -725,15 +725,15 @@ void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &med
     CUDA_CALL(cudaDeviceSynchronize());
 
     CUDA_CALL(cudaMemcpy(image, cudaImage,
-                         target.getXRes()*target.getYRes()*target.getZRes()*sizeof(Float),
+                         target.get_x_res()*target.get_y_res()*target.getZRes()*sizeof(Float),
                          cudaMemcpyDeviceToHost));
 
     // Copy back to target.
-    for (int x=0; x < target.getXRes(); ++x) {
-        for (int y=0; y < target.getYRes(); ++y) {
+    for (int x=0; x < target.get_x_res(); ++x) {
+        for (int y=0; y < target.get_y_res(); ++y) {
             for (int z=0; z < target.getZRes(); ++z) {
                 // Same calculation as addPixel (aka image.addEnergy)
-                target.setPixel(x, y, z, image[z * target.getXRes() * target.getYRes() + y * target.getXRes() + x]);
+                target.setPixel(x, y, z, image[z * target.get_x_res() * target.get_y_res() + y * target.get_x_res() + x]);
             }
         }
     }
@@ -744,12 +744,12 @@ void CudaRenderer::renderImage(image::SmallImage& target, const med::Medium &med
 /* Allocates host and device data and sets up RNG. */
 void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, const scn::Scene<tvec::TVector3> &scene, int numPhotons) {
     /* Allocate host memory */
-    image = new Float[target.getXRes()*target.getYRes()*target.getZRes()*sizeof(Float)];
+    image = new Float[target.get_x_res()*target.get_y_res()*target.getZRes()*sizeof(Float)];
 
     /* Allocate device memory*/
     CUDA_CALL(cudaMalloc((void **)&cudaImage,
-                         target.getXRes()*target.getYRes()*target.getZRes()*sizeof(Float)));
-    CUDA_CALL(cudaMemset(cudaImage, 0, target.getXRes()*target.getYRes()*target.getZRes()*sizeof(Float))); 
+                         target.get_x_res()*target.get_y_res()*target.getZRes()*sizeof(Float)));
+    CUDA_CALL(cudaMemset(cudaImage, 0, target.get_x_res()*target.get_y_res()*target.getZRes()*sizeof(Float))); 
     Scene *cudaScene = Scene::from(scene);
     Medium *cudaMedium = Medium::from(medium);
 
@@ -766,8 +766,8 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
     /* Send in parameter pointers to device */
     Constants h_constants = {
         .image              = cudaImage,
-        .x_res              = target.getXRes(),
-        .y_res              = target.getYRes(),
+        .x_res              = target.get_x_res(),
+        .y_res              = target.get_y_res(),
         .z_res              = target.getZRes(),
 		.random_state       = cudaRandomState,
         .scene              = cudaScene,

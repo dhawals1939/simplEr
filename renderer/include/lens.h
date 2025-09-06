@@ -14,7 +14,7 @@ public:
           m_active(active)
     {
     }
-    inline const bool propagateTillLens(vector_type<Float> &pos, vector_type<Float> &dir, Float &totalDistance) const
+    inline const bool propagate_till_lens(vector_type<Float> &pos, vector_type<Float> &dir, Float &totalDistance) const
     {
         Float dist = -(pos[0] - this->m_origin[0]) / dir[0]; // FIXME: Assumes that the direction of propagation is in -x direction.
         pos += dist * dir;

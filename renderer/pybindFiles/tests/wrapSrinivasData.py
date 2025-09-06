@@ -30,7 +30,7 @@ def readAllFrequencies(nSearches, n_max_min, n_max_max, f_u_min, f_u_max, MFPs, 
         temp = 0.0
         for i in range(0, 1023):
             for j in range(0, 1023):
-                temp += Mask[i,j] * Image.getPixel(i, j, 0)
+                temp += Mask[i,j] * Image.get_pixel(i, j, 0)
         Intensities[f_n] = temp;
     return Intensities
 
@@ -47,7 +47,7 @@ nSearches = 100;
 
 #Image.readPFM3D(fileName)
 #print(type(Image))
-#print(Image.getPixel(538, 534, 0))
+#print(Image.get_pixel(538, 534, 0))
 
 sensor_size = 5;
 object_radius = .1; # photons on 2 cm focus

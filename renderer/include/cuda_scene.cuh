@@ -203,7 +203,7 @@ public:
         return true; // should return additional path length added by the lens.
     }
 
-    __device__ inline bool propagateTillLens(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const {
+    __device__ inline bool propagate_till_lens(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const {
         Float dist = -(pos[0] - (*m_origin)[0])/dir[0];
         pos += dist*dir;
         totalDistance += dist;
@@ -311,7 +311,7 @@ private:
 
         m_useBounceDecomposition = camera.isBounceDecomposition();
 
-        m_lens = Lens::from(camera.getLens());
+        m_lens = Lens::from(camera.get_lens());
     }
     TVector3<Float> *m_origin;
     TVector3<Float> *m_dir;
@@ -354,30 +354,30 @@ public:
         return *m_plane;
     }
 
-    __device__ inline Float get_li() const {
+    __device__ inline Float get_Li() const {
         return m_Li;
     }
 
-    __device__ inline bool propagateTillMedium(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const{
+    __device__ inline bool propagate_till_medium(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const{
         //propagate till lens
-        return m_lens->propagateTillLens(pos, dir, totalDistance);
+        return m_lens->propagate_till_lens(pos, dir, totalDistance);
     }
 
     __host__ virtual ~area_textured_source() { }
 
 protected:
     __host__ area_textured_source(const scn::area_textured_source<tvec::TVector3> &source)
-        : m_emittertype(source.getEmitterType()) {
+        : m_emittertype(source.get_emitter_type()) {
         m_origin         = TVector3<Float>::from(source.get_origin());
         m_dir            = TVector3<Float>::from(source.get_dir());
-        m_texture        = Image2<Float>::from(source.getTexture());
-        m_lens           = Lens::from(source.getLens());
+        m_texture        = Image2<Float>::from(source.get_texture());
+        m_lens           = Lens::from(source.get_lens());
         m_plane          = TVector2<Float>::from(source.get_plane());
-        m_Li             = source.get_li();
-        m_half_theta_limit = source.getHalfThetaLimit();
+        m_Li             = source.get_Li();
+        m_half_theta_limit = source.get_half_theta_limit();
 
-        float textureXRes = source.getTexture().getXRes();
-        float textureYRes = source.getTexture().getYRes();
+        float textureXRes = source.get_texture().get_x_res();
+        float textureYRes = source.get_texture().get_y_res();
         float planeX = source.get_plane().x;
         float planeY = source.get_plane().y;
         tvec::TVector2<Float> pixelsize(planeX/textureXRes,
@@ -386,7 +386,7 @@ protected:
 
         m_ct = cosf(m_half_theta_limit);
 
-        m_texture_sampler = DiscreteDistribution::from(source.textureSamplerCDF());
+        m_texture_sampler = DiscreteDistribution::from(source.texture_sampler_cdf());
 
     }
 

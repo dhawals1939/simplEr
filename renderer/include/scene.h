@@ -600,7 +600,7 @@ namespace scn
 
      inline void addPixel(image::SmallImage &img, int x, int y, int z, Float val) const
      {
-         if (x >= 0 && x < img.getXRes() && y >= 0 && y < img.getYRes() &&
+         if (x >= 0 && x < img.get_x_res() && y >= 0 && y < img.get_y_res() &&
              z >= 0 && z < img.getZRes())
          {
              img.addEnergy(x, y, z, static_cast<Float>(val));

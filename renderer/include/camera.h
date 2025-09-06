@@ -74,7 +74,7 @@ namespace scn{
             return this->m_useBounceDecomposition;
         }
 
-        inline const Lens<vector_type> &getLens() const
+        inline const Lens<vector_type> &get_lens() const
         {
             return this->m_lens;
         }

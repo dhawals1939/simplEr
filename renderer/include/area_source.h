@@ -21,7 +21,7 @@ namespace scn
         const vector_type<Float> &get_origin() const;
         const vector_type<Float> &get_dir() const;
         const tvec::Vec2f &get_plane() const;
-        Float get_li() const;
+        Float get_Li() const;
 
         virtual ~area_source();
 

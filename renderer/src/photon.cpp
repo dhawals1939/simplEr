@@ -287,12 +287,12 @@ void Renderer<vector_type>::renderImage(image::SmallImage &img0,
 #endif
 	smp::SamplerSet sampler(numThreads);
 
-	image::SmallImageSet img(img0.getXRes(), img0.getYRes(), img0.getZRes(), numThreads);
+	image::SmallImageSet img(img0.get_x_res(), img0.get_y_res(), img0.getZRes(), numThreads);
 	img.zero();
 
 	Float weight = getWeight(medium, scene, numPhotons);
 #if USE_PRINTING
-	Float Li = scene.getAreaSource().get_li();
+	Float Li = scene.getAreaSource().get_Li();
 	std::cout << "weight " << weight << " Li " << Li << std::endl;
 #endif
 
@@ -358,21 +358,21 @@ void Renderer<vector_type>::renderImage(image::SmallImage &img0,
 //
 //	smp::SamplerSet sampler(numThreads);
 //
-//	image::SmallImageSet img(img0.getXRes(), img0.getYRes(), img0.getZRes(), numThreads);
+//	image::SmallImageSet img(img0.get_x_res(), img0.get_y_res(), img0.getZRes(), numThreads);
 //	img.zero();
 //
-//	image::SmallImageSet dSigmaT(dSigmaT0.getXRes(), dSigmaT0.getYRes(), dSigmaT0.getZRes(), numThreads);
+//	image::SmallImageSet dSigmaT(dSigmaT0.get_x_res(), dSigmaT0.get_y_res(), dSigmaT0.getZRes(), numThreads);
 //	dSigmaT.zero();
 //
-//	image::SmallImageSet dAlbedo(dAlbedo0.getXRes(), dAlbedo0.getYRes(), dAlbedo0.getZRes(), numThreads);
+//	image::SmallImageSet dAlbedo(dAlbedo0.get_x_res(), dAlbedo0.get_y_res(), dAlbedo0.getZRes(), numThreads);
 //	dAlbedo.zero();
 //
-//	image::SmallImageSet dGVal(dGVal0.getXRes(), dGVal0.getYRes(), dGVal0.getZRes(), numThreads);
+//	image::SmallImageSet dGVal(dGVal0.get_x_res(), dGVal0.get_y_res(), dGVal0.getZRes(), numThreads);
 //	dGVal.zero();
 //
 //	Float weight = getWeight(medium, scene, numPhotons);
 //#if USE_PRINTING
-//	Float Li = scene.getAreaSource().get_li();
+//	Float Li = scene.getAreaSource().get_Li();
 //	std::cout << "weight " << weight << " Li " << Li << std::endl;
 //#endif
 //
@@ -423,21 +423,21 @@ void Renderer<vector_type>::renderImage(image::SmallImage &img0,
 //
 //	smp::SamplerSet sampler(numThreads);
 //
-//	image::SmallImageSet img(img0.getXRes(), img0.getYRes(), img0.getZRes(), numThreads);
+//	image::SmallImageSet img(img0.get_x_res(), img0.get_y_res(), img0.getZRes(), numThreads);
 //	img.zero();
 //
-//	image::SmallImageSet dSigmaT(dSigmaT0.getXRes(), dSigmaT0.getYRes(), dSigmaT0.getZRes(), numThreads);
+//	image::SmallImageSet dSigmaT(dSigmaT0.get_x_res(), dSigmaT0.get_y_res(), dSigmaT0.getZRes(), numThreads);
 //	dSigmaT.zero();
 //
-//	image::SmallImageSet dAlbedo(dAlbedo0.getXRes(), dAlbedo0.getYRes(), dAlbedo0.getZRes(), numThreads);
+//	image::SmallImageSet dAlbedo(dAlbedo0.get_x_res(), dAlbedo0.get_y_res(), dAlbedo0.getZRes(), numThreads);
 //	dAlbedo.zero();
 //
-//	image::SmallImageSet dGVal(dGVal0.getXRes(), dGVal0.getYRes(), dGVal0.getZRes(), numThreads);
+//	image::SmallImageSet dGVal(dGVal0.get_x_res(), dGVal0.get_y_res(), dGVal0.getZRes(), numThreads);
 //	dGVal.zero();
 //
 //	Float weight = getWeight(medium, scene, numPhotons);
 //#if USE_PRINTING
-//	Float Li = scene.getAreaSource().get_li();
+//	Float Li = scene.getAreaSource().get_Li();
 //	std::cout << "weight " << weight << " Li " << Li << std::endl;
 //#endif
 //

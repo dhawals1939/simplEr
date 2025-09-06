@@ -120,7 +120,7 @@ public:
 		return index;
 	}
 
-	inline const std::vector<Float> &getCDF() const {
+	inline const std::vector<Float> &get_cdf() const {
 		return m_cdf;
 	}
 

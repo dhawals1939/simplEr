@@ -87,12 +87,12 @@ public:
 		ndx = y * m_xRes + x;
 	}
 
-	inline T getPixel(const int x) const {
+	inline T get_pixel(const int x) const {
 		Assert(x >= 0 && x < m_xRes*m_yRes);
 		return m_pixels[x];
 	}
 
-	inline T getPixel(const int x, const int y) const {
+	inline T get_pixel(const int x, const int y) const {
 		Assert(x >= 0 && x < m_xRes && y >= 0 && y < m_yRes);
 		return m_pixels[y * m_xRes + x];
 	}
@@ -113,11 +113,11 @@ public:
 		return m_pixels;
 	}
 
-	inline int getXRes() const {
+	inline int get_x_res() const {
 		return m_xRes;
 	}
 
-	inline int getYRes() const {
+	inline int get_y_res() const {
 		return m_yRes;
 	}
 
@@ -132,7 +132,7 @@ public:
 	}
 
 
-	inline void readFile(const std::string& fileName,
+	inline void read_file(const std::string& fileName,
 							const EFileFormat fileFormat = EPFM) {
 //							const EByteOrder fileEndianness = ELittleEndian)
 
@@ -306,7 +306,7 @@ public:
 		memset((void *) m_pixels, 0, m_xRes * m_yRes * m_zRes * sizeof(T));
 	}
 
-	inline T getPixel(const int x, const int y, const int z) const {
+	inline T get_pixel(const int x, const int y, const int z) const {
 		Assert(x >= 0 && x < m_xRes && y >= 0 && y < m_yRes && z >= 0 && z < m_zRes);
 		return m_pixels[z * m_xRes * m_yRes + y * m_yRes + x];
 	}
@@ -323,11 +323,11 @@ public:
 		m_pixels[z * m_xRes * m_yRes + y * m_xRes + x] += val;
 	}
 
-	inline int getXRes() const {
+	inline int get_x_res() const {
 		return m_xRes;
 	}
 
-	inline int getYRes() const {
+	inline int get_y_res() const {
 		return m_yRes;
 	}
 
@@ -500,12 +500,12 @@ public:
 	}
 
 	inline void mergeImages(Image2<T> &mergedImage) const {
-		Assert(mergedImage.getXRes() == m_xRes && mergedImage.getYRes() == m_yRes);
+		Assert(mergedImage.get_x_res() == m_xRes && mergedImage.get_y_res() == m_yRes);
 		for (int i = 0; i < m_yRes; ++i) {
 			for (int j = 0; j < m_xRes; ++j) {
 				T val = 0.0;
 				for (int iterImage = 0; iterImage < m_numImages; ++iterImage) {
-					val += m_images[iterImage].getPixel(j, i);
+					val += m_images[iterImage].get_pixel(j, i);
 				}
 				mergedImage.setPixel(j, i, val);
 			}
@@ -571,13 +571,13 @@ public:
 	}
 
 	void mergeImages(Image3<T> &mergedImage) const {
-		Assert(mergedImage.getXRes() == m_xRes && mergedImage.getYRes() == m_yRes && mergedImage.getZRes() == m_zRes);
+		Assert(mergedImage.get_x_res() == m_xRes && mergedImage.get_y_res() == m_yRes && mergedImage.getZRes() == m_zRes);
 		for (int h = 0; h < m_zRes; ++h) {
 			for (int i = 0; i < m_yRes; ++i) {
 				for (int j = 0; j < m_xRes; ++j) {
 					T val = 0.0;
 					for (int iterImage = 0; iterImage < m_numImages; ++iterImage) {
-						val += m_images[iterImage].getPixel(j, i, h);
+						val += m_images[iterImage].get_pixel(j, i, h);
 					}
 					mergedImage.setPixel(j, i, h, val);
 				}

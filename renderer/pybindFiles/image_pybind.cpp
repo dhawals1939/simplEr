@@ -11,10 +11,10 @@ PYBIND11_MODULE(image_pybind, m) {
 		.def(py::init<
 				int, int, int
 		>())
-		.def("getXRes", &image::Image3<double>::getXRes)
-		.def("getYRes", &image::Image3<double>::getYRes)
+		.def("get_x_res", &image::Image3<double>::get_x_res)
+		.def("get_y_res", &image::Image3<double>::get_y_res)
 		.def("getZRes", &image::Image3<double>::getZRes)
-		.def("getPixel", &image::Image3<double>::getPixel)
+		.def("get_pixel", &image::Image3<double>::get_pixel)
 //		.def("getData", &image::Image3<double>::getData)
 //        .def_buffer([](image::Image3<double> &m) -> py::buffer_info {
 //	        return py::buffer_info(
@@ -22,9 +22,9 @@ PYBIND11_MODULE(image_pybind, m) {
 //	            sizeof(double),                          /* Size of one scalar */
 //	            py::format_descriptor<double>::format(), /* Python struct-style format descriptor */
 //	            3,                                      /* Number of dimensions */
-//	            { m.getXRes(), m.getYRes(), m.getZRes() },                 /* Buffer dimensions */
-//	            { sizeof(double), sizeof(double) * m.getYRes(),             /* Strides (in bytes) for each index */
-//	              sizeof(double)*m.getYRes()*m.getXRes() }
+//	            { m.get_x_res(), m.get_y_res(), m.getZRes() },                 /* Buffer dimensions */
+//	            { sizeof(double), sizeof(double) * m.get_y_res(),             /* Strides (in bytes) for each index */
+//	              sizeof(double)*m.get_y_res()*m.get_x_res() }
 //	        );
 //        })
 		;

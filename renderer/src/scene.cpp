@@ -128,7 +128,7 @@ bool area_textured_source<vector_type>::sample_ray(vector_type<Float> &pos, vect
     dir[1] = zt*std::cos(phi);
     dir[2] = zt*std::sin(phi);
 
-    return propagateTillMedium(pos, dir, totalDistance);
+    return propagate_till_medium(pos, dir, totalDistance);
 
 //  std::cout << dir[0] << ", " << dir[1] << ", " << dir[2] << std::endl;
 
@@ -792,11 +792,11 @@ void Scene<tvec::TVector3>::addEnergyToImage(image::SmallImage &img, const tvec:
                 && (std::abs(y) < FPCONST(0.5) * m_camera.get_plane().y)));
     if (((m_camera.getPathlengthRange().x == -1) && (m_camera.getPathlengthRange().y == -1)) ||
         ((pathlength > m_camera.getPathlengthRange().x) && (pathlength < m_camera.getPathlengthRange().y))) {
-        x = (x / m_camera.get_plane().x + FPCONST(0.5)) * static_cast<Float>(img.getXRes());
-        y = (y / m_camera.get_plane().y + FPCONST(0.5)) * static_cast<Float>(img.getYRes());
+        x = (x / m_camera.get_plane().x + FPCONST(0.5)) * static_cast<Float>(img.get_x_res());
+        y = (y / m_camera.get_plane().y + FPCONST(0.5)) * static_cast<Float>(img.get_y_res());
 
-//      int ix = static_cast<int>(img.getXRes()/2) + static_cast<int>(std::floor(x));
-//      int iy = static_cast<int>(img.getYRes()/2) + static_cast<int>(std::floor(y));
+//      int ix = static_cast<int>(img.get_x_res()/2) + static_cast<int>(std::floor(x));
+//      int iy = static_cast<int>(img.get_y_res()/2) + static_cast<int>(std::floor(y));
         int ix = static_cast<int>(std::floor(x));
         int iy = static_cast<int>(std::floor(y));
 
@@ -837,10 +837,10 @@ void Scene<tvec::TVector2>::addEnergyToImage(image::SmallImage &img, const tvec:
     Assert(std::abs(x) < FPCONST(0.5) * m_camera.get_plane().x);
     if (((m_camera.getPathlengthRange().x == -1) && (m_camera.getPathlengthRange().y == -1)) ||
         ((pathlength > m_camera.getPathlengthRange().x) && (pathlength < m_camera.getPathlengthRange().y))) {
-        x = (x / m_camera.get_plane().x + FPCONST(0.5)) * static_cast<Float>(img.getXRes());
+        x = (x / m_camera.get_plane().x + FPCONST(0.5)) * static_cast<Float>(img.get_x_res());
 
-//      int ix = static_cast<int>(img.getXRes()/2) + static_cast<int>(std::floor(x));
-//      int iy = static_cast<int>(img.getYRes()/2) + static_cast<int>(std::floor(y));
+//      int ix = static_cast<int>(img.get_x_res()/2) + static_cast<int>(std::floor(x));
+//      int iy = static_cast<int>(img.get_y_res()/2) + static_cast<int>(std::floor(y));
         int ix = static_cast<int>(std::floor(x));
 
         int iz;
