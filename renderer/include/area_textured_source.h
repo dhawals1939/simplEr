@@ -16,7 +16,7 @@ namespace scn
                         const tvec::Vec2f &plane, const Float &Li, const vector_type<Float> &lens_origin, const Float &lens_aperture, const Float &lens_focalLength, const bool &lens_active, const EmitterType &emittertype = EmitterType::directional)
             : m_origin(origin),
             m_dir(dir),
-            m_halfThetaLimit(halfThetaLimit),
+            m_half_theta_limit(halfThetaLimit),
             m_emittertype(emittertype),
             m_plane(plane),
             m_Li(Li),
@@ -27,14 +27,14 @@ namespace scn
             this->m_pixelsize.x = this->m_plane.x / this->m_texture.getXRes();
             this->m_pixelsize.y = this->m_plane.y / this->m_texture.getYRes();
 
-            this->m_ct = std::cos(this->m_halfThetaLimit);
+            this->m_ct = std::cos(this->m_half_theta_limit);
 
-            this->m_textureSampler.reserve(_length);
+            this->m_texture_sampler.reserve(_length);
             for (int i = 0; i < _length; i++)
             {
-                this->m_textureSampler.append(this->m_texture.getPixel(i));
+                this->m_texture_sampler.append(this->m_texture.getPixel(i));
             }
-            this->m_textureSampler.normalize();
+            this->m_texture_sampler.normalize();
         }
 
         bool sample_ray(vector_type<Float> &pos, vector_type<Float> &dir, smp::Sampler &sampler, Float &totalDistance) const;
@@ -56,7 +56,7 @@ namespace scn
 
         inline const Float getHalfThetaLimit() const
         {
-            return this->m_halfThetaLimit;
+            return this->m_half_theta_limit;
         }
 
         inline const EmitterType &getEmitterType() const
@@ -81,7 +81,7 @@ namespace scn
 
         inline const std::vector<Float> &textureSamplerCDF() const
         {
-            return this->m_textureSampler.getCDF();
+            return this->m_texture_sampler.getCDF();
         }
 
         inline const bool propagateTillMedium(vector_type<Float> &pos, vector_type<Float> &dir, Float &totalDistance) const
@@ -97,10 +97,10 @@ namespace scn
     protected:
         vector_type<Float> m_origin;
         vector_type<Float> m_dir;
-        Float m_halfThetaLimit;
+        Float m_half_theta_limit;
         Float m_ct;
         image::Texture m_texture;
-        DiscreteDistribution m_textureSampler;
+        DiscreteDistribution m_texture_sampler;
         tvec::Vec2f m_pixelsize;
         tvec::Vec2f m_plane;
         Float m_Li;

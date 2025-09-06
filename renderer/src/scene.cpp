@@ -109,7 +109,7 @@ bool area_textured_source<vector_type>::sample_ray(vector_type<Float> &pos, vect
     pos = m_origin;
 
     // sample pixel position first
-    int pixel = m_textureSampler.sample(sampler());
+    int pixel = m_texture_sampler.sample(sampler());
     int p[2];
     m_texture.ind2sub(pixel, p[0], p[1]);
 

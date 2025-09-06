@@ -15,11 +15,11 @@
 class adoc_geometry_parameters
 {
 public:
-    Float half_theta_limit;
-    Float emitter_size;
-    Float sensor_size;
-    Float emitter_distance;
-    Float sensor_distance;
+    Float m_half_theta_limit;
+    Float m_emitter_size;
+    Float m_sensor_size;
+    Float m_emitter_distance;
+    Float m_sensor_distance;
 
     // Vanilla initializer
     adoc_geometry_parameters(
@@ -28,19 +28,19 @@ public:
         Float sensor_size_ = FPCONST(0.002),
         Float emitter_distance_ = FPCONST(0.0),
         Float sensor_distance_ = FPCONST(0.0))
-        : half_theta_limit(half_theta_limit_),
-          emitter_size(emitter_size_),
-          sensor_size(sensor_size_),
-          emitter_distance(emitter_distance_),
-          sensor_distance(sensor_distance_) {}
+        : m_half_theta_limit(half_theta_limit_),
+          m_emitter_size(emitter_size_),
+          m_sensor_size(sensor_size_),
+          m_emitter_distance(emitter_distance_),
+          m_sensor_distance(sensor_distance_) {}
 
     // AnyMap initializer
     adoc_geometry_parameters(const AnyMap &adoc_geometry_parameters_json);
-
+    ~adoc_geometry_parameters() = default;
     friend std::ostream& operator<<(std::ostream& os, const adoc_geometry_parameters& params) {
         os << fmt::format(
             "adoc_geometry_parameters {{ half_theta_limit: {}, emitter_size: {}, sensor_size: {}, emitter_distance: {}, sensor_distance: {} }}",
-            params.half_theta_limit, params.emitter_size, params.sensor_size, params.emitter_distance, params.sensor_distance
+            params.m_half_theta_limit, params.m_emitter_size, params.m_sensor_size, params.m_emitter_distance, params.m_sensor_distance
         );
         return os;
     }
@@ -49,11 +49,11 @@ public:
 // Film parameters
 class film_parameters {
 public:
-    Float path_length_min;
-    Float path_length_max;
-    int path_length_bins;
-    int spatial_x;
-    int spatial_y;
+    Float m_path_length_min;
+    Float m_path_length_max;
+    int m_path_length_bins;
+    int m_spatial_x;
+    int m_spatial_y;
 
     // Vanilla initializer
     film_parameters(
@@ -62,19 +62,19 @@ public:
         int path_length_bins_ = 128,
         int spatial_x_ = 128,
         int spatial_y_ = 128)
-        : path_length_min(path_length_min_),
-          path_length_max(path_length_max_),
-          path_length_bins(path_length_bins_),
-          spatial_x(spatial_x_),
-          spatial_y(spatial_y_) {}
+        : m_path_length_min(path_length_min_),
+          m_path_length_max(path_length_max_),
+          m_path_length_bins(path_length_bins_),
+          m_spatial_x(spatial_x_),
+          m_spatial_y(spatial_y_) {}
 
     // AnyMap initializer
     film_parameters(const AnyMap &film_parameters_json);
-
+    ~film_parameters() = default;
     friend std::ostream& operator<<(std::ostream& os, const film_parameters& params) {
         os << fmt::format(
             "film_parameters {{ path_length_min: {}, path_length_max: {}, path_length_bins: {}, spatial_x: {}, spatial_y: {} }}",
-            params.path_length_min, params.path_length_max, params.path_length_bins, params.spatial_x, params.spatial_y
+            params.m_path_length_min, params.m_path_length_max, params.m_path_length_bins, params.m_spatial_x, params.m_spatial_y
         );
         return os;
     }
@@ -84,24 +84,24 @@ public:
 class scattering_parameters
 {
 public:
-    Float sigma_t;
-    Float albedo;
-    Float g_val;
+    Float m_sigma_t;
+    Float m_albedo;
+    Float m_g_val;
 
     // Vanilla initializer
     scattering_parameters(
         Float sigma_t_ = FPCONST(0.0),
         Float albedo_ = FPCONST(1.0),
         Float g_val_ = FPCONST(0.0))
-        : sigma_t(sigma_t_), albedo(albedo_), g_val(g_val_) {}
+        : m_sigma_t(sigma_t_), m_albedo(albedo_), m_g_val(g_val_) {}
 
     // AnyMap initializer
     scattering_parameters(const AnyMap &scattering_parameters_json);
-
+    ~scattering_parameters() = default;
     friend std::ostream& operator<<(std::ostream& os, const scattering_parameters& params) {
         os << fmt::format(
             "scattering_parameters {{ sigma_t: {}, albedo: {}, g_val: {} }}",
-            params.sigma_t, params.albedo, params.g_val
+            params.m_sigma_t, params.m_albedo, params.m_g_val
         );
         return os;
     }
@@ -111,11 +111,11 @@ public:
 class rendering_parameters
 {
 public:
-    int64 num_photons;
-    int max_depth;
-    Float max_pathlength;
-    bool use_direct;
-    bool use_angular_sampling;
+    int64 m_num_photons;
+    int m_max_depth;
+    Float m_max_pathlength;
+    bool m_use_direct;
+    bool m_use_angular_sampling;
 
     // Vanilla initializer
     rendering_parameters(
@@ -124,19 +124,19 @@ public:
         Float max_pathlength_ = -1,
         bool use_direct_ = false,
         bool use_angular_sampling_ = true)
-        : num_photons(num_photons_),
-          max_depth(max_depth_),
-          max_pathlength(max_pathlength_),
-          use_direct(use_direct_),
-          use_angular_sampling(use_angular_sampling_) {}
+        : m_num_photons(num_photons_),
+          m_max_depth(max_depth_),
+          m_max_pathlength(max_pathlength_),
+          m_use_direct(use_direct_),
+          m_use_angular_sampling(use_angular_sampling_) {}
 
     // AnyMap initializer
     rendering_parameters(const AnyMap &rendering_parameters_json);
-
+    ~rendering_parameters() = default;
     friend std::ostream& operator<<(std::ostream& os, const rendering_parameters& params) {
         os << fmt::format(
             "rendering_parameters {{ num_photons: {}, max_depth: {}, max_pathlength: {}, use_direct: {}, use_angular_sampling: {} }}",
-            params.num_photons, params.max_depth, params.max_pathlength, params.use_direct, params.use_angular_sampling
+            params.m_num_photons, params.m_max_depth, params.m_max_pathlength, params.m_use_direct, params.m_use_angular_sampling
         );
         return os;
     }
@@ -146,23 +146,23 @@ public:
 class scene_parameters
 {
 public:
-    tvec::Vec3f medium_l;
-    tvec::Vec3f medium_r;
+    tvec::Vec3f m_medium_l;
+    tvec::Vec3f m_medium_r;
 
     // Vanilla initializer
     scene_parameters(
         tvec::Vec3f medium_l_ = tvec::Vec3f(-FPCONST(.015), -FPCONST(5.0), -FPCONST(5.0)),
         tvec::Vec3f medium_r_ = tvec::Vec3f(FPCONST(.015), FPCONST(5.0), FPCONST(5.0)))
-        : medium_l(medium_l_), medium_r(medium_r_) {}
+        : m_medium_l(medium_l_), m_medium_r(medium_r_) {}
 
     // AnyMap initializer
     scene_parameters(const AnyMap &scene_parameters_json);
-
+    ~scene_parameters() = default;
     friend std::ostream& operator<<(std::ostream& os, const scene_parameters& params) {
         os << fmt::format(
             "scene_parameters {{ medium_l: [{}, {}, {}], medium_r: [{}, {}, {}] }}",
-            params.medium_l.x, params.medium_l.y, params.medium_l.z,
-            params.medium_r.x, params.medium_r.y, params.medium_r.z
+            params.m_medium_l.x, params.m_medium_l.y, params.m_medium_l.z,
+            params.m_medium_r.x, params.m_medium_r.y, params.m_medium_r.z
         );
         return os;
     }
@@ -171,22 +171,22 @@ public:
 // Importance sampling parameters
 class importance_sampling_parameters {
 public:
-    std::string distribution;
-    Float g_or_kappa;
+    std::string m_distribution;
+    Float m_g_or_kappa;
 
     // Vanilla initializer
     importance_sampling_parameters(
         std::string distribution_ = "vmf",
         Float g_or_kappa_ = 4)
-        : distribution(distribution_), g_or_kappa(g_or_kappa_) {}
+        : m_distribution(distribution_), m_g_or_kappa(g_or_kappa_) {}
 
     // AnyMap initializer
     importance_sampling_parameters(const AnyMap &importance_sampling_parameters_json);
-
+    ~importance_sampling_parameters() = default;
     friend std::ostream& operator<<(std::ostream& os, const importance_sampling_parameters& params) {
         os << fmt::format(
             "importance_sampling_parameters {{ distribution: {}, g_or_kappa: {} }}",
-            params.distribution, params.g_or_kappa
+            params.m_distribution, params.m_g_or_kappa
         );
         return os;
     }
@@ -195,12 +195,12 @@ public:
 // Lens parameters
 class lens_parameters {
 public:
-    Float emitter_lens_aperture;
-    Float emitter_lens_focal_length;
-    bool emitter_lens_active;
-    Float sensor_lens_aperture;
-    Float sensor_lens_focal_length;
-    bool sensor_lens_active;
+    Float m_emitter_lens_aperture;
+    Float m_emitter_lens_focal_length;
+    bool m_emitter_lens_active;
+    Float m_sensor_lens_aperture;
+    Float m_sensor_lens_focal_length;
+    bool m_sensor_lens_active;
 
     // Vanilla initializer
     lens_parameters(
@@ -210,65 +210,143 @@ public:
         Float sensor_lens_aperture_ = .015,
         Float sensor_lens_focal_length_ = .015,
         bool sensor_lens_active_ = false)
-        : emitter_lens_aperture(emitter_lens_aperture_),
-          emitter_lens_focal_length(emitter_lens_focal_length_),
-          emitter_lens_active(emitter_lens_active_),
-          sensor_lens_aperture(sensor_lens_aperture_),
-          sensor_lens_focal_length(sensor_lens_focal_length_),
-          sensor_lens_active(sensor_lens_active_) {}
+        : m_emitter_lens_aperture(emitter_lens_aperture_),
+          m_emitter_lens_focal_length(emitter_lens_focal_length_),
+          m_emitter_lens_active(emitter_lens_active_),
+          m_sensor_lens_aperture(sensor_lens_aperture_),
+          m_sensor_lens_focal_length(sensor_lens_focal_length_),
+          m_sensor_lens_active(sensor_lens_active_) {}
 
     // AnyMap initializer
     lens_parameters(const AnyMap &lens_parameters_json);
-
+    ~lens_parameters() = default;
     friend std::ostream& operator<<(std::ostream& os, const lens_parameters& params) {
         os << fmt::format(
             "lens_parameters {{ emitter_lens_aperture: {}, emitter_lens_focal_length: {}, emitter_lens_active: {}, sensor_lens_aperture: {}, sensor_lens_focal_length: {}, sensor_lens_active: {} }}",
-            params.emitter_lens_aperture, params.emitter_lens_focal_length, params.emitter_lens_active,
-            params.sensor_lens_aperture, params.sensor_lens_focal_length, params.sensor_lens_active
+            params.m_emitter_lens_aperture, params.m_emitter_lens_focal_length, params.m_emitter_lens_active,
+            params.m_sensor_lens_aperture, params.m_sensor_lens_focal_length, params.m_sensor_lens_active
         );
         return os;
     }
 };
 
 
-typedef struct settings
+class execution_parameters
 {
+public:
+    // Vanilla initializer: accepts all parameters and initializes execution_parameters
+    execution_parameters(
+        bool stricts = false,
+        const std::string& rendering_type = "analytic_rif",
+        const std::string& output_file_name = "",
+        int threads = -1,
+        const adoc_geometry_parameters& adoc_geometry_params = adoc_geometry_parameters(),
+        const scattering_parameters& scattering_params = scattering_parameters(),
+        const rendering_parameters& rendering_params = rendering_parameters(),
+        const scene_parameters& scene_params = scene_parameters(),
+        const film_parameters& film_params = film_parameters(),
+        const importance_sampling_parameters& importance_sampling_params = importance_sampling_parameters(),
+        const lens_parameters& lens_params = lens_parameters(),
+        std::unique_ptr<rif> rif_params = nullptr,
+        Float emitter_gap = .0,
+        Float sensor_gap = .0,
+        Float er_stepsize = 1e-3,
+        int precision = 8,
+        Float direct_to_l = 1e-5,
+        bool use_initialization_hack = true,
+        Float rr_weight = 1e-2,
+        bool use_bounce_decomposition = true,
+        bool print_inputs = true,
+        const std::string& projector_texture = "/home/dhawals1939/repos/simplER/renderer/images/White.pfm"
+    )
+        : m_stricts(stricts),
+          m_rendering_type(rendering_type),
+          m_output_file_name(output_file_name),
+          m_threads(threads),
+          m_adoc_geometry_params(adoc_geometry_params),
+          m_scattering_params(scattering_params),
+          m_rendering_params(rendering_params),
+          m_scene_params(scene_params),
+          m_film_params(film_params),
+          m_importance_sampling_params(importance_sampling_params),
+          m_lens_params(lens_params),
+          m_rif_params(std::move(rif_params)),
+          m_emitter_gap(emitter_gap),
+          m_sensor_gap(sensor_gap),
+          m_er_stepsize(er_stepsize),
+          m_precision(precision),
+          m_direct_to_l(direct_to_l),
+          m_use_initialization_hack(use_initialization_hack),
+          m_rr_weight(rr_weight),
+          m_use_bounce_decomposition(use_bounce_decomposition),
+          m_print_inputs(print_inputs),
+          m_projector_texture(projector_texture)
+    {
+        this->sanity_checks(*this);
+    }
+
+    // Destructor: destroys child classes as well
+    ~execution_parameters() = default;
+    execution_parameters(const AnyMap &settings_json);
+    friend std::ostream& operator<<(std::ostream& os, const execution_parameters& s) {
+        os << fmt::format(
+            "execution_parameters {{ rendering_type: {}, output_file_name: {}, threads: {}, emitter_gap: {}, sensor_gap: {}, er_stepsize: {}, precision: {}, direct_to_l: {}, use_initialization_hack: {}, rr_weight: {}, use_bounce_decomposition: {}, print_inputs: {}, projector_texture: {} }}\n",
+            s.m_rendering_type, s.m_output_file_name, s.m_threads, s.m_emitter_gap, s.m_sensor_gap, s.m_er_stepsize, s.m_precision,
+            s.m_direct_to_l, s.m_use_initialization_hack, s.m_rr_weight, s.m_use_bounce_decomposition, s.m_print_inputs, s.m_projector_texture
+        );
+        os << s.m_adoc_geometry_params << "\n";
+        os << s.m_scattering_params << "\n";
+        os << s.m_rendering_params << "\n";
+        os << s.m_scene_params << "\n";
+        os << s.m_film_params << "\n";
+        os << s.m_importance_sampling_params << "\n";
+        os << s.m_lens_params << "\n";
+        if (s.m_rif_params) {
+            if (s.m_rendering_type == "rif_sources") {
+                os << *static_cast<rif_sources *>(s.m_rif_params.get()) << "\n";
+            } else if (s.m_rendering_type == "rif_analytical") {
+                os << *static_cast<rif_analytical *>(s.m_rif_params.get()) << "\n";
+            } else if (s.m_rendering_type == "rif_interpolated") {
+                os << *static_cast<rif_interpolated *>(s.m_rif_params.get()) << "\n";
+            }
+        }
+        return os;
+    }
+    int sanity_checks(execution_parameters &settings);
+    //member variables
     // Output and system parameters
-    std::string rendering_type = "analytic_rif";
-    std::string output_file_name = "";
-    int threads = -1; // default number of threads
+    bool m_stricts = false; // strict parsing of input
+    std::string m_rendering_type = "analytic_rif";
+    std::string m_output_file_name = "";
+    int m_threads = -1; // default number of threads
 
     // adoc geometry parameters
-    adoc_geometry_parameters adoc_geometry_params;
+    adoc_geometry_parameters m_adoc_geometry_params;
     // scattering parameters
-    scattering_parameters scattering_params;
+    scattering_parameters m_scattering_params;
     // rendering parameters
-    rendering_parameters rendering_params;
+    rendering_parameters m_rendering_params;
     // scene parameters
-    scene_parameters scene_params;
+    scene_parameters m_scene_params;
     // film parameters
-    film_parameters film_params;
+    film_parameters m_film_params;
     // importance sampling parameters
-    importance_sampling_parameters importance_sampling_params;
+    importance_sampling_parameters m_importance_sampling_params;
     // lens parameters
-    lens_parameters lens_params;
+    lens_parameters m_lens_params;
     // rif parameters
-    std::unique_ptr<rif> rif_params; // parent class handle
+    std::unique_ptr<rif> m_rif_params; // parent class handle
 
     // Extended rendering parameters
-    Float emitter_gap = .0; // distance before US activation (from emitter)
-    Float sensor_gap = .0;  // distance before US activation (towards sensor)
-    Float er_stepsize = 1e-3;
-    int precision = 8; // decimal precision for ER stepping
-    Float direct_to_l = 1e-5;
-    bool use_initialization_hack = true; // force direct connections to line between endpoints
-    Float rr_weight = 1e-2;              // Russian roulette survival probability
+    Float m_emitter_gap = .0; // distance before US activation (from emitter)
+    Float m_sensor_gap = .0;  // distance before US activation (towards sensor)
+    Float m_er_stepsize = 1e-3;
+    int m_precision = 8; // decimal precision for ER stepping
+    Float m_direct_to_l = 1e-5;
+    bool m_use_initialization_hack = true; // force direct connections to line between endpoints
+    Float m_rr_weight = 1e-2;              // Russian roulette survival probability
 
-    bool use_bounce_decomposition = true; // true = bounce decomposition, false = transient
-    bool print_inputs = true;
-    std::string projector_texture = "/home/dhawals1939/repos/simplER/renderer/images/White.pfm";
+    bool m_use_bounce_decomposition = true; // true = bounce decomposition, false = transient
+    bool m_print_inputs = true;
+    std::string m_projector_texture = "/home/dhawals1939/repos/simplER/renderer/images/White.pfm";
 };
-
-void parse_config(const AnyMap &config, struct settings &settings, bool &stricts);
-int print_inputs(struct settings &settings);
-int sanity_checks(struct settings &settings);

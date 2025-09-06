@@ -145,7 +145,7 @@ __device__ bool area_textured_source::sample_ray(TVector3<Float> &pos, TVector3<
     pos = *m_origin;
 
     // sample pixel position first
-	int pixel = m_textureSampler->sample(uniform_sample());
+	int pixel = m_texture_sampler->sample(uniform_sample());
 	int p[2];
 	m_texture->ind2sub(pixel, p[0], p[1]);
 

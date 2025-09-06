@@ -20,7 +20,6 @@
 
 int main(int argc, char **argv)
 {
-    struct settings settings;
     /*
     * Initialize scene parameters.
     */
@@ -51,44 +50,42 @@ int main(int argc, char **argv)
         fmt::print("  {}\n", kv.first);
     }
 
-    parse_config(config, settings, stricts);
+    execution_parameters execution_params(config);
 
 
-    if (settings.print_inputs)
+    if (execution_params.m_print_inputs)
     {
         fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::green), "simplER renderer started with the following parameters:\n");
-        print_inputs(settings);
+        fmt::print(fmt::fg(fmt::color::green), "{}", fmt::streamed(execution_params));
     }
 
-    sanity_checks(settings);
+    pfunc::henyey_greenstein *phase = new pfunc::henyey_greenstein(execution_params.m_scattering_params.m_g_val);
 
-    pfunc::henyey_greenstein *phase = new pfunc::henyey_greenstein(settings.scattering_params.g_val);
-
-    tvec::Vec3f emitter_lens_origin(settings.scene_params.medium_r[0], FPCONST(0.0), FPCONST(0.0));
-    Float EgapEndLocX = emitter_lens_origin.x - settings.emitter_gap;
-    tvec::Vec3f sensor_lens_origin(settings.scene_params.medium_l[0], FPCONST(0.0), FPCONST(0.0));
-    Float SgapBeginLocX = sensor_lens_origin.x + settings.sensor_gap; // ADI: VERIFY ME
+    tvec::Vec3f emitter_lens_origin(execution_params.m_scene_params.m_medium_r[0], FPCONST(0.0), FPCONST(0.0));
+    Float EgapEndLocX = emitter_lens_origin.x - execution_params.m_emitter_gap;
+    tvec::Vec3f sensor_lens_origin(execution_params.m_scene_params.m_medium_l[0], FPCONST(0.0), FPCONST(0.0));
+    Float SgapBeginLocX = sensor_lens_origin.x + execution_params.m_sensor_gap; // ADI: VERIFY ME
 
     /*
         * Initialize source parameters.
         */
-    const tvec::Vec3f light_origin(settings.scene_params.medium_r[0] + settings.adoc_geometry_params.emitter_distance, FPCONST(0.0), FPCONST(0.0));
+    const tvec::Vec3f light_origin(execution_params.m_scene_params.m_medium_r[0] + execution_params.m_adoc_geometry_params.m_emitter_distance, FPCONST(0.0), FPCONST(0.0));
     const Float light_angle = M_PI;
     const tvec::Vec3f light_dir(std::cos(light_angle), std::sin(light_angle),
                                 FPCONST(0.0));
-    const tvec::Vec2f light_plane(settings.adoc_geometry_params.emitter_size, settings.adoc_geometry_params.emitter_size);
+    const tvec::Vec2f light_plane(execution_params.m_adoc_geometry_params.m_emitter_size, execution_params.m_adoc_geometry_params.m_emitter_size);
     const Float Li = FPCONST(75000.0);
 
     /*
         * Initialize camera parameters.
         */
-    const tvec::Vec3f view_origin(settings.scene_params.medium_l[0] - settings.adoc_geometry_params.sensor_distance, FPCONST(0.0), FPCONST(0.0));
+    const tvec::Vec3f view_origin(execution_params.m_scene_params.m_medium_l[0] - execution_params.m_adoc_geometry_params.m_sensor_distance, FPCONST(0.0), FPCONST(0.0));
     const tvec::Vec3f view_dir(-FPCONST(1.0), FPCONST(0.0), FPCONST(0.0));
     const tvec::Vec3f view_x(FPCONST(0.0), -FPCONST(1.0), FPCONST(0.0));
-    const tvec::Vec2f view_plane(settings.adoc_geometry_params.sensor_size, settings.adoc_geometry_params.sensor_size);
-    const tvec::Vec2f pathlength_range(settings.film_params.path_length_min, settings.film_params.path_length_max);
+    const tvec::Vec2f view_plane(execution_params.m_adoc_geometry_params.m_sensor_size, execution_params.m_adoc_geometry_params.m_sensor_size);
+    const tvec::Vec2f pathlength_range(execution_params.m_film_params.m_path_length_min, execution_params.m_film_params.m_path_length_max);
 
-    const tvec::Vec3i view_resolution(settings.film_params.spatial_x, settings.film_params.spatial_y, settings.film_params.path_length_bins);
+    const tvec::Vec3i view_resolution(execution_params.m_film_params.m_spatial_x, execution_params.m_film_params.m_spatial_y, execution_params.m_film_params.m_path_length_bins);
 
     /*
         * Initialize rendering parameters.
@@ -97,81 +94,81 @@ int main(int argc, char **argv)
     const tvec::Vec3f axis_ux(FPCONST(0.0), FPCONST(0.0), FPCONST(1.0));
     const tvec::Vec3f p_u(FPCONST(0.0), FPCONST(0.0), FPCONST(0.0));
 
-    const med::Medium medium(settings.scattering_params.sigma_t, settings.scattering_params.albedo, phase);
+    const med::Medium medium(execution_params.m_scattering_params.m_sigma_t, execution_params.m_scattering_params.m_albedo, phase);
     scn::Scene<tvec::TVector3> *scene = nullptr;
-    if (settings.rendering_type == "rif_sources")
+    if (execution_params.m_rendering_type == "rif_sources")
     {
-        auto *rif_params = dynamic_cast<rif_sources *>(settings.rif_params.get());
+        auto *rif_params = dynamic_cast<rif_sources *>(execution_params.m_rif_params.get());
         if (!rif_params)
         throw std::runtime_error("rif_sources expected, but rif_params holds another type");
         
         std::cout<< "rif parms type = " << *rif_params << std::endl;
         #if USE_RIF_SOURCES
-        scene = new scn::Scene<tvec::TVector3>(ior, settings.scene_params.medium_l, settings.scene_params.medium_r,
-                                               light_origin, light_dir, settings.adoc_geometry_params.half_theta_limit, settings.projector_texture, light_plane, Li,
-                                               view_origin, view_dir, view_x, view_plane, pathlength_range, settings.use_bounce_decomposition,
-                                               settings.importance_sampling_params.distribution, settings.importance_sampling_params.g_or_kappa,
-                                               emitter_lens_origin, settings.lens_params.emitter_lens_aperture, settings.lens_params.emitter_lens_focal_length, settings.lens_params.emitter_lens_active,
-                                               sensor_lens_origin, settings.lens_params.sensor_lens_aperture, settings.lens_params.sensor_lens_focal_length, settings.lens_params.sensor_lens_active,
-                                               rif_params->f_u, rif_params->speed_u, rif_params->n_o, rif_params->n_scaling, rif_params->n_coeff, rif_params->radius, rif_params->center1, rif_params->center2, rif_params->active1, rif_params->active2, rif_params->phase1, rif_params->phase2, rif_params->theta_min, rif_params->theta_max, rif_params->theta_sources, rif_params->trans_z_min, rif_params->trans_z_max, rif_params->trans_z_sources,
-                                               axis_uz, axis_ux, p_u, settings.er_stepsize, settings.direct_to_l, settings.rr_weight, settings.precision, EgapEndLocX, SgapBeginLocX, settings.use_initialization_hack
+        scene = new scn::Scene<tvec::TVector3>(ior, execution_params.m_scene_params.m_medium_l, execution_params.m_scene_params.m_medium_r,
+                                               light_origin, light_dir, execution_params.m_adoc_geometry_params.m_half_theta_limit, execution_params.m_projector_texture, light_plane, Li,
+                                               view_origin, view_dir, view_x, view_plane, pathlength_range, execution_params.m_use_bounce_decomposition,
+                                               execution_params.m_importance_sampling_params.m_distribution, execution_params.m_importance_sampling_params.m_g_or_kappa,
+                                               emitter_lens_origin, execution_params.m_lens_params.m_emitter_lens_aperture, execution_params.m_lens_params.m_emitter_lens_focal_length, execution_params.m_lens_params.m_emitter_lens_active,
+                                               sensor_lens_origin, execution_params.m_lens_params.m_sensor_lens_aperture, execution_params.m_lens_params.m_sensor_lens_focal_length, execution_params.m_lens_params.m_sensor_lens_active,
+                                               rif_params->m_f_u, rif_params->m_speed_u, rif_params->m_n_o, rif_params->m_n_scaling, rif_params->m_n_coeff, rif_params->m_radius, rif_params->m_center1, rif_params->m_center2, rif_params->m_active1, rif_params->m_active2, rif_params->m_phase1, rif_params->m_phase2, rif_params->m_theta_min, rif_params->m_theta_max, rif_params->m_theta_sources, rif_params->m_trans_z_min, rif_params->m_trans_z_max, rif_params->m_trans_z_sources,
+                                               axis_uz, axis_ux, p_u, execution_params.m_er_stepsize, execution_params.m_direct_to_l, execution_params.m_rr_weight, execution_params.m_precision, EgapEndLocX, SgapBeginLocX, execution_params.m_use_initialization_hack
         );
         #endif
     }
-    else if (settings.rendering_type == "rif_analytical")
+    else if (execution_params.m_rendering_type == "rif_analytical")
     {
         fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::blue), "reached here rif_analytical\n");
 
-        auto *rif_params = dynamic_cast<rif_analytical *>(settings.rif_params.get());
+        auto *rif_params = dynamic_cast<rif_analytical *>(execution_params.m_rif_params.get());
         if (!rif_params)
             throw std::runtime_error("rif_analytical expected, but rif_params holds another type");
 
         #if USE_RIF_ANALYTICAL
-        scene = new scn::Scene<tvec::TVector3>(ior, settings.scene_params.medium_l, settings.scene_params.medium_r,
-                                               light_origin, light_dir, settings.adoc_geometry_params.half_theta_limit, settings.projector_texture, light_plane, Li,
-                                               view_origin, view_dir, view_x, view_plane, pathlength_range, settings.use_bounce_decomposition,
-                                               settings.importance_sampling_params.distribution, settings.importance_sampling_params.g_or_kappa,
-                                               emitter_lens_origin, settings.lens_params.emitter_lens_aperture, settings.lens_params.emitter_lens_focal_length, settings.lens_params.emitter_lens_active,
-                                               sensor_lens_origin, settings.lens_params.sensor_lens_aperture, settings.lens_params.sensor_lens_focal_length, settings.lens_params.sensor_lens_active,
-                                               rif_params->f_u, rif_params->speed_u, rif_params->n_o, rif_params->n_max, rif_params->n_clip, rif_params->phi_min, rif_params->phi_max, rif_params->mode,
-                                               axis_uz, axis_ux, p_u, settings.er_stepsize, settings.direct_to_l, settings.rr_weight, settings.precision, EgapEndLocX, SgapBeginLocX, settings.use_initialization_hack
+        scene = new scn::Scene<tvec::TVector3>(ior, execution_params.m_scene_params.m_medium_l, execution_params.m_scene_params.m_medium_r,
+                                               light_origin, light_dir, execution_params.m_adoc_geometry_params.m_half_theta_limit, execution_params.m_projector_texture, light_plane, Li,
+                                               view_origin, view_dir, view_x, view_plane, pathlength_range, execution_params.m_use_bounce_decomposition,
+                                               execution_params.m_importance_sampling_params.m_distribution, execution_params.m_importance_sampling_params.m_g_or_kappa,
+                                               emitter_lens_origin, execution_params.m_lens_params.m_emitter_lens_aperture, execution_params.m_lens_params.m_emitter_lens_focal_length, execution_params.m_lens_params.m_emitter_lens_active,
+                                               sensor_lens_origin, execution_params.m_lens_params.m_sensor_lens_aperture, execution_params.m_lens_params.m_sensor_lens_focal_length, execution_params.m_lens_params.m_sensor_lens_active,
+                                               rif_params->m_f_u, rif_params->m_speed_u, rif_params->m_n_o, rif_params->m_n_max, rif_params->m_n_clip, rif_params->m_phi_min, rif_params->m_phi_max, rif_params->m_mode,
+                                               axis_uz, axis_ux, p_u, execution_params.m_er_stepsize, execution_params.m_direct_to_l, execution_params.m_rr_weight, execution_params.m_precision, EgapEndLocX, SgapBeginLocX, execution_params.m_use_initialization_hack
         );
         #endif
     }
-    else if (settings.rendering_type == "rif_interpolated")
+    else if (execution_params.m_rendering_type == "rif_interpolated")
     {
         fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::blue), "reached here rif_interpolated\n");
 
-        auto *rif_params = dynamic_cast<rif_interpolated *>(settings.rif_params.get());
+        auto *rif_params = dynamic_cast<rif_interpolated *>(execution_params.m_rif_params.get());
         if (!rif_params)
             throw std::runtime_error("rif_interpolated expected, but rif_params holds another type");
 
         #if USE_RIF_INTERPOLATED
-        scene = new scn::Scene<tvec::TVector3>(ior, settings.scene_params.medium_l, settings.scene_params.medium_r,
-                                       light_origin, light_dir, settings.adoc_geometry_params.half_theta_limit, settings.projector_texture, light_plane, Li,
-                                       view_origin, view_dir, view_x, view_plane, pathlength_range, settings.use_bounce_decomposition,
-                                       settings.importance_sampling_params.distribution, settings.importance_sampling_params.g_or_kappa,
-                                       emitter_lens_origin, settings.lens_params.emitter_lens_aperture, settings.lens_params.emitter_lens_focal_length, settings.lens_params.emitter_lens_active,
-                                       sensor_lens_origin, settings.lens_params.sensor_lens_aperture, settings.lens_params.sensor_lens_focal_length, settings.lens_params.sensor_lens_active,
-                                       rif_params->f_u, rif_params->speed_u, rif_params->n_o, rif_params->n_max, rif_params->n_clip, rif_params->phi_min, rif_params->phi_max, rif_params->mode,
-                                       axis_uz, axis_ux, p_u, settings.er_stepsize, settings.direct_to_l, settings.rr_weight, settings.precision, EgapEndLocX, SgapBeginLocX, settings.use_initialization_hack,
-                                       rif_params->rifgrid_file
+        scene = new scn::Scene<tvec::TVector3>(ior, execution_params.m_scene_params.m_medium_l, execution_params.m_scene_params.m_medium_r,
+                                       light_origin, light_dir, execution_params.m_adoc_geometry_params.m_half_theta_limit, execution_params.m_projector_texture, light_plane, Li,
+                                       view_origin, view_dir, view_x, view_plane, pathlength_range, execution_params.m_use_bounce_decomposition,
+                                       execution_params.m_importance_sampling_params.m_distribution, execution_params.m_importance_sampling_params.m_g_or_kappa,
+                                       emitter_lens_origin, execution_params.m_lens_params.m_emitter_lens_aperture, execution_params.m_lens_params.m_emitter_lens_focal_length, execution_params.m_lens_params.m_emitter_lens_active,
+                                       sensor_lens_origin, execution_params.m_lens_params.m_sensor_lens_aperture, execution_params.m_lens_params.m_sensor_lens_focal_length, execution_params.m_lens_params.m_sensor_lens_active,
+                                       rif_params->m_f_u, rif_params->m_speed_u, rif_params->m_n_o, rif_params->m_n_max, rif_params->m_n_clip, rif_params->m_phi_min, rif_params->m_phi_max, rif_params->m_mode,
+                                       axis_uz, axis_ux, p_u, execution_params.m_er_stepsize, execution_params.m_direct_to_l, execution_params.m_rr_weight, execution_params.m_precision, EgapEndLocX, SgapBeginLocX, execution_params.m_use_initialization_hack,
+                                       rif_params->m_rifgrid_file
                                     );
         #endif
     }
 
     if (!scene)
     {
-        fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::red), "Failed to create scene. Unknown rendering type: {}\n", settings.rendering_type);
+        fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::red), "Failed to create scene. Unknown rendering type: {}\n", execution_params.m_rendering_type);
         return 1;
     }
 
-    photon::Renderer<tvec::TVector3> renderer(settings.rendering_params.max_depth, settings.rendering_params.max_pathlength, settings.rendering_params.use_direct, settings.rendering_params.use_angular_sampling, settings.threads);
+    photon::Renderer<tvec::TVector3> renderer(execution_params.m_rendering_params.m_max_depth, execution_params.m_rendering_params.m_max_pathlength, execution_params.m_rendering_params.m_use_direct, execution_params.m_rendering_params.m_use_angular_sampling, execution_params.m_threads);
 
     image::SmallImage img(view_resolution.x, view_resolution.y, view_resolution.z);
-    renderer.renderImage(img, medium, *scene, settings.rendering_params.num_photons);
+    renderer.renderImage(img, medium, *scene, execution_params.m_rendering_params.m_num_photons);
 
-    img.writePFM3D(settings.rendering_type + ".pfm3d");
+    img.writePFM3D(execution_params.m_rendering_type + ".pfm3d");
 
     delete phase;
 

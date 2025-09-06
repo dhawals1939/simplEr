@@ -374,7 +374,7 @@ protected:
         m_lens           = Lens::from(source.getLens());
         m_plane          = TVector2<Float>::from(source.get_plane());
         m_Li             = source.get_li();
-        m_halfThetaLimit = source.getHalfThetaLimit();
+        m_half_theta_limit = source.getHalfThetaLimit();
 
         float textureXRes = source.getTexture().getXRes();
         float textureYRes = source.getTexture().getYRes();
@@ -384,18 +384,18 @@ protected:
                                         planeY/textureYRes);
         m_pixelsize = TVector2<Float>::from(pixelsize);
 
-        m_ct = cosf(m_halfThetaLimit);
+        m_ct = cosf(m_half_theta_limit);
 
-        m_textureSampler = DiscreteDistribution::from(source.textureSamplerCDF());
+        m_texture_sampler = DiscreteDistribution::from(source.textureSamplerCDF());
 
     }
 
     TVector3<Float> *m_origin;
     TVector3<Float> *m_dir;
-    Float m_halfThetaLimit;
+    Float m_half_theta_limit;
     Float m_ct;
     Image2<Float> *m_texture;
-    DiscreteDistribution *m_textureSampler;
+    DiscreteDistribution *m_texture_sampler;
     TVector2<Float> *m_pixelsize;
     TVector2<Float> *m_plane;
     Float m_Li;
