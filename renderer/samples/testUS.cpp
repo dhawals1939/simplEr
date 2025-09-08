@@ -334,7 +334,7 @@ int main(int argc, char **argv) {
 	const tvec::Vec3f viewDir(-FPCONST(1.0), FPCONST(0.0), FPCONST(0.0));
 	const tvec::Vec3f viewX(FPCONST(0.0), -FPCONST(1.0), FPCONST(0.0));
 	const tvec::Vec2f viewPlane(FPCONST(emitter_sensor_size), FPCONST(emitter_sensor_size));
-	const tvec::Vec2f pathlengthRange(FPCONST(pathLengthMin), FPCONST(pathLengthMax));
+	const tvec::Vec2f pathlength_range(FPCONST(pathLengthMin), FPCONST(pathLengthMax));
 	const tvec::Vec3i viewReso(spatialX, spatialY, pathLengthBins);
 
 	/*
@@ -348,7 +348,7 @@ int main(int argc, char **argv) {
 
 	scn::Scene<tvec::TVector3> scene(ior, mediumL, mediumR,
 						lightOrigin, lightDir, halfThetaLimit, projectorTexture, lightPlane, Li,
-						viewOrigin, viewDir, viewX, viewPlane, pathlengthRange,
+						viewOrigin, viewDir, viewX, viewPlane, pathlength_range,
 						f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight
 #if USE_RIF_INTERPOLATED
 						, xmin, xmax, N

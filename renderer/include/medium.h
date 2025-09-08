@@ -4,7 +4,6 @@
  *  Created on: Nov 3, 2015
  *      Author: igkiou
  */
-#pragma once
 
 #include <stdio.h>
 #include <iostream>
@@ -17,6 +16,7 @@
 #include <tvector.h>
 #include <util.h>
 
+#pragma once
 namespace med {
 
 struct Medium {

@@ -62,6 +62,16 @@ namespace scn
     template <template <typename> class VectorType>
     area_source<VectorType>::~area_source() = default;
 
+    template <template <typename> class VectorType>
+    std::ostream &operator<<(std::ostream &os, const area_source<VectorType> &src)
+    {
+        os << "area_source(origin: " << src.get_origin()
+           << ", dir: " << src.get_dir()
+           << ", plane: [" << src.get_plane().x << ", " << src.get_plane().y << "]"
+           << ", Li: " << src.get_Li() << ")";
+        return os;
+    }
+
     // ---- Explicit instantiations (add all VectorType templates you use) ----
     template class area_source<tvec::TVector3>;
     template class area_source<tvec::TVector2>;

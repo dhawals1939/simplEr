@@ -141,7 +141,7 @@ __device__ inline void SmoothDielectric::sample(const TVector3<Float> &in, const
 
 // Sample random ray
 __device__ bool area_textured_source::sample_ray(TVector3<Float> &pos, TVector3<Float> &dir,
-                                              Float &totalDistance) const{
+                                              Float &total_distance) const{
     pos = *m_origin;
 
     // sample pixel position first
@@ -165,7 +165,7 @@ __device__ bool area_textured_source::sample_ray(TVector3<Float> &pos, TVector3<
 	dir[1] = zt*cosf(phi);
 	dir[2] = zt*sinf(phi);
 	
-	return propagate_till_medium(pos, dir, totalDistance);
+	return propagate_till_medium(pos, dir, total_distance);
 }
 
 
@@ -220,7 +220,7 @@ __device__ Float henyey_greenstein::sample(const TVector3<Float> &in, TVector3<F
     return cosTheta;
 }
 
-__device__ inline bool Camera::samplePosition(TVector3<Float> &pos) const {
+__device__ inline bool Camera::sample_position(TVector3<Float> &pos) const {
     pos = *m_origin;
     for (int iter = 1; iter < m_origin->dim; ++iter) {
         pos[iter] += - (*m_plane)[iter - 1] / FPCONST(2.0) + uniform_sample() * (*m_plane)[iter - 1];
@@ -366,7 +366,7 @@ __device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVect
 #endif
 
 	Float distanceToSensor = 0;
-	if(!m_camera->propagateTillSensor(p1, refrDirToSensor, distanceToSensor))
+	if(!m_camera->propagate_till_sensor(p1, refrDirToSensor, distanceToSensor))
 		return;
 	totalOpticalDistance += distanceToSensor;
 
@@ -469,11 +469,11 @@ __device__ inline void addPixel(int x, int y, int z, Float val) {
 }
 
 __device__ void Scene::addEnergyToImage(const TVector3<Float> &p, Float pathlength, int &depth, Float val) const {
-	Float x = dot(m_camera->getHorizontal(), p) - m_camera->get_origin().y;
-	Float y = dot(m_camera->getVertical(), p) - m_camera->get_origin().z;
+	Float x = dot(m_camera->get_horizontal(), p) - m_camera->get_origin().y;
+	Float y = dot(m_camera->get_vertical(), p) - m_camera->get_origin().z;
 
-	if (((m_camera->getPathlengthRange().x == -1) && (m_camera->getPathlengthRange().y == -1)) ||
-		((pathlength > m_camera->getPathlengthRange().x) && (pathlength < m_camera->getPathlengthRange().y))) {
+	if (((m_camera->get_pathlength_range().x == -1) && (m_camera->get_pathlength_range().y == -1)) ||
+		((pathlength > m_camera->get_pathlength_range().x) && (pathlength < m_camera->get_pathlength_range().y))) {
 		x = (x / m_camera->get_plane().x + FPCONST(0.5)) * static_cast<Float>(d_constants.x_res);
 		y = (y / m_camera->get_plane().y + FPCONST(0.5)) * static_cast<Float>(d_constants.y_res);
 
@@ -481,15 +481,15 @@ __device__ void Scene::addEnergyToImage(const TVector3<Float> &p, Float pathleng
 		int iy = static_cast<int>(floorf(y));
 
 		int iz;
-		if(m_camera->isBounceDecomposition()){
+		if(m_camera->is_bounce_decomposition()){
 			iz = depth;
 		}
 		else{
-			if ((m_camera->getPathlengthRange().x == -1) && (m_camera->getPathlengthRange().y == -1)) {
+			if ((m_camera->get_pathlength_range().x == -1) && (m_camera->get_pathlength_range().y == -1)) {
 				iz = 0;
 			} else {
-				Float z = pathlength - m_camera->getPathlengthRange().x;
-				Float range = m_camera->getPathlengthRange().y - m_camera->getPathlengthRange().x;
+				Float z = pathlength - m_camera->get_pathlength_range().x;
+				Float range = m_camera->get_pathlength_range().y - m_camera->get_pathlength_range().x;
 				z = (z / range) * static_cast<Float>(d_constants.z_res);
 				iz = static_cast<int>(floorf(z));
 			}
@@ -631,11 +631,11 @@ __device__ void directTracing(const TVector3<Float> &p, const TVector3<Float> &d
 	ASSERT(foreshortening >= FPCONST(0.0));
 
 #if USE_SIMPLIFIED_TIMING
-	totalDistance = (distToSensor) * ior;
+	total_distance = (distToSensor) * ior;
 #endif
 
 	Float distanceToSensor = 0;
-	if(!camera.propagateTillSensor(p1, refrDirToSensor, distanceToSensor))
+	if(!camera.propagate_till_sensor(p1, refrDirToSensor, distanceToSensor))
 		return;
 	totalOpticalDistance += distanceToSensor;
 
@@ -681,7 +681,7 @@ __device__ void scatter(TVector3<Float> &p, TVector3<Float> &d, Float scaling, F
 __global__ void renderPhotons() {
     TVector3<Float> pos;
     TVector3<Float> dir;
-    Float totalDistance = 0;
+    Float total_distance = 0;
     Float scaling = 0;
 
     Scene scene = *d_constants.scene;
@@ -690,7 +690,7 @@ __global__ void renderPhotons() {
 
     if (idx < d_constants.numPhotons) {
 	init_rand(idx);
-        if (scene.genRay(pos, dir, totalDistance)) {
+        if (scene.genRay(pos, dir, total_distance)) {
 #if USE_RIF_SOURCES
             scaling = 1.0f;
 #else
@@ -700,9 +700,9 @@ __global__ void renderPhotons() {
   	    dir *= scene.getMediumIor(pos, scaling);
 #endif
             if (d_constants.useDirect)
-                directTracing(pos, dir, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
+                directTracing(pos, dir, scaling, total_distance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
 
-            scatter(pos, dir, scaling, totalDistance);
+            scatter(pos, dir, scaling, total_distance);
         }
     }
 }
@@ -761,7 +761,7 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
     CUDA_CALL(cudaMalloc((void **)&cudaRandomState, numPhotons * sizeof(unsigned int)));
 	CUDA_CALL(cudaMemset(cudaRandomState, seed, numPhotons * sizeof(unsigned int)));
 
-    scn::Block<tvec::TVector3> block = scene.getMediumBlock();
+    scn::block<tvec::TVector3> block = scene.getMediumBlock();
 
     /* Send in parameter pointers to device */
     Constants h_constants = {
@@ -773,8 +773,8 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
         .scene              = cudaScene,
         .medium             = cudaMedium,
         .weight             = getWeight(medium, scene, numPhotons),
-        .blockL             = make_float3(block.getBlockL().x, block.getBlockL().y, block.getBlockL().z),
-        .blockR             = make_float3(block.getBlockR().x, block.getBlockR().y, block.getBlockR().z),
+        .blockL             = make_float3(block.get_block_l().x, block.get_block_l().y, block.get_block_l().z),
+        .blockR             = make_float3(block.get_block_r().x, block.get_block_r().y, block.get_block_r().z),
         .maxDepth           = maxDepth,
         .maxPathlength      = maxPathlength,
         .useDirect          = useDirect,

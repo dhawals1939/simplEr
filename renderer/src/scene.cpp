@@ -46,7 +46,7 @@ void sampleRandomDirection(tvec::Vec3f &randDirection, smp::Sampler &sampler){
  * disy is the smallest distance that must be traveled till intersection if inside the box.
  */
 template <template <typename> class vector_type>
-bool Block<vector_type>::intersect(const vector_type<Float> &p, const vector_type<Float> &d, Float &disx, Float &disy) const {
+bool block<vector_type>::intersect(const vector_type<Float> &p, const vector_type<Float> &d, Float &disx, Float &disy) const {
 
     vector_type<Float> l(M_MIN), r(M_MAX);
     for (int i = 0; i < p.dim; ++i) {
@@ -74,7 +74,7 @@ bool Block<vector_type>::intersect(const vector_type<Float> &p, const vector_typ
 }
 
 // template <template <typename> class vector_type>
-// bool Camera<vector_type>::samplePosition(vector_type<Float> &pos, smp::Sampler &sampler) const {
+// bool Camera<vector_type>::sample_position(vector_type<Float> &pos, smp::Sampler &sampler) const {
 //     pos = m_origin;
 //     for (int iter = 1; iter < m_origin.dim; ++iter) {
 //         pos[iter] += - m_plane[iter - 1] / FPCONST(2.0) + sampler() * m_plane[iter - 1];
@@ -83,7 +83,7 @@ bool Block<vector_type>::intersect(const vector_type<Float> &p, const vector_typ
 // }
 
 template <template <typename> class vector_type>
-bool Camera<vector_type>::samplePosition(vector_type<Float> &pos, smp::Sampler &sampler) const
+bool Camera<vector_type>::sample_position(vector_type<Float> &pos, smp::Sampler &sampler) const
 {
     pos = m_origin;
     for (int iter = 1; iter < m_origin.dim; ++iter)
@@ -105,7 +105,7 @@ bool area_source<vector_type>::sample_ray(vector_type<Float> &pos, vector_type<F
 }
 
 template <template <typename> class vector_type>
-bool area_textured_source<vector_type>::sample_ray(vector_type<Float> &pos, vector_type<Float> &dir, smp::Sampler &sampler, Float &totalDistance) const {
+bool area_textured_source<vector_type>::sample_ray(vector_type<Float> &pos, vector_type<Float> &dir, smp::Sampler &sampler, Float &total_distance) const {
     pos = m_origin;
 
     // sample pixel position first
@@ -128,7 +128,7 @@ bool area_textured_source<vector_type>::sample_ray(vector_type<Float> &pos, vect
     dir[1] = zt*std::cos(phi);
     dir[2] = zt*std::sin(phi);
 
-    return propagate_till_medium(pos, dir, totalDistance);
+    return propagate_till_medium(pos, dir, total_distance);
 
 //  std::cout << dir[0] << ", " << dir[1] << ", " << dir[2] << std::endl;
 
@@ -380,7 +380,7 @@ void Scene<vector_type>::trace(vector_type<Float> &p, vector_type<Float> &d, con
 }
 
 // ADI: CONVERT THIS TO A BISECTION SEARCH
-/* This code is similar to trace code and the intersect code of "Block" structure*/
+/* This code is similar to trace code and the intersect code of "block" structure*/
 /* Based on ER equations, the ray is traced till we either meet end of a block or the distance (in that case, we have an error) */
 template <template <typename> class vector_type>
 void Scene<vector_type>::traceTillBlock(vector_type<Float> &p, vector_type<Float> &d, const Float &dist, Float &disx, Float &disy, Float &totalOpticalDistance, const Float &scaling) const{
@@ -575,15 +575,15 @@ void Scene<vector_type>::computefdfNEE(const vector_type<Float> &v_i, const vect
 
 template <template <typename> class vector_type>
 bool Scene<vector_type>::genRay(vector_type<Float> &pos, vector_type<Float> &dir,
-                        smp::Sampler &sampler, Float &totalDistance) const {
+                        smp::Sampler &sampler, Float &total_distance) const {
 
-    if (m_source.sample_ray(pos, dir, sampler, totalDistance)) {
+    if (m_source.sample_ray(pos, dir, sampler, total_distance)) {
 //      Float dist = FPCONST(0.0);
 //      Assert(std::abs(dir.x) >= M_EPSILON);
 //      if (dir.x >= M_EPSILON) {
-//          dist = (m_mediumBlock.getBlockL().x - pos.x) / dir.x;
+//          dist = (m_mediumBlock.get_block_l().x - pos.x) / dir.x;
 //      } else if (dir.x <= -M_EPSILON) {
-//          dist = (m_mediumBlock.getBlockR().x - pos.x) / dir.x;
+//          dist = (m_mediumBlock.get_block_r().x - pos.x) / dir.x;
 //      }
 //      pos += dist * dir;
 //      pos.x += M_EPSILON * 2;
@@ -598,17 +598,17 @@ template <template <typename> class vector_type>
 bool Scene<vector_type>::genRay(vector_type<Float> &pos, vector_type<Float> &dir,
                         smp::Sampler &sampler,
                         vector_type<Float> &possrc, vector_type<Float> &dirsrc,
-                        Float &totalDistance) const {
+                        Float &total_distance) const {
 
-    if (m_source.sample_ray(pos, dir, sampler, totalDistance)) {
+    if (m_source.sample_ray(pos, dir, sampler, total_distance)) {
         possrc = pos;
         dirsrc = dir;
 //      Float dist = FPCONST(0.0);
 //      Assert(std::abs(dir.x) >= M_EPSILON);
 //      if (dir.x >= M_EPSILON) {
-//          dist = (m_mediumBlock.getBlockL().x - pos.x) / dir.x;
+//          dist = (m_mediumBlock.get_block_l().x - pos.x) / dir.x;
 //      } else if (dir.x <= -M_EPSILON) {
-//          dist = (m_mediumBlock.getBlockR().x - pos.x) / dir.x;
+//          dist = (m_mediumBlock.get_block_r().x - pos.x) / dir.x;
 //      }
 //      pos += dist * dir;
         dir = m_refrDir;
@@ -641,11 +641,11 @@ bool Scene<vector_type>::movePhotonTillSensor(vector_type<Float> &p, vector_type
         int i;
         norm.zero();
         for (i = 0; i < p.dim; ++i) {
-            if (std::abs(m_block.getBlockL()[i] - p[i]) < 2*M_EPSILON) {
+            if (std::abs(m_block.get_block_l()[i] - p[i]) < 2*M_EPSILON) {
                 norm[i] = -FPCONST(1.0);
                 break;
             }
-            else if (std::abs(m_block.getBlockR()[i] - p[i]) < 2*M_EPSILON) {
+            else if (std::abs(m_block.get_block_r()[i] - p[i]) < 2*M_EPSILON) {
                 norm[i] = FPCONST(1.0);
                 break;
             }
@@ -658,13 +658,13 @@ bool Scene<vector_type>::movePhotonTillSensor(vector_type<Float> &p, vector_type
         normalt.zero();
         int chosenI = p.dim;
         for (i = 0; i < p.dim; ++i) {
-            Float diff = std::abs(m_block.getBlockL()[i] - p[i]);
+            Float diff = std::abs(m_block.get_block_l()[i] - p[i]);
             if (diff < minDiff) {
                 minDiff = diff;
                 chosenI = i;
                 minDir = -FPCONST(1.0);
             }
-            diff = std::abs(m_block.getBlockR()[i] - p[i]);
+            diff = std::abs(m_block.get_block_r()[i] - p[i]);
             if (diff < minDiff) {
                 minDiff = diff;
                 chosenI = i;
@@ -722,11 +722,11 @@ bool Scene<vector_type>::movePhoton(vector_type<Float> &p, vector_type<Float> &d
         int i;
         norm.zero();
         for (i = 0; i < p.dim; ++i) {
-            if (std::abs(m_block.getBlockL()[i] - p[i]) < M_EPSILON) {
+            if (std::abs(m_block.get_block_l()[i] - p[i]) < M_EPSILON) {
                 norm[i] = -FPCONST(1.0);
                 break;
             }
-            else if (std::abs(m_block.getBlockR()[i] - p[i]) < M_EPSILON) {
+            else if (std::abs(m_block.get_block_r()[i] - p[i]) < M_EPSILON) {
                 norm[i] = FPCONST(1.0);
                 break;
             }
@@ -739,13 +739,13 @@ bool Scene<vector_type>::movePhoton(vector_type<Float> &p, vector_type<Float> &d
         normalt.zero();
         int chosenI = p.dim;
         for (i = 0; i < p.dim; ++i) {
-            Float diff = std::abs(m_block.getBlockL()[i] - p[i]);
+            Float diff = std::abs(m_block.get_block_l()[i] - p[i]);
             if (diff < minDiff) {
                 minDiff = diff;
                 chosenI = i;
                 minDir = -FPCONST(1.0);
             }
-            diff = std::abs(m_block.getBlockR()[i] - p[i]);
+            diff = std::abs(m_block.get_block_r()[i] - p[i]);
             if (diff < minDiff) {
                 minDiff = diff;
                 chosenI = i;
@@ -785,13 +785,13 @@ void Scene<tvec::TVector3>::addEnergyToImage(image::SmallImage &img, const tvec:
 
         //printf("Running addEnergyToImage(p = (%.4f, %.4f, %.4f), pathlength = %.4f, depth = %d, val = %.4f)\n", p.x, p.y, p.z, pathlength, depth, val);
 
-    Float x = tvec::dot(m_camera.getHorizontal(), p) - m_camera.get_origin().y;
-    Float y = tvec::dot(m_camera.getVertical(), p) - m_camera.get_origin().z;
+    Float x = tvec::dot(m_camera.get_horizontal(), p) - m_camera.get_origin().y;
+    Float y = tvec::dot(m_camera.get_vertical(), p) - m_camera.get_origin().z;
 
     Assert(((std::abs(x) < FPCONST(0.5) * m_camera.get_plane().x)
                 && (std::abs(y) < FPCONST(0.5) * m_camera.get_plane().y)));
-    if (((m_camera.getPathlengthRange().x == -1) && (m_camera.getPathlengthRange().y == -1)) ||
-        ((pathlength > m_camera.getPathlengthRange().x) && (pathlength < m_camera.getPathlengthRange().y))) {
+    if (((m_camera.get_pathlength_range().x == -1) && (m_camera.get_pathlength_range().y == -1)) ||
+        ((pathlength > m_camera.get_pathlength_range().x) && (pathlength < m_camera.get_pathlength_range().y))) {
         x = (x / m_camera.get_plane().x + FPCONST(0.5)) * static_cast<Float>(img.get_x_res());
         y = (y / m_camera.get_plane().y + FPCONST(0.5)) * static_cast<Float>(img.get_y_res());
 
@@ -801,15 +801,15 @@ void Scene<tvec::TVector3>::addEnergyToImage(image::SmallImage &img, const tvec:
         int iy = static_cast<int>(std::floor(y));
 
         int iz;
-        if(m_camera.isBounceDecomposition()){
+        if(m_camera.is_bounce_decomposition()){
             iz = depth;
         }
         else{
-            if ((m_camera.getPathlengthRange().x == -1) && (m_camera.getPathlengthRange().y == -1)) {
+            if ((m_camera.get_pathlength_range().x == -1) && (m_camera.get_pathlength_range().y == -1)) {
                 iz = 0;
             } else {
-                Float z = pathlength - m_camera.getPathlengthRange().x;
-                Float range = m_camera.getPathlengthRange().y - m_camera.getPathlengthRange().x;
+                Float z = pathlength - m_camera.get_pathlength_range().x;
+                Float range = m_camera.get_pathlength_range().y - m_camera.get_pathlength_range().x;
                 z = (z / range) * static_cast<Float>(img.getZRes());
                 iz = static_cast<int>(std::floor(z));
             }
@@ -832,11 +832,11 @@ template <>
 void Scene<tvec::TVector2>::addEnergyToImage(image::SmallImage &img, const tvec::Vec2f &p,
                             Float pathlength, int &depth, Float val) const {
 
-    Float x = tvec::dot(m_camera.getHorizontal(), p) - m_camera.get_origin().y;
+    Float x = tvec::dot(m_camera.get_horizontal(), p) - m_camera.get_origin().y;
 
     Assert(std::abs(x) < FPCONST(0.5) * m_camera.get_plane().x);
-    if (((m_camera.getPathlengthRange().x == -1) && (m_camera.getPathlengthRange().y == -1)) ||
-        ((pathlength > m_camera.getPathlengthRange().x) && (pathlength < m_camera.getPathlengthRange().y))) {
+    if (((m_camera.get_pathlength_range().x == -1) && (m_camera.get_pathlength_range().y == -1)) ||
+        ((pathlength > m_camera.get_pathlength_range().x) && (pathlength < m_camera.get_pathlength_range().y))) {
         x = (x / m_camera.get_plane().x + FPCONST(0.5)) * static_cast<Float>(img.get_x_res());
 
 //      int ix = static_cast<int>(img.get_x_res()/2) + static_cast<int>(std::floor(x));
@@ -844,11 +844,11 @@ void Scene<tvec::TVector2>::addEnergyToImage(image::SmallImage &img, const tvec:
         int ix = static_cast<int>(std::floor(x));
 
         int iz;
-        if ((m_camera.getPathlengthRange().x == -1) && (m_camera.getPathlengthRange().y == -1)) {
+        if ((m_camera.get_pathlength_range().x == -1) && (m_camera.get_pathlength_range().y == -1)) {
             iz = 0;
         } else {
-            Float z = pathlength - m_camera.getPathlengthRange().x;
-            Float range = m_camera.getPathlengthRange().y - m_camera.getPathlengthRange().x;
+            Float z = pathlength - m_camera.get_pathlength_range().x;
+            Float range = m_camera.get_pathlength_range().y - m_camera.get_pathlength_range().x;
             z = (z / range) * static_cast<Float>(img.getZRes());
             iz = static_cast<int>(std::floor(z));
         }
@@ -924,7 +924,7 @@ void Scene<vector_type>::addEnergyInParticle(image::SmallImage &img,
 #endif
 
     Float distanceToSensor = 0;
-    if(!m_camera.propagateTillSensor(p1, refrDirToSensor, distanceToSensor))
+    if(!m_camera.propagate_till_sensor(p1, refrDirToSensor, distanceToSensor))
         return;
     totalOpticalDistance += distanceToSensor;
 
@@ -945,8 +945,8 @@ void Scene<vector_type>::addEnergyInParticle(image::SmallImage &img,
 #endif
 }
 
-//template class Block<tvec::TVector2>;
-template class Block<tvec::TVector3>;
+//template class block<tvec::TVector2>;
+template class block<tvec::TVector3>;
 //template class Camera<tvec::TVector2>;
 template class Camera<tvec::TVector3>;
 //template class area_source<tvec::TVector2>;

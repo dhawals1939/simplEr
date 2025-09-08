@@ -85,7 +85,7 @@ directTol = 1e-5
 useInitializationHack = True
 rrWeight = 1e-2
 
-useBounceDecomposition = True
+use_bounce_decomposition = True
 projectorTexture = "/home/apedired/Dropbox/AccoustoOptics+InvRendering/CodeEtc/SkeletalRenderer/ercrdr/renderer/images/White.pfm"
 
 threads = -1
@@ -126,7 +126,7 @@ for line in custom_params_f:
     elif param == 'projectorTexture': projectorTexture = value
     elif param == 'useDirect': useDirect = (value == 'True')
     elif param == 'useAngularSampling': useAngularSampling = (value == 'True')
-    elif param == 'useBounceDecomposition': useBounceDecomposition = (value == 'True')
+    elif param == 'use_bounce_decomposition': use_bounce_decomposition = (value == 'True')
     elif param == 'maxDepth': maxDepth = int(value)
     elif param == 'maxPathlength': maxPathlength = float(value)
     elif param == 'pathLengthMin': pathLengthMin = float(value)
@@ -184,7 +184,7 @@ if printInputs:
     print('projectorTexture:' + str(projectorTexture))
     print('useDirect:' + str(useDirect))
     print('useAngularSampling:' + str(useAngularSampling))
-    print('useBounceDecomposition:' + str(useBounceDecomposition))
+    print('use_bounce_decomposition:' + str(use_bounce_decomposition))
     print('maxDepth:' + str(maxDepth))
     print('maxPathlength:' + str(maxPathlength))
     print('pathLengthMin:' + str(pathLengthMin))
@@ -236,7 +236,7 @@ viewOrigin = tvector_pybind.Vec3f(mediumL.index(0)-sensor_distance, 0.0, 0.0)
 viewDir = tvector_pybind.Vec3f(-1.0, 0.0, 0.0)
 viewX = tvector_pybind.Vec3f(0.0, -1.0, 0.0)
 viewPlane = tvector_pybind.Vec2f(emitter_size, emitter_size)
-pathlengthRange = tvector_pybind.Vec2f(pathLengthMin, pathLengthMax)
+pathlength_range = tvector_pybind.Vec2f(pathLengthMin, pathLengthMax)
      
 viewReso = tvector_pybind.Vec3i(spatialX, spatialY, pathLengthBins)
 
@@ -263,8 +263,8 @@ scene = scene_pybind.Scene(
     viewDir,
     viewX,
     viewPlane,
-    pathlengthRange,
-    useBounceDecomposition,
+    pathlength_range,
+    use_bounce_decomposition,
     distribution,
     gOrKappa,
     emitter_lens_origin,

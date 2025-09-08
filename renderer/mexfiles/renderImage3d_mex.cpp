@@ -82,7 +82,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	const tvec::Vec3f viewDir((Float) viewDird[0], (Float) viewDird[1], (Float) viewDird[2]);
 	const tvec::Vec3f viewHorizontal((Float) viewHorizontald[0], (Float) viewHorizontald[1], (Float) viewHorizontald[2]);
 	const tvec::Vec2f viewPlane((Float) viewPlaned[0], (Float) viewPlaned[1]);
-	const tvec::Vec2f pathlengthRange((Float) pathlengthRanged[0], (Float) pathlengthRanged[1]);
+	const tvec::Vec2f pathlength_range((Float) pathlengthRanged[0], (Float) pathlengthRanged[1]);
 	const tvec::Vec3i viewReso((int) viewResod[0], (int) viewResod[1], (int) viewResod[2]);
 
 	/*
@@ -96,7 +96,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	const med::Medium medium(sigmaT, albedo, phase);
 	const scn::Scene<tvec::TVector3> scene(ior, mediumL, mediumR,
 						lightOrigin, lightDir, lightPlane, Li,
-						viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange);
+						viewOrigin, viewDir, viewHorizontal, viewPlane, pathlength_range);
 	image::SmallImage img0(viewReso.x, viewReso.y, viewReso.z);
 
 	photon::Renderer<tvec::TVector3> renderer(maxDepth, maxPathlength, useDirect);

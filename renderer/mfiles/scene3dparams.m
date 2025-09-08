@@ -28,7 +28,7 @@ params.viewHorizontal = [0.0; -1.0; 0.0];
 % size of sensor plane
 params.viewPlane = [0.1; 0.1];
 % pathlength range of camera plane (leave [-1 -1] to measure all depths)
-params.pathlengthRange = [-1; -1];
+params.pathlength_range = [-1; -1];
 % x-y-z resolution of camera (setting z > 1 generates a transient image)
 params.viewReso = [1; 1; 1];
 								

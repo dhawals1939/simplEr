@@ -353,8 +353,8 @@ namespace scn
              const vector_type<Float> &viewDir,
              const vector_type<Float> &viewHorizontal,
              const tvec::Vec2f &viewPlane,
-             const tvec::Vec2f &pathlengthRange, 
-             const bool &useBounceDecomposition,
+             const tvec::Vec2f &pathlength_range, 
+             const bool &use_bounce_decomposition,
              // for finalAngle importance sampling
              const std::string &distribution,
              const Float &gOrKappa,
@@ -417,7 +417,7 @@ namespace scn
 #else
                   m_source(lightOrigin, lightDir, halfThetaLimit, lightTextureFile, lightPlane, Li, emitter_lens_origin, emitter_lens_aperture, emitter_lens_focalLength, emitter_lens_active),
 #endif
-                 m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange, useBounceDecomposition, sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active),
+                 m_camera(viewOrigin, viewDir, viewHorizontal, viewPlane, pathlength_range, use_bounce_decomposition, sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active),
                  m_bsdf(FPCONST(1.0), ior),
 #if USE_RIF_SOURCES
                  m_us(f_u, speed_u, n_o, n_scaling, n_coeff, radius, center1, center2, active1, active2, phase1, phase2, theta_min, theta_max, theta_sources, trans_z_min, trans_z_max, trans_z_sources, axis_uz, axis_ux, p_u, er_stepsize, tol, rrWeight, precision, EgapEndLocX, SgapBeginLocX, useInitializationHack) // Need to fix this
@@ -434,8 +434,8 @@ namespace scn
 #endif
      {
 
-         Assert(((std::abs(m_source.get_origin().x - m_block.getBlockL().x) < M_EPSILON) && (m_source.get_dir().x > FPCONST(0.0))) ||
-                ((std::abs(m_source.get_origin().x - m_block.getBlockR().x) < M_EPSILON) && (m_source.get_dir().x < FPCONST(0.0))));
+         Assert(((std::abs(m_source.get_origin().x - m_block.get_block_l().x) < M_EPSILON) && (m_source.get_dir().x > FPCONST(0.0))) ||
+                ((std::abs(m_source.get_origin().x - m_block.get_block_r().x) < M_EPSILON) && (m_source.get_dir().x < FPCONST(0.0))));
 
          if (m_ior > FPCONST(1.0))
          {
@@ -592,9 +592,9 @@ namespace scn
                                smp::Sampler &sampler, const Float &scaling) const;
      bool movePhoton(vector_type<Float> &p, vector_type<Float> &d, Float dist, Float &totalOpticalDistance,
                      smp::Sampler &sampler, const Float &scaling) const;
-     bool genRay(vector_type<Float> &pos, vector_type<Float> &dir, smp::Sampler &sampler, Float &totalDistance) const;
+     bool genRay(vector_type<Float> &pos, vector_type<Float> &dir, smp::Sampler &sampler, Float &total_distance) const;
      bool genRay(vector_type<Float> &pos, vector_type<Float> &dir, smp::Sampler &sampler,
-                 vector_type<Float> &possrc, vector_type<Float> &dirsrc, Float &totalDistance) const;
+                 vector_type<Float> &possrc, vector_type<Float> &dirsrc, Float &total_distance) const;
      void addEnergyToImage(image::SmallImage &img, const vector_type<Float> &p,
                            Float pathlength, int &depth, Float val) const;
 
@@ -645,7 +645,7 @@ namespace scn
          return m_refrDir;
      }
 
-     inline const Block<vector_type> &getMediumBlock() const
+     inline const block<vector_type> &getMediumBlock() const
      {
          return m_block;
      }
@@ -678,7 +678,7 @@ namespace scn
      Float m_ior;
      Float m_fresnelTrans;
      vector_type<Float> m_refrDir;
-     Block<vector_type> m_block;
+     block<vector_type> m_block;
 #ifndef PROJECTOR
      area_source<vector_type> m_source;
 #else

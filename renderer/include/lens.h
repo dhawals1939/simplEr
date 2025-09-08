@@ -1,77 +1,44 @@
-#pragma once
+#include <tvector.h>
+#include <constants.h>
 
+#pragma once
 namespace scn {
+
 template <template <typename> class vector_type>
 class Lens
 {
-
 public:
-    Lens(const vector_type<Float> &origin, const Float &aperture,
-         const Float &focalLength, const bool &active)
-        : m_origin(origin),
-          m_squareApertureRadius(aperture * aperture),
-          m_focalLength(focalLength),
-          m_active(active)
-    {
-    }
-    inline const bool propagate_till_lens(vector_type<Float> &pos, vector_type<Float> &dir, Float &totalDistance) const
-    {
-        Float dist = -(pos[0] - this->m_origin[0]) / dir[0]; // FIXME: Assumes that the direction of propagation is in -x direction.
-        pos += dist * dir;
-        totalDistance += dist;
-        if (this->m_active)
-            return this->deflect(pos, dir, totalDistance);
-        else
-            return true;
-    }
+    Lens(const vector_type<Float>& origin,
+         const Float&              aperture,
+         const Float&              focal_length,
+         const bool&               active);
 
-    inline const bool isActive() const
-    {
-        return this->m_active;
-    }
+    // Propagate to the lens plane located at x = origin.x.
+    // Assumes propagation in the -x direction.
+    // If the lens is active, it deflects the ray; otherwise, the ray passes through unchanged.
+    // Returns false if the ray misses the aperture.
+    const bool propagate_till_lens(vector_type<Float>& pos,
+                                   vector_type<Float>& dir,
+                                   Float&              total_distance) const;
 
-    inline const vector_type<Float> &get_origin() const
-    {
-        return this->m_origin;
-    }
+    const bool               is_active()                 const;
+    const vector_type<Float>& get_origin()              const;
+    const Float              get_square_aperture_radius()  const;
+    const Float              get_focal_length()           const;
 
-    inline const Float getSquareApertureRadius() const
-    {
-        return this->m_squareApertureRadius;
-    }
+    // Deflect the ray at the lens. Returns false if outside the aperture.
+    // See the .cpp for the geometric reasoning.
+    const bool deflect(const vector_type<Float>& pos,
+                       vector_type<Float>&       dir,
+                       Float&                    total_distance) const;
 
-    inline const Float getFocalLength() const
-    {
-        return this->m_focalLength;
-    }
-    inline const bool deflect(const vector_type<Float> &pos, vector_type<Float> &dir, Float &totalDistance) const
-    {
-        /* Deflection computation:
-         * Point going through the center of lens and parallel to dir is [pos.x, 0, 0]. Ray from this point goes straight
-         * This ray meets focal plane at (pos.x - d[0] * f/d[0], -d[1] * f/d[0], -d[2] * f/d[0]) (assuming -x direction of propagation of light)
-         * Original ray deflects to pass through this point
-         * The negative distance (HACK) travelled by this ray at the lens is -f/d[0] - norm(focalpoint_Pos - original_Pos)
-         */
-        Float squareDistFromLensOrigin = 0.0f;
-        for (int i = 1; i < pos.dim; i++)
-            squareDistFromLensOrigin += pos[i] * pos[i];
-        if (squareDistFromLensOrigin > this->m_squareApertureRadius)
-            return false;
-
-        Assert(pos.x == this->m_origin.x);
-        Float invd = -1 / dir[0];
-        dir[0] = -this->m_focalLength;
-        dir[1] = dir[1] * invd * this->m_focalLength - pos[1];
-        dir[2] = dir[2] * invd * this->m_focalLength - pos[2];
-        totalDistance += this->m_focalLength * invd - dir.length();
-        dir.normalize();
-        return true; // should return additional path length added by the lens.
-    }
-
+    template <template <typename> class VT>
+    friend std::ostream& operator<<(std::ostream& os, const Lens<VT>& lens);
 protected:
     vector_type<Float> m_origin;
-    Float m_squareApertureRadius; // radius of the aperture
-    Float m_focalLength;
-    bool m_active; // Is the lens present or absent
+    Float              m_squareApertureRadius; // squared aperture radius
+    Float              m_focalLength;
+    bool               m_active;               // whether the lens is present/active
 };
-}
+
+} // namespace scn

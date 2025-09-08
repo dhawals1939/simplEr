@@ -71,11 +71,11 @@ void Renderer<vector_type>::directTracing(const vector_type<Float> &p, const vec
 	Assert(foreshortening >= FPCONST(0.0));
 
 #if USE_SIMPLIFIED_TIMING
-	totalDistance = (distToSensor) * ior;
+	total_distance = (distToSensor) * ior;
 #endif
 
 	Float distanceToSensor = 0;
-	if(!scene.getCamera().propagateTillSensor(p1, refrDirToSensor, distanceToSensor))
+	if(!scene.getCamera().propagate_till_sensor(p1, refrDirToSensor, distanceToSensor))
 		return;
 	totalOpticalDistance += distanceToSensor;
 
@@ -312,8 +312,8 @@ void Renderer<vector_type>::renderImage(image::SmallImage &img0,
 		// FIXME: Remove
 		sampler[id].seed(omp_i);
 		vector_type<Float> pos, dir;
-		Float totalDistance = 0;
-		if (scene.genRay(pos, dir, sampler[id], totalDistance)) {
+		Float total_distance = 0;
+		if (scene.genRay(pos, dir, sampler[id], total_distance)) {
 			/*
 			 * TODO: Direct energy computation is not implemented.
 			 */
@@ -329,8 +329,8 @@ void Renderer<vector_type>::renderImage(image::SmallImage &img0,
 			dir *= scene.getMediumIor(pos, scaling);
 #endif
 			if(m_useDirect)
-					directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
-			scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, totalDistance);
+					directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, total_distance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
+			scatter(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, total_distance);
 		}
 	}
 

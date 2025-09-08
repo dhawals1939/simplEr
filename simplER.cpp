@@ -45,11 +45,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::yellow), "Config keys:\n");
-    for (const auto& kv : config) {
-        fmt::print("  {}\n", kv.first);
-    }
-
     execution_parameters execution_params(config);
 
 
@@ -102,7 +97,6 @@ int main(int argc, char **argv)
         if (!rif_params)
         throw std::runtime_error("rif_sources expected, but rif_params holds another type");
         
-        std::cout<< "rif parms type = " << *rif_params << std::endl;
         #if USE_RIF_SOURCES
         scene = new scn::Scene<tvec::TVector3>(ior, execution_params.m_scene_params.m_medium_l, execution_params.m_scene_params.m_medium_r,
                                                light_origin, light_dir, execution_params.m_adoc_geometry_params.m_half_theta_limit, execution_params.m_projector_texture, light_plane, Li,
@@ -168,7 +162,7 @@ int main(int argc, char **argv)
     image::SmallImage img(view_resolution.x, view_resolution.y, view_resolution.z);
     renderer.renderImage(img, medium, *scene, execution_params.m_rendering_params.m_num_photons);
 
-    img.writePFM3D(execution_params.m_rendering_type + ".pfm3d");
+    img.writePFM3D(execution_params.m_output_file_name + ".pfm3d");
 
     delete phase;
 

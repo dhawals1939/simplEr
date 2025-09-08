@@ -180,7 +180,7 @@ public:
     //    free(h_result);
     //}
 
-    __device__ inline bool deflect(const TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const {
+    __device__ inline bool deflect(const TVector3<Float> &pos, TVector3<Float> &dir, Float &total_distance) const {
         /* Deflection computation:
          * Point going through the center of lens and parallel to dir is [pos.x, 0, 0]. Ray from this point goes straight
          * This ray meets focal plane at (pos.x - d[0] * f/d[0], -d[1] * f/d[0], -d[2] * f/d[0]) (assuming -x direction of propagation of light)
@@ -198,22 +198,22 @@ public:
         dir[0] = -m_focalLength;
         dir[1] = dir[1]*invd*m_focalLength - pos[1];
         dir[2] = dir[2]*invd*m_focalLength - pos[2];
-        totalDistance += m_focalLength*invd - dir.length();
+        total_distance += m_focalLength*invd - dir.length();
         dir.normalize();
         return true; // should return additional path length added by the lens.
     }
 
-    __device__ inline bool propagate_till_lens(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const {
+    __device__ inline bool propagate_till_lens(TVector3<Float> &pos, TVector3<Float> &dir, Float &total_distance) const {
         Float dist = -(pos[0] - (*m_origin)[0])/dir[0];
         pos += dist*dir;
-        totalDistance += dist;
+        total_distance += dist;
         if(m_active)
-            return deflect(pos, dir, totalDistance);
+            return deflect(pos, dir, total_distance);
         else
             return true;
     }
 
-    __device__ inline bool isActive() const {
+    __device__ inline bool is_active() const {
         return m_active;
     }
 
@@ -224,9 +224,9 @@ public:
 protected:
     __host__ Lens(const scn::Lens<tvec::TVector3> &lens) {
         m_origin = TVector3<Float>::from(lens.get_origin());
-        m_squareApertureRadius = lens.getSquareApertureRadius();
-        m_focalLength = lens.getFocalLength();
-        m_active = lens.isActive();
+        m_squareApertureRadius = lens.get_square_aperture_radius();
+        m_focalLength = lens.get_focal_length();
+        m_active = lens.is_active();
     }
 
     TVector3<Float> *m_origin;
@@ -247,7 +247,7 @@ public:
         return d_result;
     }
 
-    __device__ inline bool samplePosition(TVector3<Float> &pos) const;
+    __device__ inline bool sample_position(TVector3<Float> &pos) const;
 
     __device__ inline const TVector3<Float>& get_origin() const {
         return *m_origin;
@@ -257,11 +257,11 @@ public:
         return *m_dir;
     }
 
-    __device__ inline const TVector3<Float>& getHorizontal() const {
+    __device__ inline const TVector3<Float>& get_horizontal() const {
         return *m_horizontal;
     }
 
-    __device__ inline const TVector3<Float>& getVertical() const {
+    __device__ inline const TVector3<Float>& get_vertical() const {
         return *m_vertical;
     }
 
@@ -269,17 +269,17 @@ public:
         return *m_plane;
     }
 
-    __device__ inline const TVector2<Float>& getPathlengthRange() const {
-        return *m_pathlengthRange;
+    __device__ inline const TVector2<Float>& get_pathlength_range() const {
+        return *m_pathlength_range;
     }
 
-    __device__ inline const bool& isBounceDecomposition() const {
-        return m_useBounceDecomposition;
+    __device__ inline const bool& is_bounce_decomposition() const {
+        return m_use_bounce_decomposition;
     }
 
-    __device__ inline const bool propagateTillSensor(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const{
+    __device__ inline const bool propagate_till_sensor(TVector3<Float> &pos, TVector3<Float> &dir, Float &total_distance) const{
         //propagate till lens
-        if (m_lens->isActive() && !m_lens->deflect(pos, dir, totalDistance))
+        if (m_lens->is_active() && !m_lens->deflect(pos, dir, total_distance))
             return false;
         //propagate from lens to sensor
         Float dist = ((*m_origin)[0]-pos[0])/dir[0];            //FIXME: Assumes that the direction of propagation is in -x direction.
@@ -291,7 +291,7 @@ public:
         }
 #endif
 
-        totalDistance += dist;
+        total_distance += dist;
         return true;
     }
 
@@ -303,13 +303,13 @@ private:
 
         m_origin     = TVector3<Float>::from(camera.get_origin());
         m_dir        = TVector3<Float>::from(camera.get_dir());
-        m_horizontal = TVector3<Float>::from(camera.getHorizontal());
-        m_vertical   = TVector3<Float>::from(camera.getVertical());
+        m_horizontal = TVector3<Float>::from(camera.get_horizontal());
+        m_vertical   = TVector3<Float>::from(camera.get_vertical());
 
         m_plane            = TVector2<Float>::from(camera.get_plane());
-        m_pathlengthRange  = TVector2<Float>::from(camera.getPathlengthRange());
+        m_pathlength_range  = TVector2<Float>::from(camera.get_pathlength_range());
 
-        m_useBounceDecomposition = camera.isBounceDecomposition();
+        m_use_bounce_decomposition = camera.is_bounce_decomposition();
 
         m_lens = Lens::from(camera.get_lens());
     }
@@ -318,8 +318,8 @@ private:
     TVector3<Float> *m_horizontal;
     TVector3<Float> *m_vertical;
     TVector2<Float> *m_plane;
-    TVector2<Float> *m_pathlengthRange;
-    bool m_useBounceDecomposition;
+    TVector2<Float> *m_pathlength_range;
+    bool m_use_bounce_decomposition;
     Lens *m_lens;
 };
 
@@ -340,7 +340,7 @@ public:
         return d_result;
     }
 
-    __device__ bool sample_ray(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const;
+    __device__ bool sample_ray(TVector3<Float> &pos, TVector3<Float> &dir, Float &total_distance) const;
 
     __device__ inline const TVector3<Float>& get_origin() const {
         return *m_origin;
@@ -358,9 +358,9 @@ public:
         return m_Li;
     }
 
-    __device__ inline bool propagate_till_medium(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) const{
+    __device__ inline bool propagate_till_medium(TVector3<Float> &pos, TVector3<Float> &dir, Float &total_distance) const{
         //propagate till lens
-        return m_lens->propagate_till_lens(pos, dir, totalDistance);
+        return m_lens->propagate_till_lens(pos, dir, total_distance);
     }
 
     __host__ virtual ~area_textured_source() { }
@@ -813,8 +813,8 @@ public:
         return d_result;
     }
 
-    __device__ inline bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &totalDistance) {
-        return m_source->sample_ray(pos, dir, totalDistance);
+    __device__ inline bool genRay(TVector3<Float> &pos, TVector3<Float> &dir, Float &total_distance) {
+        return m_source->sample_ray(pos, dir, total_distance);
     }
 
     __device__ inline Float getMediumIor(const TVector3<Float> &p, const Float &scaling) const {

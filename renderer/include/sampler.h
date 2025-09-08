@@ -7,7 +7,7 @@
 #pragma once
 
 #include <constants.h>
-
+#include <vector>
 #if USE_SFMT
 #include <rng_sse.h>
 #else

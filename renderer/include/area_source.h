@@ -1,8 +1,8 @@
-#pragma once
 #include <constants.h>
 #include <tvector.h>
 #include <sampler.h>
 
+#pragma once
 namespace scn
 {
     template <template <typename> class vector_type>
@@ -24,6 +24,9 @@ namespace scn
         Float get_Li() const;
 
         virtual ~area_source();
+        
+        template <template <typename> class V>
+        friend std::ostream& operator<<(std::ostream& os, const area_source<V>& src);
 
     protected:
         vector_type<Float> m_origin;

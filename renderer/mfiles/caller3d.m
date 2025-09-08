@@ -40,10 +40,10 @@ viewOrigin = [0.0 0.0];
 viewAngle = 0;
 % size of sensor
 viewPlane = [5; 5];
-% pathlengthRange = [-1; -1];
+% pathlength_range = [-1; -1];
 % viewReso = [128; 1; 1];
-pathlengthRange = [2.95; 3.5];
-% pathlengthRange = [0; 30];
+pathlength_range = [2.95; 3.5];
+% pathlength_range = [0; 30];
 viewReso = [128; 128; 128];
 
 %% renderer options
@@ -70,7 +70,7 @@ end;
 scene = scene3dparams('iorMedium', iorMedium, 'mediumDimensions', mediumDimensions,...
 	'lightOrigin', lightOrigin, 'lightDir', lightDir, 'lightPlane', lightPlane, 'Li', Li,...
 	'viewOrigin', viewOrigin, 'viewDir', viewDir, 'viewHorizontal', viewHorizontal,...
-	'viewPlane', viewPlane, 'pathlengthRange', pathlengthRange, 'viewReso', viewReso);
+	'viewPlane', viewPlane, 'pathlength_range', pathlength_range, 'viewReso', viewReso);
 
 %% create renderer params
 useDirect = 0;			% Not implemented, always keep 0.

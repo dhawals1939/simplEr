@@ -52,7 +52,7 @@ int main() {
 	const tvec::Vec3f viewX(FPCONST(0.0), -FPCONST(1.0), FPCONST(0.0));
 	const tvec::Vec3f viewY(FPCONST(0.0), FPCONST(0.0), -FPCONST(1.0));
 	const tvec::Vec2f viewPlane(FPCONST(20.0), FPCONST(20.0));
-	const tvec::Vec2f pathlengthRange(-FPCONST(1.0), -FPCONST(1.0));
+	const tvec::Vec2f pathlength_range(-FPCONST(1.0), -FPCONST(1.0));
 	const tvec::Vec3i viewReso(128, 128, 1);
 
 	/*
@@ -73,7 +73,7 @@ int main() {
 									samplingPhase);
 	const scn::Scene scene(ior, mediumL, mediumR,
 						lightOrigin, lightDir, lightPlane, Li,
-						viewOrigin, viewDir, viewX, viewY, viewPlane, pathlengthRange);
+						viewOrigin, viewDir, viewX, viewY, viewPlane, pathlength_range);
 
 	photon::Renderer renderer(maxDepth, maxPathlength, useDirect);
 

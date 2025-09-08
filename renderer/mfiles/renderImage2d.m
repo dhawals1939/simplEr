@@ -17,7 +17,7 @@ viewOrigin = scene.viewOrigin;
 viewDir = scene.viewDir;
 viewHorizontal = scene.viewHorizontal;
 viewPlane = scene.viewPlane;
-pathlengthRange = scene.pathlengthRange;
+pathlength_range = scene.pathlength_range;
 viewReso = scene.viewReso;
 
 % renderer
@@ -30,6 +30,6 @@ useDirect = renderer.useDirect;
 im = renderImage2d_mex(sigmaT, albedo, gVal, ...
 		iorMedium, mediumDimensions, ...
 		lightOrigin, lightDir, lightPlane, Li, ...
-		viewOrigin, viewDir, viewHorizontal, viewPlane, pathlengthRange, viewReso, ...
+		viewOrigin, viewDir, viewHorizontal, viewPlane, pathlength_range, viewReso, ...
 		numPhotons, maxDepth, maxPathlength, useDirect);
 im = permute(im, [2 1 3]);

@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
     bool useInitializationHack = true; // initializationHack forces the direction connections to start from the line connecting both the end points
     Float rrWeight  = 1e-2; // only one in hundred survives second path call
 
-    bool useBounceDecomposition = true; // true is bounce decomposition and false is transient.
+    bool use_bounce_decomposition = true; // true is bounce decomposition and false is transient.
     /*
      * Spline approximation, spline parameters
      */
@@ -446,13 +446,13 @@ int main(int argc, char **argv) {
                 std::cerr << "useAngularSampling should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
                 return -1;
             }
-        }else if(param[0].compare("useBounceDecomposition")==0){
+        }else if(param[0].compare("use_bounce_decomposition")==0){
             buseBounceDecomposition=true;
             transform(param[1].begin(), param[1].end(), param[1].begin(), ::tolower);
             if(param[1].compare("true")==0)
-                useBounceDecomposition = true;
+                use_bounce_decomposition = true;
             else if(param[1].compare("false")==0)
-                useBounceDecomposition = false;
+                use_bounce_decomposition = false;
             else{
                 std::cerr << "useBounceDecompostion should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
                 return -1;
@@ -679,7 +679,7 @@ int main(int argc, char **argv) {
         if(!bprojectorTexture) {std::cout << "projectorTexture is not specified " << std::endl;}
         if(!buseDirect) {std::cout << "useDirect is not specified " << std::endl;}
         if(!buseAngularSampling) {std::cout << "useAngularSampling is not specified " << std::endl;}
-        if(!buseBounceDecomposition) {std::cout << "useBounceDecomposition is not specified " << std::endl;}
+        if(!buseBounceDecomposition) {std::cout << "use_bounce_decomposition is not specified " << std::endl;}
         if(!bmaxDepth) {std::cout << "maxDepth is not specified " << std::endl;}
         if(!bmaxPathlength) {std::cout << "maxPathlength is not specified " << std::endl;}
         if(!bpathLengthMin) {std::cout << "pathLengthMin is not specified " << std::endl;}
@@ -755,7 +755,7 @@ int main(int argc, char **argv) {
         std::cout << "projectorTexture = "<< projectorTexture << std::endl;
         std::cout << "useDirect = " << useDirect << std::endl;
         std::cout << "useAngularSampling= " << useAngularSampling << std::endl;
-        std::cout << "useBounceDecomposition= " << useBounceDecomposition << std::endl;
+        std::cout << "use_bounce_decomposition= " << use_bounce_decomposition << std::endl;
         std::cout << "maxDepth = " << maxDepth << std::endl;
         std::cout << "maxPathlength = " << maxPathlength << std::endl;
         std::cout << "Total medium length = " << mediumR[0] - mediumL[0] << std::endl;
@@ -829,7 +829,7 @@ int main(int argc, char **argv) {
     const tvec::Vec3f viewDir(-FPCONST(1.0), FPCONST(0.0), FPCONST(0.0));
     const tvec::Vec3f viewX(FPCONST(0.0), -FPCONST(1.0), FPCONST(0.0));
     const tvec::Vec2f viewPlane(sensor_size, sensor_size);
-    const tvec::Vec2f pathlengthRange(pathLengthMin, pathLengthMax);
+    const tvec::Vec2f pathlength_range(pathLengthMin, pathLengthMax);
 
     const tvec::Vec3i viewReso(spatialX, spatialY, pathLengthBins);
 
@@ -844,7 +844,7 @@ int main(int argc, char **argv) {
 
     scn::Scene<tvec::TVector3> scene(ior, mediumL, mediumR,
                         lightOrigin, lightDir, halfThetaLimit, projectorTexture, lightPlane, Li,
-                        viewOrigin, viewDir, viewX, viewPlane, pathlengthRange, useBounceDecomposition,
+                        viewOrigin, viewDir, viewX, viewPlane, pathlength_range, use_bounce_decomposition,
                         distribution, gOrKappa,
                         emitter_lens_origin, emitter_lens_aperture, emitter_lens_focalLength, emitter_lens_active,
                         sensor_lens_origin, sensor_lens_aperture, sensor_lens_focalLength, sensor_lens_active,
