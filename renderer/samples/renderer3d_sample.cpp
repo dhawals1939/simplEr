@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
     int precision = 8; // Number of dec. precision bits till which we accurately make er_step either because the sampled distances are not an integral multiple of the er_stepsize or because the boundary is hit before.
     Float directTol = 1e-5; // 10 um units
     bool useInitializationHack = true; // initializationHack forces the direction connections to start from the line connecting both the end points
-    Float rrWeight  = 1e-2; // only one in hundred survives second path call
+    Float rr_weight  = 1e-2; // only one in hundred survives second path call
 
     bool use_bounce_decomposition = true; // true is bounce decomposition and false is transient.
     /*
@@ -418,9 +418,9 @@ int main(int argc, char **argv) {
                 std::cerr << "useInitializationHack should be either true or false; Argument " << param[1] << " not recognized" << std::endl;
                 return -1;
             }
-        }else if(param[0].compare("rrWeight")==0){
+        }else if(param[0].compare("rr_weight")==0){
             brrWeight=true;
-            rrWeight = stof(param[1]);
+            rr_weight = stof(param[1]);
         }else if(param[0].compare("projectorTexture")==0){
             bprojectorTexture=true;
             projectorTexture = param[1];
@@ -600,7 +600,7 @@ int main(int argc, char **argv) {
                       << "mode, "
                       << "er_stepsize, "
                       << "directTol, "
-                      << "rrWeight, "
+                      << "rr_weight, "
                       << "projectorTexture, "
                       << "useDirect, "
                       << "useAngularSampling, "
@@ -675,7 +675,7 @@ int main(int argc, char **argv) {
         if(!ber_stepsize) {std::cout << "er_stepsize is not specified " << std::endl;}
         if(!buseInitializationHack) {std::cout << "useInitializationHack is not specified " << std::endl;}
         if(!bdirectTol) {std::cout << "directTol is not specified " << std::endl;}
-        if(!brrWeight) {std::cout << "rrWeight is not specified " << std::endl;}
+        if(!brrWeight) {std::cout << "rr_weight is not specified " << std::endl;}
         if(!bprojectorTexture) {std::cout << "projectorTexture is not specified " << std::endl;}
         if(!buseDirect) {std::cout << "useDirect is not specified " << std::endl;}
         if(!buseAngularSampling) {std::cout << "useAngularSampling is not specified " << std::endl;}
@@ -808,9 +808,9 @@ int main(int argc, char **argv) {
     pfunc::henyey_greenstein *phase = new pfunc::henyey_greenstein(gVal);
 
     tvec::Vec3f emitter_lens_origin(mediumR[0], FPCONST(0.0), FPCONST(0.0));
-    Float EgapEndLocX = emitter_lens_origin.x - emitter_gap;
+    Float egap_end_loc_x = emitter_lens_origin.x - emitter_gap;
     tvec::Vec3f sensor_lens_origin(mediumL[0], FPCONST(0.0), FPCONST(0.0));
-    Float SgapBeginLocX = sensor_lens_origin.x + sensor_gap; // ADI: VERIFY ME
+    Float sgap_begin_loc_x = sensor_lens_origin.x + sensor_gap; // ADI: VERIFY ME
 
     /*
      * Initialize source parameters.
@@ -853,7 +853,7 @@ int main(int argc, char **argv) {
 #else
                         f_u, speed_u, n_o, n_max, n_clip, phi_min, phi_max, mode, 
 #endif
-                        axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight, precision, EgapEndLocX, SgapBeginLocX, useInitializationHack
+                        axis_uz, axis_ux, p_u, er_stepsize, directTol, rr_weight, precision, egap_end_loc_x, sgap_begin_loc_x, useInitializationHack
 #if USE_RIF_INTERPOLATED
                         , rifgridFile
 //                      , xmin, xmax, N

@@ -64,14 +64,9 @@ execution_parameters::execution_parameters(const AnyMap &config)
         this->m_stricts = get_exact<bool>(config, "stricts");
         this->m_rendering_type = get_exact<std::string>(config, "rendering_type");
         this->m_threads = get_num<int>(config, "threads");
-        this->m_precision = get_num<int>(config, "precision");
 
         this->m_emitter_gap = get_num<Float>(config, "emitter_gap");
         this->m_sensor_gap = get_num<Float>(config, "sensor_gap");
-        this->m_er_stepsize = get_num<Float>(config, "er_stepsize");
-        this->m_direct_to_l = get_num<Float>(config, "direct_to_l");
-        this->m_use_initialization_hack = get_exact<bool>(config, "use_initialization_hack");
-        this->m_rr_weight = get_num<Float>(config, "rr_weight");
         this->m_use_bounce_decomposition = get_exact<bool>(config, "use_bounce_decomposition");
         this->m_print_inputs = get_exact<bool>(config, "print_inputs");
         this->m_projector_texture = get_exact<std::string>(config, "projector_texture");
@@ -130,15 +125,15 @@ execution_parameters::execution_parameters(const AnyMap &config)
 
         if (this->m_rendering_type == "rif_sources")
         {
-            this->m_rif_params = std::make_unique<rif_sources>(rif_params); // ctor(AnyMap)
+            this->m_rif_params = std::make_unique<rif_sources>(rif_params, this->m_scene_params); // ctor(AnyMap)
         }
         else if (this->m_rendering_type == "rif_analytical")
         {
-            this->m_rif_params = std::make_unique<rif_analytical>(rif_params);
+            this->m_rif_params = std::make_unique<rif_analytical>(rif_params, this->m_scene_params); // ctor(AnyMap
         }
         else if (this->m_rendering_type == "rif_interpolated")
         {
-            this->m_rif_params = std::make_unique<rif_interpolated>(rif_params);
+            this->m_rif_params = std::make_unique<rif_interpolated>(rif_params, this->m_scene_params); // ctor(AnyMap)
         }
     }
     catch (const std::exception &e)

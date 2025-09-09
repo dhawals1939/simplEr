@@ -50,7 +50,7 @@ namespace scn
     template <template <typename> class vector_type>
     std::ostream& operator<<(std::ostream& os, const block<vector_type>& blk)
     {
-        os << "block(L: " << blk.get_block_l() << ", R: " << blk.get_block_r() << ")";
+        os << "block(L: " << blk.get_block_l() << ", us_wave_radius: " << blk.get_block_r() << ")";
         return os;
     }
 

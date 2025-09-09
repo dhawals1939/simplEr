@@ -449,19 +449,19 @@ public:
     TVector3<Float> *p_u;             // A point on the ultra sound axis
 
     Float tol;
-    Float rrWeight;
+    Float rr_weight;
     Float invrrWeight;
 
     Float er_stepsize;
     int m_precision;
-    Float m_EgapEndLocX;
-    Float m_SgapBeginLocX;
+    Float m_egap_end_loc_x;
+    Float m_sgap_begin_loc_x;
 
     bool m_useInitializationHack;
 
 
     __device__ inline Float RIF(const TVector3<Float> &p, const Float &scaling) const{
-        if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
+        if(p.x > m_egap_end_loc_x || p.x < m_sgap_begin_loc_x)
             return n_o;
 #if USE_RIF_SOURCES
         return fus_RIF(p, scaling);
@@ -471,7 +471,7 @@ public:
     }
 
     __device__ inline const TVector3<Float> dRIF(const TVector3<Float> &p, const Float &scaling) const{
-        if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
+        if(p.x > m_egap_end_loc_x || p.x < m_sgap_begin_loc_x)
             return TVector3<Float>(0.0);
 #if USE_RIF_SOURCES
         return fus_dRIF(p, scaling);
@@ -481,7 +481,7 @@ public:
     }
 
     //inline const Matrix3x3 HessianRIF(const TVector3<Float> &p, const Float &scaling) const{
-    //    if(p.x > m_EgapEndLocX || p.x < m_SgapBeginLocX)
+    //    if(p.x > m_egap_end_loc_x || p.x < m_sgap_begin_loc_x)
     //        return Matrix3x3(0.0);
     //  return bessel_HessianRIF(p, scaling);
     //}
@@ -600,7 +600,7 @@ public:
 
     __device__ inline const Float getTol2() const{return tol*tol;}
 
-    __device__ inline const Float getrrWeight() const{return rrWeight;}
+    __device__ inline const Float getrrWeight() const{return rr_weight;}
 
     __device__ inline const Float getInvrrWeight() const{return invrrWeight;}
 
@@ -667,11 +667,11 @@ protected:
         er_stepsize    = us.er_stepsize;
 
         tol            = us.tol;
-        rrWeight       = us.rrWeight;
+        rr_weight       = us.rr_weight;
         invrrWeight    = us.invrrWeight;
         m_precision    = us.m_precision;
-        m_EgapEndLocX  = us.m_EgapEndLocX;
-        m_SgapBeginLocX= us.m_SgapBeginLocX;
+        m_egap_end_loc_x  = us.m_egap_end_loc_x;
+        m_sgap_begin_loc_x= us.m_sgap_begin_loc_x;
 
         m_useInitializationHack = us.m_useInitializationHack;
     }
@@ -817,7 +817,7 @@ public:
         return m_source->sample_ray(pos, dir, total_distance);
     }
 
-    __device__ inline Float getMediumIor(const TVector3<Float> &p, const Float &scaling) const {
+    __device__ inline Float get_medium_ior(const TVector3<Float> &p, const Float &scaling) const {
         return m_us->RIF(p, scaling);
     }
 
@@ -881,16 +881,16 @@ public:
         return (dn - dot(d, dn)*d)/n;
     }
 
-    __device__ inline const Camera &getCamera() {
+    __device__ inline const Camera &get_camera() {
         return *m_camera;
     }
 private:
 
     __host__ Scene(const scn::Scene<tvec::TVector3> &scene) {
-        m_source  = area_textured_source::from(scene.getAreaSource());
+        m_source  = area_textured_source::from(scene.get_area_source());
         m_us      = US::from(scene.m_us);
-        m_bsdf    = SmoothDielectric::from(scene.getBSDF());
-        m_camera  = Camera::from(scene.getCamera());
+        m_bsdf    = SmoothDielectric::from(scene.get_bsdf());
+        m_camera  = Camera::from(scene.get_camera());
     }
 
     Camera *m_camera;

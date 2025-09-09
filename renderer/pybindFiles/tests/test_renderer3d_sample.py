@@ -83,7 +83,7 @@ er_stepsize = 1e-3
 precision = 4
 directTol = 1e-5
 useInitializationHack = True
-rrWeight = 1e-2
+rr_weight = 1e-2
 
 use_bounce_decomposition = True
 projectorTexture = "/home/apedired/Dropbox/AccoustoOptics+InvRendering/CodeEtc/SkeletalRenderer/ercrdr/renderer/images/White.pfm"
@@ -122,7 +122,7 @@ for line in custom_params_f:
     elif param == 'trans_z_sources': trans_z_sources = int(value)
     elif param == 'er_stepsize': er_stepsize = float(value)
     elif param == 'directTol': directTol = float(value)
-    elif param == 'rrWeight': rrWeight = float(value)
+    elif param == 'rr_weight': rr_weight = float(value)
     elif param == 'projectorTexture': projectorTexture = value
     elif param == 'useDirect': useDirect = (value == 'True')
     elif param == 'useAngularSampling': useAngularSampling = (value == 'True')
@@ -180,7 +180,7 @@ if printInputs:
     print('trans_z_sources:' + str(trans_z_sources))
     print('er_stepsize:' + str(er_stepsize))
     print('directTol:' + str(directTol))
-    print('rrWeight:' + str(rrWeight))
+    print('rr_weight:' + str(rr_weight))
     print('projectorTexture:' + str(projectorTexture))
     print('useDirect:' + str(useDirect))
     print('useAngularSampling:' + str(useAngularSampling))
@@ -220,9 +220,9 @@ trans_z_max =  chordlength/2
 phase = phase_pybind.henyey_greenstein(gVal)
 
 emitter_lens_origin = tvector_pybind.Vec3f(mediumR.index(0), 0.0, 0.0)
-EgapEndLocX = emitter_lens_origin.index(0) - emitter_gap
+egap_end_loc_x = emitter_lens_origin.index(0) - emitter_gap
 sensor_lens_origin = tvector_pybind.Vec3f(mediumL.index(0), 0.0, 0.0)
-SgapBeginLocX = sensor_lens_origin.index(0) + sensor_gap 
+sgap_begin_loc_x = sensor_lens_origin.index(0) + sensor_gap 
 
 # initialize source parameters
 lightOrigin = tvector_pybind.Vec3f(mediumR.index(0) + emitter_distance, 0.0, 0.0)
@@ -298,10 +298,10 @@ scene = scene_pybind.Scene(
     p_u,
     er_stepsize,
     directTol,
-    rrWeight, 
+    rr_weight, 
     precision, 
-    EgapEndLocX, 
-    SgapBeginLocX, 
+    egap_end_loc_x, 
+    sgap_begin_loc_x, 
     useInitializationHack
 )
 

@@ -53,7 +53,7 @@ void Renderer<vector_type>::directTracing(const vector_type<Float> &p, const vec
 #ifndef OMEGA_TRACKING
 	d1.normalize();
 #endif
-	Float ior = scene.getMediumIor(p1, scaling);
+	Float ior = scene.get_medium_ior(p1, scaling);
 	vector_type<Float> refrDirToSensor = d1;
 
 	if (ior > FPCONST(1.0)) {
@@ -67,7 +67,7 @@ void Renderer<vector_type>::directTracing(const vector_type<Float> &p, const vec
 #endif
 	}
 
-	Float foreshortening = dot(refrDirToSensor, scene.getCamera().get_dir())/dot(d1, scene.getCamera().get_dir());
+	Float foreshortening = dot(refrDirToSensor, scene.get_camera().get_dir())/dot(d1, scene.get_camera().get_dir());
 	Assert(foreshortening >= FPCONST(0.0));
 
 #if USE_SIMPLIFIED_TIMING
@@ -75,7 +75,7 @@ void Renderer<vector_type>::directTracing(const vector_type<Float> &p, const vec
 #endif
 
 	Float distanceToSensor = 0;
-	if(!scene.getCamera().propagate_till_sensor(p1, refrDirToSensor, distanceToSensor))
+	if(!scene.get_camera().propagate_till_sensor(p1, refrDirToSensor, distanceToSensor))
 		return;
 	totalOpticalDistance += distanceToSensor;
 
@@ -92,7 +92,7 @@ void Renderer<vector_type>::scatter(const vector_type<Float> &p, const vector_ty
 					const scn::Scene<vector_type> &scene, const med::Medium &medium,
 					smp::Sampler &sampler, image::SmallImage &img, Float weight, const Float &scaling, Float &totalOpticalDistance) const {
 
-	Assert(scene.getMediumBlock().inside(p));
+	Assert(scene.get_medium_block().inside(p));
 
 	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
 		vector_type<Float> pos(p), dir(d);
@@ -142,7 +142,7 @@ void Renderer<vector_type>::scatter(const vector_type<Float> &p, const vector_ty
 //							image::SmallImage &dSigmaT, image::SmallImage &dAlbedo,
 //							image::SmallImage &dGVal, Float weight) const {
 //
-//	Assert(scene.getMediumBlock().inside(p));
+//	Assert(scene.get_medium_block().inside(p));
 //
 //	if ((medium.getAlbedo() > FPCONST(0.0)) && ((medium.getAlbedo() >= FPCONST(1.0)) || (sampler() < medium.getAlbedo()))) {
 //		vector_type<Float> pos(p), dir(d);
@@ -209,7 +209,7 @@ void Renderer<vector_type>::scatter(const vector_type<Float> &p, const vector_ty
 //							image::SmallImage &dSigmaT, image::SmallImage &dAlbedo,
 //							image::SmallImage &dGVal, Float weight) const {
 //
-//	Assert(scene.getMediumBlock().inside(p));
+//	Assert(scene.get_medium_block().inside(p));
 //
 //	if ((samplingMedium.getAlbedo() > FPCONST(0.0)) && ((samplingMedium.getAlbedo() >= FPCONST(1.0)) ||
 //		(sampler() < samplingMedium.getAlbedo()))) {
@@ -292,7 +292,7 @@ void Renderer<vector_type>::renderImage(image::SmallImage &img0,
 
 	Float weight = getWeight(medium, scene, numPhotons);
 #if USE_PRINTING
-	Float Li = scene.getAreaSource().get_Li();
+	Float Li = scene.get_area_source().get_Li();
 	std::cout << "weight " << weight << " Li " << Li << std::endl;
 #endif
 
@@ -326,7 +326,7 @@ void Renderer<vector_type>::renderImage(image::SmallImage &img0,
 
 
 #ifndef OMEGA_TRACKING
-			dir *= scene.getMediumIor(pos, scaling);
+			dir *= scene.get_medium_ior(pos, scaling);
 #endif
 			if(m_useDirect)
 					directTracing(pos, dir, scene, medium, sampler[id], img[id], weight, scaling, total_distance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
@@ -372,7 +372,7 @@ void Renderer<vector_type>::renderImage(image::SmallImage &img0,
 //
 //	Float weight = getWeight(medium, scene, numPhotons);
 //#if USE_PRINTING
-//	Float Li = scene.getAreaSource().get_Li();
+//	Float Li = scene.get_area_source().get_Li();
 //	std::cout << "weight " << weight << " Li " << Li << std::endl;
 //#endif
 //
@@ -437,7 +437,7 @@ void Renderer<vector_type>::renderImage(image::SmallImage &img0,
 //
 //	Float weight = getWeight(medium, scene, numPhotons);
 //#if USE_PRINTING
-//	Float Li = scene.getAreaSource().get_Li();
+//	Float Li = scene.get_area_source().get_Li();
 //	std::cout << "weight " << weight << " Li " << Li << std::endl;
 //#endif
 //

@@ -75,7 +75,7 @@ public:
 
 	static inline Float getWeight(const med::Medium &, const scn::Scene<vector_type> &scene,
 						const int64 numPhotons) {
-		return scene.getAreaSource().get_Li() * scene.getFresnelTrans()
+		return scene.get_area_source().get_Li() * scene.getFresnelTrans()
 				/ static_cast<Float>(numPhotons);
 	}
 

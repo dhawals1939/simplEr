@@ -886,7 +886,7 @@ void Scene<vector_type>::addEnergyInParticle(image::SmallImage &img,
 
 
 #ifndef OMEGA_TRACKING
-    dirToSensor *= getMediumIor(p1, scaling);
+    dirToSensor *= get_medium_ior(p1, scaling);
 #endif
 
     Float distToSensor;
@@ -899,7 +899,7 @@ void Scene<vector_type>::addEnergyInParticle(image::SmallImage &img,
 
     vector_type<Float> refrDirToSensor = dirToSensor;
     Float fresnelWeight = FPCONST(1.0);
-    Float ior = getMediumIor(p1, scaling);
+    Float ior = get_medium_ior(p1, scaling);
 
     if (ior > FPCONST(1.0)) {
         refrDirToSensor.x = refrDirToSensor.x/ior;

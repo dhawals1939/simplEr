@@ -46,7 +46,7 @@ private:
 
     inline Float getWeight(const med::Medium &, const scn::Scene<tvec::TVector3> &scene,
                             const int64 numPhotons) {
-        return scene.getAreaSource().get_Li() * scene.getFresnelTrans()
+        return scene.get_area_source().get_Li() * scene.getFresnelTrans()
                 / static_cast<Float>(numPhotons);
     }
     void setup(image::SmallImage& target, const med::Medium &medium, const scn::Scene<tvec::TVector3> &scene, int numPhotons);

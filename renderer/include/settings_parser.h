@@ -250,11 +250,6 @@ public:
         std::unique_ptr<rif> rif_params = nullptr,
         Float emitter_gap = .0,
         Float sensor_gap = .0,
-        Float er_stepsize = 1e-3,
-        int precision = 8,
-        Float direct_to_l = 1e-5,
-        bool use_initialization_hack = true,
-        Float rr_weight = 1e-2,
         bool use_bounce_decomposition = true,
         bool print_inputs = true,
         const std::string& projector_texture = "/home/dhawals1939/repos/simplER/renderer/images/White.pfm"
@@ -273,11 +268,6 @@ public:
           m_rif_params(std::move(rif_params)),
           m_emitter_gap(emitter_gap),
           m_sensor_gap(sensor_gap),
-          m_er_stepsize(er_stepsize),
-          m_precision(precision),
-          m_direct_to_l(direct_to_l),
-          m_use_initialization_hack(use_initialization_hack),
-          m_rr_weight(rr_weight),
           m_use_bounce_decomposition(use_bounce_decomposition),
           m_print_inputs(print_inputs),
           m_projector_texture(projector_texture)
@@ -290,9 +280,8 @@ public:
     execution_parameters(const AnyMap &settings_json);
     friend std::ostream& operator<<(std::ostream& os, const execution_parameters& s) {
         os << fmt::format(
-            "execution_parameters {{ rendering_type: {}, output_file_name: {}, threads: {}, emitter_gap: {}, sensor_gap: {}, er_stepsize: {}, precision: {}, direct_to_l: {}, use_initialization_hack: {}, rr_weight: {}, use_bounce_decomposition: {}, print_inputs: {}, projector_texture: {} }}\n",
-            s.m_rendering_type, s.m_output_file_name, s.m_threads, s.m_emitter_gap, s.m_sensor_gap, s.m_er_stepsize, s.m_precision,
-            s.m_direct_to_l, s.m_use_initialization_hack, s.m_rr_weight, s.m_use_bounce_decomposition, s.m_print_inputs, s.m_projector_texture
+            "execution_parameters {{ rendering_type: {}, output_file_name: {}, threads: {}, emitter_gap: {}, sensor_gap: {}, use_bounce_decomposition: {}, print_inputs: {}, projector_texture: {} }}\n",
+            s.m_rendering_type, s.m_output_file_name, s.m_threads, s.m_emitter_gap, s.m_sensor_gap, s.m_use_bounce_decomposition, s.m_print_inputs, s.m_projector_texture
         );
         os << s.m_adoc_geometry_params << "\n";
         os << s.m_scattering_params << "\n";
@@ -340,11 +329,6 @@ public:
     // Extended rendering parameters
     Float m_emitter_gap = .0; // distance before US activation (from emitter)
     Float m_sensor_gap = .0;  // distance before US activation (towards sensor)
-    Float m_er_stepsize = 1e-3;
-    int m_precision = 8; // decimal precision for ER stepping
-    Float m_direct_to_l = 1e-5;
-    bool m_use_initialization_hack = true; // force direct connections to line between endpoints
-    Float m_rr_weight = 1e-2;              // Russian roulette survival probability
 
     bool m_use_bounce_decomposition = true; // true = bounce decomposition, false = transient
     bool m_print_inputs = true;

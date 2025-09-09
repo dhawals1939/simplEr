@@ -331,7 +331,7 @@ __device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVect
 	sampleRandomDirection(dirToSensor); // Samples by assuming that the sensor is in +x direction.
 
 #ifndef OMEGA_TRACKING
-	dirToSensor *= getMediumIor(p1, scaling);
+	dirToSensor *= get_medium_ior(p1, scaling);
 #endif
 
 	Float distToSensor;
@@ -344,7 +344,7 @@ __device__ void Scene::addEnergyInParticle(const TVector3<Float> &p, const TVect
 
 	TVector3<Float> refrDirToSensor = dirToSensor;
 	Float fresnelWeight = FPCONST(1.0);
-	Float ior = getMediumIor(p1, scaling);
+	Float ior = get_medium_ior(p1, scaling);
 
 	if (ior > FPCONST(1.0)) {
 		refrDirToSensor.x = refrDirToSensor.x/ior;
@@ -600,7 +600,7 @@ __device__ bool scatterOnce(TVector3<Float> &p, TVector3<Float> &d, Float &dist,
 
 __device__ void directTracing(const TVector3<Float> &p, const TVector3<Float> &d, const Float &scaling, Float &totalOpticalDistance) {
 
-    const Camera &camera = d_constants.scene->getCamera();
+    const Camera &camera = d_constants.scene->get_camera();
 
 	TVector3<Float> p1 = p;
 	TVector3<Float> d1 = d;
@@ -613,7 +613,7 @@ __device__ void directTracing(const TVector3<Float> &p, const TVector3<Float> &d
 #ifndef OMEGA_TRACKING
 	d1.normalize();
 #endif
-	Float ior = d_constants.scene->getMediumIor(p1, scaling);
+	Float ior = d_constants.scene->get_medium_ior(p1, scaling);
 	TVector3<Float> refrDirToSensor = d1;
 
 	if (ior > FPCONST(1.0)) {
@@ -697,7 +697,7 @@ __global__ void renderPhotons() {
             scaling = max(min(sinf(scene.getUSPhi_min() + scene.getUSPhi_range() * uniform_sample()), scene.getUSMaxScaling()), -scene.getUSMaxScaling());
 #endif
 #ifndef OMEGA_TRACKING
-  	    dir *= scene.getMediumIor(pos, scaling);
+  	    dir *= scene.get_medium_ior(pos, scaling);
 #endif
             if (d_constants.useDirect)
                 directTracing(pos, dir, scaling, total_distance); // Traces and adds direct energy, which is equal to weight * exp( -u_t * path_length);
@@ -761,7 +761,7 @@ void CudaRenderer::setup(image::SmallImage& target, const med::Medium &medium, c
     CUDA_CALL(cudaMalloc((void **)&cudaRandomState, numPhotons * sizeof(unsigned int)));
 	CUDA_CALL(cudaMemset(cudaRandomState, seed, numPhotons * sizeof(unsigned int)));
 
-    scn::block<tvec::TVector3> block = scene.getMediumBlock();
+    scn::block<tvec::TVector3> block = scene.get_medium_block();
 
     /* Send in parameter pointers to device */
     Constants h_constants = {

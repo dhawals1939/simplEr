@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
 	int mode = 0;
 	Float er_stepsize = 1e-3;
 	Float directTol = 1e-5; // 10 um units
-	Float rrWeight  = 1e-2; // only one in hundred survives second path call
+	Float rr_weight  = 1e-2; // only one in hundred survives second path call
 
 
 	/*
@@ -163,8 +163,8 @@ int main(int argc, char **argv) {
 			er_stepsize = stof(param[1]);
 		else if(param[0].compare("directTol")==0)
 			directTol = stof(param[1]);
-		else if(param[0].compare("rrWeight")==0)
-			rrWeight = stof(param[1]);
+		else if(param[0].compare("rr_weight")==0)
+			rr_weight = stof(param[1]);
 		else if(param[0].compare("projectorTexture")==0)
 			projectorTexture = param[1];
 		else if(param[0].compare("useDirect")==0){
@@ -256,7 +256,7 @@ int main(int argc, char **argv) {
 					  << "mode, "
 					  << "er_stepsize, "
 					  << "directTol, "
-					  << "rrWeight, "
+					  << "rr_weight, "
 					  << "projectorTexture, "
 					  << "useDirect, "
 					  << "useAngularSampling, "
@@ -349,7 +349,7 @@ int main(int argc, char **argv) {
 	scn::Scene<tvec::TVector3> scene(ior, mediumL, mediumR,
 						lightOrigin, lightDir, halfThetaLimit, projectorTexture, lightPlane, Li,
 						viewOrigin, viewDir, viewX, viewPlane, pathlength_range,
-						f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rrWeight
+						f_u, speed_u, n_o, n_max, mode, axis_uz, axis_ux, p_u, er_stepsize, directTol, rr_weight
 #if USE_RIF_INTERPOLATED
 						, xmin, xmax, N
 #endif

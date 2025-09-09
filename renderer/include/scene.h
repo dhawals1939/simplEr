@@ -31,308 +31,12 @@
 #include <area_textured_source.h>
 #include <area_source.h>
 #include <omp.h>
+#include <rif.h>
 
 namespace scn
 {
 
-    template <template <typename> class vector_type>
-    struct US
-    {
-        Float wavelength_u; // (m)
-        Float R;            // Radius of the ultrasound wavefront (m)
-        Float inv_R2;       // 1/R^2
-
-#if USE_RIF_SOURCES
-        Float f_u;
-        Float speed_u;
-        Float n_o;
-        Float n_scaling;
-        int n_coeff;
-        Float radius;
-        //    Float[] center;
-        vector_type<Float> center1;
-        vector_type<Float> center2;
-        bool active1;
-        bool active2;
-        Float phase1;
-        Float phase2;
-        Float theta_min;
-        Float theta_max;
-        int theta_sources;
-        Float trans_z_min;
-        Float trans_z_max;
-        int trans_z_sources;
-        int nsources;
-        vector_type<Float> *centers1;
-        vector_type<Float> *centers2;
-#else
-        Float f_u;          // Ultrasound frequency (1/s or Hz)
-        Float speed_u;      // Ultrasound speed (m/s)
-        Float n_o;          // Baseline refractive index
-        Float n_max;        // Max refractive index variation
-        Float n_clip;       // Clipped refractive index variation
-        Float n_maxScaling; // =n_clip/n_max
-        Float phi_min;      // Min Phase
-        Float phi_max;      // Max Phase
-        int mode;           // Order of the bessel function or mode of the ultrasound
-#endif
-
-        Float k_r;
-
-        vector_type<Float> axis_uz; // Ultrasound axis
-        vector_type<Float> axis_ux; // Ultrasound x-axis. Need to compute angle as mode > 0 is a function of phi
-
-        vector_type<Float> p_u; // A point on the ultra sound axis
-
-        Float tol;
-        Float rrWeight;
-        Float invrrWeight;
-
-        Float er_stepsize;
-        int m_precision;
-        Float m_EgapEndLocX;
-        Float m_SgapBeginLocX;
-
-        bool m_useInitializationHack;
-
-#if USE_RIF_INTERPOLATED
-        //    spline::Spline<2> m_spline;
-        spline::Spline<3> m_spline;
-#endif
-
-        US(
-#if USE_RIF_SOURCES
-            const Float &f_u, const Float &speed_u, const Float &n_o, const Float &n_scaling, const Float &n_coeff, const Float &radius, const vector_type<Float> &center1, const vector_type<Float> &center2, const bool &active1, const bool &active2, const Float &phase1, const Float &phase2, const Float &theta_min, const Float &theta_max, const int &theta_sources, const Float &trans_z_min, const Float &trans_z_max, const int &trans_z_sources,
-#else
-            const Float &f_u, const Float &speed_u, const Float &n_o, const Float &n_max, const Float &n_clip, const Float &phi_min, const Float &phi_max, const int &mode,
-#endif
-            const vector_type<Float> &axis_uz, const vector_type<Float> &axis_ux, const vector_type<Float> &p_u, const Float &er_stepsize,
-            const Float &tol, const Float &rrWeight, const int &precision, const Float &EgapEndLocX, const Float &SgapBeginLocX, const bool &useInitializationHack
-#if USE_RIF_INTERPOLATED
-            //               , const Float xmin[], const Float xmax[],  const int N[]
-            ,
-            const std::string &rifgridFile
-#endif
-            )
-#if USE_RIF_INTERPOLATED
-            //                   :m_spline(xmin, xmax, N)
-            : m_spline(rifgridFile)
-#endif
-        {
-#if USE_RIF_SOURCES
-            this->f_u = f_u;
-            this->speed_u = speed_u;
-            this->n_o = n_o;
-            this->n_scaling = n_scaling;
-            this->n_coeff = n_coeff;
-            this->radius = radius;
-            this->center1 = center1;
-            this->center2 = center2;
-            this->active1 = active1;
-            this->active2 = active2;
-            this->phase1 = phase1;
-            this->phase2 = phase2;
-            this->theta_min = theta_min;
-            this->theta_max = theta_max;
-            this->theta_sources = theta_sources;
-            this->trans_z_min = trans_z_min;
-            this->trans_z_max = trans_z_max;
-            this->trans_z_sources = trans_z_sources;
-
-            Float theta_diff = (theta_max - theta_min) / (theta_sources - 1);
-            Float trans_z_diff = (trans_z_max - trans_z_min) / (trans_z_sources - 1);
-
-            this->nsources = theta_sources * trans_z_sources;
-            if (this->active1)
-                this->centers1 = new vector_type<Float>[this->nsources];
-            if (this->active2)
-                this->centers2 = new vector_type<Float>[this->nsources];
-
-            for (int i = 0; i < this->theta_sources; i++)
-            {
-                Float theta = this->theta_min + theta_diff * i;
-                Float xval = this->radius * (1 - cos(theta));
-                Float yval = this->radius * (sin(theta));
-
-                for (int j = 0; j < this->trans_z_sources; j++)
-                {
-                    // int index = i*trans_z_sources + j;
-                    int index = i + j * this->theta_sources; // to match matlab indices and debug
-                    // for horizontal (0, 0, 0.0508)
-                    if (this->active1)
-                    {
-                        this->centers1[index].y = yval + this->center1.y;
-                        this->centers1[index].z = xval + this->center1.z;
-                        this->centers1[index].x = this->trans_z_min + trans_z_diff * j + this->center1.x;
-                    }
-                    // for vertical (0, -0.0508, 0)
-                    if (this->active2)
-                    {
-                        this->centers2[index].y = xval + this->center2.y;
-                        this->centers2[index].z = yval + this->center2.z;
-                        this->centers2[index].x = this->trans_z_min + trans_z_diff * j + this->center2.x;
-                    }
-                }
-            }
-#else
-            this->f_u = f_u;
-            this->speed_u = speed_u;
-            this->n_o = n_o;
-            this->n_max = n_max;
-            this->n_clip = n_clip;
-            this->n_maxScaling = n_clip / n_max;
-            this->phi_min = phi_min;
-            this->phi_max = phi_max;
-            this->mode = mode;
-#endif
-            this->wavelength_u = ((double)this->speed_u) / this->f_u;
-            this->k_r = (2 * M_PI) / this->wavelength_u;
-            this->R = this->wavelength_u / 2.;
-            this->inv_R2 = 1 / this->R * this->R;
-            this->axis_uz = axis_uz;
-            this->axis_ux = axis_ux;
-            this->p_u = p_u;
-
-            this->er_stepsize = er_stepsize;
-
-            this->tol = tol;
-            this->rrWeight = rrWeight;
-            this->invrrWeight = 1 / rrWeight;
-            this->m_precision = precision;
-            this->m_EgapEndLocX = EgapEndLocX;
-            this->m_SgapBeginLocX = SgapBeginLocX;
-
-            this->m_useInitializationHack = useInitializationHack;
-        }
-
-        inline Float RIF(const vector_type<Float> &p, const Float &scaling) const
-        {
-            if (p.x > this->m_EgapEndLocX || p.x < this->m_SgapBeginLocX)
-                return this->n_o;
-#if USE_RIF_SOURCES
-            return this->fus_RIF(p, scaling);
-#elif USE_RIF_PARABOLIC
-            return this->parabolic_RIF(p, scaling);
-#elif USE_RIF_INTERPOLATED
-            return this->spline_RIF(p, scaling);
-#else
-            return this->bessel_RIF(p, scaling);
-#endif
-        }
-
-        inline const vector_type<Float> dRIF(const vector_type<Float> &p, const Float &scaling) const
-        {
-            if (p.x > this->m_EgapEndLocX || p.x < this->m_SgapBeginLocX)
-                return vector_type<Float>(0.0);
-#if USE_RIF_SOURCES
-            return this->fus_dRIF(p, scaling);
-#elif USE_RIF_PARABOLIC
-            return this->parabolic_dRIF(p, scaling);
-#elif USE_RIF_INTERPOLATED
-            return this->spline_dRIF(p, scaling);
-#else
-            return this->bessel_dRIF(p, scaling);     
-#endif
-        }
-
-        inline const Matrix3x3 HessianRIF(const vector_type<Float> &p, const Float &scaling) const
-        {
-            if (p.x > this->m_EgapEndLocX || p.x < this->m_SgapBeginLocX)
-                return Matrix3x3(0.0);
-#if USE_RIF_SOURCES
-            return this->fus_HessianRIF(p, scaling);
-#elif PARABOLIC_RIF
-            return this->parabolic_HessianRIF(p, scaling);
-#elif USE_RIF_INTERPOLATED
-            return this->spline_HessianRIF(p, scaling);
-#else
-            return this->bessel_HessianRIF(p, scaling);
-#endif
-        }
-
-
-#if USE_RIF_SOURCES
-
-        inline double fus_RIF(const vector_type<Float> &p, const Float &scaling) const;
-
-        inline const vector_type<Float> fus_dRIF(const vector_type<Float> &q, const Float &scaling) const;
-
-        inline const Matrix3x3 fus_HessianRIF(const vector_type<Float> &p, const Float &scaling) const;
-#elif USE_RIF_INTERPOLATED
-        inline double spline_RIF(const vector_type<Float> &p, const Float &scaling) const
-        {
-            Float temp[3];
-            temp[0] = p.x;
-            temp[1] = p.y;
-            temp[2] = p.z;
-            return this->m_spline.value(temp);
-            //      Float temp[2];
-            //      temp[0] = p.y;
-            //      temp[1] = p.z;
-            //      return (m_spline.value<0, 0>(temp)*scaling + n_o);
-        }
-
-        inline const vector_type<Float> spline_dRIF(const vector_type<Float> &p, const Float &scaling) const
-        {
-            Float temp[3];
-            temp[0] = p.x;
-            temp[1] = p.y;
-            temp[2] = p.z;
-            return this->m_spline.gradient(temp);
-            //              vector_type<Float>(m_spline.value<1, 0, 0>(temp), m_spline.value<0, 1, 0>(temp), m_spline.value<0, 0, 1>(temp));
-            //      Float temp[2];
-            //      temp[0] = q.z;
-            //      temp[1] = q.y;
-            //
-            ////        return scaling*m_spline.gradient2d(temp);
-            //      return scaling*vector_type<Float>(0.0, m_spline.value<0, 1>(temp), m_spline.value<1, 0>(temp));
-        }
-
-        inline const Matrix3x3 spline_HessianRIF(const vector_type<Float> &p, const Float &scaling) const
-        {
-            Float temp[3];
-            temp[0] = p.x;
-            temp[1] = p.y;
-            temp[2] = p.z;
-            return this->m_spline.hessian(temp);
-            //      Float temp[2];
-            //      temp[0] = p.z;
-            //      temp[1] = p.y;
-            //
-            ////        return scaling*m_spline.hessian2d(temp);
-            //      Float hxy = m_spline.value<1, 1>(temp);
-            //        return scaling*Matrix3x3(0, 0,   0,
-            //                       0, m_spline.value<0, 2>(temp), hxy,
-            //                       0, hxy,                        m_spline.value<2, 0>(temp));
-        }
-#elif PARABOLIC_RIF
-
-        inline double parabolic_RIF(const vector_type<Float> &p, const Float &scaling) const;
-
-        inline const vector_type<Float> parabolic_dRIF(const vector_type<Float> &q, const Float &scaling) const;
-
-        inline const Matrix3x3 parabolic_HessianRIF(const vector_type<Float> &p, const Float &scaling) const;
-#else
-
-        inline double bessel_RIF(const vector_type<Float> &p, const Float &scaling) const;
-
-        inline const vector_type<Float> bessel_dRIF(const vector_type<Float> &q, const Float &scaling) const;
-
-        inline const Matrix3x3 bessel_HessianRIF(const vector_type<Float> &p, const Float &scaling) const;
-
-#endif
-
-        inline const Float getStepSize() const { return this->er_stepsize; }
-
-        inline const Float getTol2() const { return this->tol * this->tol; }
-
-        inline const Float getrrWeight() const { return this->rrWeight; }
-
-        inline const Float getInvrrWeight() const { return this->invrrWeight; }
-
-        inline const int getPrecision() const { return this->m_precision; }
-    };
-
+  
     template <template <typename> class vector_type>
     class Scene;
 
@@ -626,11 +330,11 @@ namespace scn
      //                      const tvec::Vec3f &d, Float val,
      //                      const med::Medium &medium, smp::Sampler &sampler) const;
 
-     inline Float getMediumIor() const
+     inline Float get_medium_ior() const
      {
          return m_ior;
      }
-     inline Float getMediumIor(const vector_type<Float> &p, const Float &scaling) const
+     inline Float get_medium_ior(const vector_type<Float> &p, const Float &scaling) const
      {
          return m_us.RIF(p, scaling);
      }
@@ -651,18 +355,18 @@ namespace scn
      }
 
 #ifndef PROJECTOR
-     inline const area_source<vector_type> &getAreaSource() const
+     inline const area_source<vector_type> &get_area_source() const
      {
          return m_source;
      }
 #else
-        inline const area_textured_source<vector_type> &getAreaSource() const
+        inline const area_textured_source<vector_type> &get_area_source() const
         {
             return m_source;
         }
 #endif
 
-     inline const Camera<vector_type> &getCamera() const
+     inline const Camera<vector_type> &get_camera() const
      {
          return m_camera;
      }

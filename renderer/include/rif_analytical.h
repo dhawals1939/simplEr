@@ -6,60 +6,64 @@
 #include <rif.h>
 #include <json_helper.h> // AnyMap/get_num/get_exact
 
-
-class rif_analytical final : public rif
+template <template <typename> class vector_type>
+class rif_analytical final : public rif<vector_type>
 {
 public:
-    Float m_f_u = 848 * 1e3;
-    Float m_speed_u = 1500;
-    Float m_n_o = 1.3333;
-    Float m_n_max = 1e-3;
-    Float m_n_clip = 1e-3;
-    Float m_phi_min = M_PI / 2;
-    Float m_phi_max = M_PI / 2;
-    int m_mode = 0;
+    Float m_n_max = -1;
+    Float m_n_clip = -1;
+    Float m_phi_min = -1;
+    Float m_phi_max = -1;
+    int m_mode = -1;
+    
+    // derived
+    Float m_n_maxScaling = -1; // =n_clip/n_max
 
-    rif_analytical() = default;
+    // rif_analytical() = default;
 
-    explicit rif_analytical(const AnyMap &rif_params)
+    explicit rif_analytical(const AnyMap &rif_params, Float EgapEndLocX, Float SgapBeginLocX): rif(rif_params, EgapEndLocX, SgapBeginLocX)
     {
         this->m_f_u = get_num<Float>(rif_params, "f_u");
         this->m_speed_u = get_num<Float>(rif_params, "speed_u");
-        this->m_n_o = get_num<Float>(rif_params, "n_o");
         this->m_n_max = get_num<Float>(rif_params, "n_max");
         this->m_n_clip = get_num<Float>(rif_params, "n_clip");
         this->m_phi_min = get_num<Float>(rif_params, "phi_min");
         this->m_phi_max = get_num<Float>(rif_params, "phi_max");
         this->m_mode = get_num<int>(rif_params, "mode");
-        assert(this->m_phi_max >= this->m_phi_min && "phi_max must be greater than or equal to phi_min");
+        
+        this->recompute_derived_();        
     }
 
     rif_analytical(Float f_u_, Float speed_u_, Float n_o_,
-                 Float n_max_, Float n_clip_,
-                 Float phi_min_, Float phi_max_,
-                 int mode_)
+                   const vector_type<Float> &axis_uz, const vector_type<Float> &axis_ux, const vector_type<Float> &p_u,
+                   Float tol, Float rrWeight, int precision, Float er_stepsize,
+                   Float EgapEndLocX, Float SgapBeginLocX, bool useInitializationHack,
+                   Float n_max_, Float n_clip_,
+                   Float phi_min_, Float phi_max_,
+                   int mode_) : rif(f_u_, speed_u_, n_o_, axis_uz, axis_ux, p_u, tol, rrWeight, precision, er_stepsize, EgapEndLocX, SgapBeginLocX, useInitializationHack), 
+                   m_n_max(n_max_), m_n_clip(n_clip_), m_phi_min(phi_min_), m_phi_max(phi_max_), m_mode(mode_)
     {
-        this->m_f_u = f_u_;
-        this->m_speed_u = speed_u_;
-        this->m_n_o = n_o_;
-        this->m_n_max = n_max_;
-        this->m_n_clip = n_clip_;
-        this->m_phi_min = phi_min_;
-        this->m_phi_max = phi_max_;
-        this->m_mode = mode_;
+        this->recompute_derived_();
     }
 
     friend std::ostream& operator<<(std::ostream& os, const rif_analytical& rif)
-    {
+    {   
+        os << static_cast<const rif&>(rif);
         os << "rif_analytical:\n"
-           << "  f_u = " << rif.m_f_u << "\n"
-           << "  speed_u = " << rif.m_speed_u << "\n"
-           << "  n_o = " << rif.m_n_o << "\n"
            << "  n_max = " << rif.m_n_max << "\n"
            << "  n_clip = " << rif.m_n_clip << "\n"
            << "  phi_min = " << rif.m_phi_min << "\n"
            << "  phi_max = " << rif.m_phi_max << "\n"
            << "  mode = " << rif.m_mode << "\n";
+           << "  n_maxScaling = " << rif.m_n_maxScaling << "\n";
         return os;
+    }
+    ~rif_analytical() override = default;
+
+    private:
+    void recompute_derived_()
+    {
+        assert(this->m_phi_max >= this->m_phi_min && "phi_max must be greater than or equal to phi_min");
+        this->m_n_maxScaling = this->m_n_clip / this->m_n_max;
     }
 };

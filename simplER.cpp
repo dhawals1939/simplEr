@@ -8,7 +8,7 @@
 #include <image.h>
 #include <vector>
 
-
+#define USE_RIF_SOURCES 1
 
 /* ADITHYA: Known issues/inconsistencies to be fixed
  * 1. MaxPathLength and PathLengthRange's maxPathLength are inconsistent !!
@@ -57,9 +57,9 @@ int main(int argc, char **argv)
     pfunc::henyey_greenstein *phase = new pfunc::henyey_greenstein(execution_params.m_scattering_params.m_g_val);
 
     tvec::Vec3f emitter_lens_origin(execution_params.m_scene_params.m_medium_r[0], FPCONST(0.0), FPCONST(0.0));
-    Float EgapEndLocX = emitter_lens_origin.x - execution_params.m_emitter_gap;
+    Float egap_end_loc_x = emitter_lens_origin.x - execution_params.m_emitter_gap;
     tvec::Vec3f sensor_lens_origin(execution_params.m_scene_params.m_medium_l[0], FPCONST(0.0), FPCONST(0.0));
-    Float SgapBeginLocX = sensor_lens_origin.x + execution_params.m_sensor_gap; // ADI: VERIFY ME
+    Float sgap_begin_loc_x = sensor_lens_origin.x + execution_params.m_sensor_gap; // ADI: VERIFY ME
 
     /*
         * Initialize source parameters.
@@ -82,18 +82,11 @@ int main(int argc, char **argv)
 
     const tvec::Vec3i view_resolution(execution_params.m_film_params.m_spatial_x, execution_params.m_film_params.m_spatial_y, execution_params.m_film_params.m_path_length_bins);
 
-    /*
-        * Initialize rendering parameters.
-        */
-    const tvec::Vec3f axis_uz(-FPCONST(1.0), FPCONST(0.0), FPCONST(0.0));
-    const tvec::Vec3f axis_ux(FPCONST(0.0), FPCONST(0.0), FPCONST(1.0));
-    const tvec::Vec3f p_u(FPCONST(0.0), FPCONST(0.0), FPCONST(0.0));
-
     const med::Medium medium(execution_params.m_scattering_params.m_sigma_t, execution_params.m_scattering_params.m_albedo, phase);
     scn::Scene<tvec::TVector3> *scene = nullptr;
     if (execution_params.m_rendering_type == "rif_sources")
     {
-        auto *rif_params = dynamic_cast<rif_sources *>(execution_params.m_rif_params.get());
+        auto *rif_params = dynamic_cast<rif_sources *>(execution_params.m_rif_params.get(), sgap_begin_loc_x, egap_end_loc_x);
         if (!rif_params)
         throw std::runtime_error("rif_sources expected, but rif_params holds another type");
         
@@ -105,15 +98,16 @@ int main(int argc, char **argv)
                                                emitter_lens_origin, execution_params.m_lens_params.m_emitter_lens_aperture, execution_params.m_lens_params.m_emitter_lens_focal_length, execution_params.m_lens_params.m_emitter_lens_active,
                                                sensor_lens_origin, execution_params.m_lens_params.m_sensor_lens_aperture, execution_params.m_lens_params.m_sensor_lens_focal_length, execution_params.m_lens_params.m_sensor_lens_active,
                                                rif_params->m_f_u, rif_params->m_speed_u, rif_params->m_n_o, rif_params->m_n_scaling, rif_params->m_n_coeff, rif_params->m_radius, rif_params->m_center1, rif_params->m_center2, rif_params->m_active1, rif_params->m_active2, rif_params->m_phase1, rif_params->m_phase2, rif_params->m_theta_min, rif_params->m_theta_max, rif_params->m_theta_sources, rif_params->m_trans_z_min, rif_params->m_trans_z_max, rif_params->m_trans_z_sources,
-                                               axis_uz, axis_ux, p_u, execution_params.m_er_stepsize, execution_params.m_direct_to_l, execution_params.m_rr_weight, execution_params.m_precision, EgapEndLocX, SgapBeginLocX, execution_params.m_use_initialization_hack
-        );
-        #endif
+                                               rif_params->axis_uz,
+                                               rif_params->axis_ux,
+                                               rif_params->p_u, rif_params->m_er_stepsize, rif_params->m_direct_to_l, rif_params->m_rr_weight, rif_params->m_precision, egap_end_loc_x, sgap_begin_loc_x, rif_params->m_use_initialization_hack);
+#endif
     }
     else if (execution_params.m_rendering_type == "rif_analytical")
     {
         fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::blue), "reached here rif_analytical\n");
 
-        auto *rif_params = dynamic_cast<rif_analytical *>(execution_params.m_rif_params.get());
+        auto *rif_params = dynamic_cast<rif_analytical *>(execution_params.m_rif_params.get(), sgap_begin_loc_x, egap_end_loc_x);
         if (!rif_params)
             throw std::runtime_error("rif_analytical expected, but rif_params holds another type");
 
@@ -125,7 +119,7 @@ int main(int argc, char **argv)
                                                emitter_lens_origin, execution_params.m_lens_params.m_emitter_lens_aperture, execution_params.m_lens_params.m_emitter_lens_focal_length, execution_params.m_lens_params.m_emitter_lens_active,
                                                sensor_lens_origin, execution_params.m_lens_params.m_sensor_lens_aperture, execution_params.m_lens_params.m_sensor_lens_focal_length, execution_params.m_lens_params.m_sensor_lens_active,
                                                rif_params->m_f_u, rif_params->m_speed_u, rif_params->m_n_o, rif_params->m_n_max, rif_params->m_n_clip, rif_params->m_phi_min, rif_params->m_phi_max, rif_params->m_mode,
-                                               axis_uz, axis_ux, p_u, execution_params.m_er_stepsize, execution_params.m_direct_to_l, execution_params.m_rr_weight, execution_params.m_precision, EgapEndLocX, SgapBeginLocX, execution_params.m_use_initialization_hack
+                                               axis_uz, axis_ux, p_u, execution_params.m_er_stepsize, execution_params.m_direct_to_l, execution_params.m_rr_weight, execution_params.m_precision, egap_end_loc_x, sgap_begin_loc_x, execution_params.m_use_initialization_hack
         );
         #endif
     }
@@ -133,7 +127,7 @@ int main(int argc, char **argv)
     {
         fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::blue), "reached here rif_interpolated\n");
 
-        auto *rif_params = dynamic_cast<rif_interpolated *>(execution_params.m_rif_params.get());
+        auto *rif_params = dynamic_cast<rif_interpolated *>(execution_params.m_rif_params.get(), sgap_begin_loc_x, egap_end_loc_x);
         if (!rif_params)
             throw std::runtime_error("rif_interpolated expected, but rif_params holds another type");
 
@@ -145,8 +139,8 @@ int main(int argc, char **argv)
                                        emitter_lens_origin, execution_params.m_lens_params.m_emitter_lens_aperture, execution_params.m_lens_params.m_emitter_lens_focal_length, execution_params.m_lens_params.m_emitter_lens_active,
                                        sensor_lens_origin, execution_params.m_lens_params.m_sensor_lens_aperture, execution_params.m_lens_params.m_sensor_lens_focal_length, execution_params.m_lens_params.m_sensor_lens_active,
                                        rif_params->m_f_u, rif_params->m_speed_u, rif_params->m_n_o, rif_params->m_n_max, rif_params->m_n_clip, rif_params->m_phi_min, rif_params->m_phi_max, rif_params->m_mode,
-                                       axis_uz, axis_ux, p_u, execution_params.m_er_stepsize, execution_params.m_direct_to_l, execution_params.m_rr_weight, execution_params.m_precision, EgapEndLocX, SgapBeginLocX, execution_params.m_use_initialization_hack,
-                                       rif_params->m_rifgrid_file
+                                       axis_uz, axis_ux, p_u, execution_params.m_er_stepsize, execution_params.m_direct_to_l, execution_params.m_rr_weight, execution_params.m_precision, egap_end_loc_x, sgap_begin_loc_x, execution_params.m_use_initialization_hack,
+                                       rif_params->m_rif_grid_file
                                     );
         #endif
     }
